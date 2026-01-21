@@ -32,11 +32,24 @@ def create_tipo_plano(payload: TipoPlanoCreate, db: Session = Depends(get_db)):
     return service.tipo_plano.create(payload.model_dump())
 
 
+@router.get("/tipos", response_model=Page[TipoPlanoOut])
+def list_tipos_plano(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
+    service = PlanosService(RecorrenciaRepository(db), TipoPlanoRepository(db), TipoServicoRepository(db), PlanoRepository(db))
+    items, total = service.tipo_plano.list(offset=(page - 1) * page_size, limit=page_size)
+    return Page(items=items, meta=PageMeta(page=page, page_size=page_size, total=total))
+
+
 @router.post("/servicos", response_model=TipoServicoOut)
 def create_tipo_servico(payload: TipoServicoCreate, db: Session = Depends(get_db)):
     service = PlanosService(RecorrenciaRepository(db), TipoPlanoRepository(db), TipoServicoRepository(db), PlanoRepository(db))
     return service.tipo_servico.create(payload.model_dump())
 
+
+@router.get("/servicos", response_model=Page[TipoServicoOut])
+def list_tipos_servico(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
+    service = PlanosService(RecorrenciaRepository(db), TipoPlanoRepository(db), TipoServicoRepository(db), PlanoRepository(db))
+    items, total = service.tipo_servico.list(offset=(page - 1) * page_size, limit=page_size)
+    return Page(items=items, meta=PageMeta(page=page, page_size=page_size, total=total))
 
 @router.post("", response_model=PlanoOut)
 def create_plano(payload: PlanoCreate, db: Session = Depends(get_db)):

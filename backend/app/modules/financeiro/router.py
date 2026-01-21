@@ -46,10 +46,24 @@ def create_categoria(payload: CategoriaCreate, db: Session = Depends(get_db)):
     return service.categoria.create(payload.model_dump())
 
 
+@router.get("/categorias", response_model=Page[CategoriaOut])
+def list_categorias(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
+    service = _service(db)
+    items, total = service.categoria.list(offset=(page - 1) * page_size, limit=page_size)
+    return Page(items=items, meta=PageMeta(page=page, page_size=page_size, total=total))
+
+
 @router.post("/subcategorias", response_model=SubcategoriaOut)
 def create_subcategoria(payload: SubcategoriaCreate, db: Session = Depends(get_db)):
     service = _service(db)
     return service.subcategoria.create(payload.model_dump())
+
+
+@router.get("/subcategorias", response_model=Page[SubcategoriaOut])
+def list_subcategorias(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
+    service = _service(db)
+    items, total = service.subcategoria.list(offset=(page - 1) * page_size, limit=page_size)
+    return Page(items=items, meta=PageMeta(page=page, page_size=page_size, total=total))
 
 
 @router.post("/contas-pagar", response_model=ContasPagarOut)
