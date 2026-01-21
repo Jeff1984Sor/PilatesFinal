@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import base64
 import re
 from datetime import date, datetime
+from html.parser import HTMLParser
 from io import BytesIO
 from typing import Any
 
+import httpx
 import markdown
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Image as PdfImage
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -107,15 +112,8 @@ class TermoRenderer:
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4)
         styles = getSampleStyleSheet()
-        body = []
-        html = markdown.markdown(text)
-        blocks = [b.strip() for b in html.split("</p>") if b.strip()]
-        for block in blocks:
-            cleaned = block.replace("<p>", "").strip()
-            if not cleaned:
-                continue
-            body.append(Paragraph(cleaned, styles["Normal"]))
-            body.append(Spacer(1, 12))
+        html = text if self._looks_like_html(text) else markdown.markdown(text)
+        body = self._html_to_flowables(html, styles, doc.width)
         if not body:
             body = [Paragraph("Termo de uso", styles["Normal"])]
         doc.build(body)
@@ -153,3 +151,130 @@ class TermoRenderer:
         if value is None:
             return ""
         return str(value)
+
+    def _looks_like_html(self, value: str) -> bool:
+        return "<" in value and ">" in value
+
+    def _html_to_flowables(self, html: str, styles, max_width: float):
+        parser = _HtmlToFlowables(styles, max_width)
+        parser.feed(html)
+        parser.close()
+        return parser.flowables
+
+
+class _HtmlToFlowables(HTMLParser):
+    def __init__(self, styles, max_width: float):
+        super().__init__()
+        self.styles = styles
+        self.max_width = max_width
+        self.flowables: list = []
+        self._buffer: list[str] = []
+        self._block_tag: str | None = None
+        self._list_depth = 0
+
+    def handle_starttag(self, tag: str, attrs):
+        if tag in {"p", "h1", "h2", "h3", "li"}:
+            self._flush_buffer()
+            self._block_tag = tag
+            if tag == "li":
+                self._buffer.append("• ")
+            return
+
+        if tag == "ul":
+            self._list_depth += 1
+            return
+
+        if tag == "img":
+            self._flush_buffer()
+            src = self._get_attr(attrs, "src")
+            if src:
+                image = self._build_image(src)
+                if image:
+                    self.flowables.append(image)
+                    self.flowables.append(Spacer(1, 12))
+            return
+
+        if tag == "strong":
+            self._buffer.append("<b>")
+        elif tag == "em":
+            self._buffer.append("<i>")
+        elif tag == "u":
+            self._buffer.append("<u>")
+        elif tag == "a":
+            href = self._get_attr(attrs, "href") or ""
+            self._buffer.append(f'<a href="{href}">')
+
+    def handle_endtag(self, tag: str):
+        if tag in {"p", "h1", "h2", "h3", "li"}:
+            self._flush_buffer()
+            self._block_tag = None
+            return
+        if tag == "ul":
+            self._list_depth = max(0, self._list_depth - 1)
+            return
+        if tag == "strong":
+            self._buffer.append("</b>")
+        elif tag == "em":
+            self._buffer.append("</i>")
+        elif tag == "u":
+            self._buffer.append("</u>")
+        elif tag == "a":
+            self._buffer.append("</a>")
+
+    def handle_data(self, data: str):
+        if not data:
+            return
+        self._buffer.append(data)
+
+    def _flush_buffer(self):
+        text = "".join(self._buffer).strip()
+        if not text:
+            self._buffer = []
+            return
+        style = self._get_style()
+        self.flowables.append(Paragraph(text, style))
+        self.flowables.append(Spacer(1, 12))
+        self._buffer = []
+
+    def _get_style(self):
+        if self._block_tag == "h1":
+            return self.styles["Heading1"]
+        if self._block_tag == "h2":
+            return self.styles["Heading2"]
+        if self._block_tag == "h3":
+            return self.styles["Heading3"]
+        return self.styles["Normal"]
+
+    def _get_attr(self, attrs, key: str) -> str | None:
+        for name, value in attrs:
+            if name == key:
+                return value
+        return None
+
+    def _build_image(self, src: str):
+        data = self._load_image_bytes(src)
+        if not data:
+            return None
+        try:
+            image = ImageReader(BytesIO(data))
+            width, height = image.getSize()
+            scale = min(1.0, self.max_width / float(width)) if width else 1.0
+            return PdfImage(BytesIO(data), width=width * scale, height=height * scale)
+        except Exception:
+            return None
+
+    def _load_image_bytes(self, src: str) -> bytes | None:
+        if src.startswith("data:image/") and ";base64," in src:
+            try:
+                payload = src.split(";base64,", 1)[1]
+                return base64.b64decode(payload)
+            except Exception:
+                return None
+        if src.startswith("http://") or src.startswith("https://"):
+            try:
+                resp = httpx.get(src, timeout=10.0)
+                if resp.status_code == 200:
+                    return resp.content
+            except Exception:
+                return None
+        return None

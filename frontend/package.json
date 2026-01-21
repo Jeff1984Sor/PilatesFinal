@@ -10,6 +10,12 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.59.20",
+    "@tiptap/extension-image": "^3.16.0",
+    "@tiptap/extension-link": "^3.16.0",
+    "@tiptap/extension-text-align": "^3.16.0",
+    "@tiptap/extension-underline": "^3.16.0",
+    "@tiptap/react": "^3.16.0",
+    "@tiptap/starter-kit": "^3.16.0",
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

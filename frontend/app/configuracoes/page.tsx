@@ -1,7 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
+import Image from "@tiptap/extension-image";
 import AppShell from "@/components/layout/AppShell";
 import api from "@/lib/api";
 
@@ -57,6 +63,20 @@ export default function Page() {
   const [fornecedorForm, setFornecedorForm] = useState({ nome: "", documento: "", whatsapp: "" });
   const [categoriaForm, setCategoriaForm] = useState({ descricao: "" });
   const [subcategoriaForm, setSubcategoriaForm] = useState({ descricao: "", categoria_id: "" });
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      Link.configure({ openOnClick: false }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Image
+    ],
+    content: termoForm.descricao || "",
+    onUpdate: ({ editor }) => {
+      setTermoForm((f) => ({ ...f, descricao: editor.getHTML() }));
+    }
+  });
 
   const unidadesQuery = useQuery({
     queryKey: ["unidades"],
@@ -273,6 +293,41 @@ export default function Page() {
     }, {});
   }, []);
 
+  useEffect(() => {
+    if (!editor) return;
+    const current = editor.getHTML();
+    if ((termoForm.descricao || "") !== current) {
+      editor.commands.setContent(termoForm.descricao || "", false);
+    }
+  }, [editor, termoForm.descricao]);
+
+  const insertVariable = (key: string) => {
+    if (!editor) return;
+    editor.chain().focus().insertContent(`{{${key}}}`).run();
+  };
+
+  const insertImage = () => {
+    if (!editor) return;
+    const url = window.prompt("URL da imagem");
+    if (!url) return;
+    editor.chain().focus().setImage({ src: url }).run();
+  };
+
+  const setLink = () => {
+    if (!editor) return;
+    const url = window.prompt("URL do link");
+    if (!url) return;
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  };
+
+  const uppercaseSelection = () => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+    const text = editor.state.doc.textBetween(from, to, "\n");
+    editor.chain().focus().insertContentAt({ from, to }, text.toUpperCase()).run();
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -362,7 +417,7 @@ export default function Page() {
                     Use variaveis como {"{{aluno.nome}}"} ou {"{{plano.descricao}}"}.
                   </p>
                 </div>
-                <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_280px]">
+                <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr_280px]">
                   <div className="space-y-3">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <input
@@ -380,12 +435,91 @@ export default function Page() {
                         Ativo
                       </label>
                     </div>
-                    <textarea
-                      className="min-h-[220px] rounded-2xl border border-black/10 p-3"
-                      placeholder="Escreva o modelo do termo (Markdown ou texto)."
-                      value={termoForm.descricao}
-                      onChange={(e) => setTermoForm((f) => ({ ...f, descricao: e.target.value }))}
-                    />
+                    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-black/10 bg-white/80 p-2 text-xs">
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={() => editor?.chain().focus().toggleBold().run()}
+                        type="button"
+                      >
+                        Negrito
+                      </button>
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={() => editor?.chain().focus().toggleItalic().run()}
+                        type="button"
+                      >
+                        Italico
+                      </button>
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={() => editor?.chain().focus().toggleUnderline().run()}
+                        type="button"
+                      >
+                        Sublinhado
+                      </button>
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+                        type="button"
+                      >
+                        Titulo
+                      </button>
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                        type="button"
+                      >
+                        Lista
+                      </button>
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={setLink}
+                        type="button"
+                      >
+                        Link
+                      </button>
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={insertImage}
+                        type="button"
+                      >
+                        Imagem
+                      </button>
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={uppercaseSelection}
+                        type="button"
+                      >
+                        Maiuscula
+                      </button>
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+                        type="button"
+                      >
+                        Esquerda
+                      </button>
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+                        type="button"
+                      >
+                        Centro
+                      </button>
+                      <button
+                        className="rounded-full bg-white/70 px-3 py-1"
+                        onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+                        type="button"
+                      >
+                        Direita
+                      </button>
+                    </div>
+                    <div className="min-h-[420px] rounded-2xl border border-black/10 bg-white/80 p-3">
+                      <EditorContent
+                        editor={editor}
+                        className="min-h-[380px] outline-none text-sm"
+                      />
+                    </div>
                     <button
                       className="rounded-full bg-black px-4 py-2 text-white"
                       onClick={() => createTermo.mutate()}
@@ -393,6 +527,13 @@ export default function Page() {
                     >
                       {createTermo.isPending ? "Salvando..." : "Adicionar termo"}
                     </button>
+                  </div>
+                  <div className="rounded-2xl bg-white/70 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-400">Preview</p>
+                    <div
+                      className="prose prose-sm mt-3 max-w-none rounded-xl bg-white/80 p-4"
+                      dangerouslySetInnerHTML={{ __html: termoForm.descricao || "<p>Sem conteudo.</p>" }}
+                    />
                   </div>
                   <div className="rounded-2xl bg-white/70 p-4">
                     <p className="text-xs uppercase tracking-widest text-gray-400">Variaveis</p>
@@ -405,6 +546,13 @@ export default function Page() {
                             {v.key}
                             {"}}"} • ex: {v.example}
                           </p>
+                          <button
+                            className="mt-2 rounded-full bg-white/70 px-3 py-1 text-[10px]"
+                            onClick={() => insertVariable(v.key)}
+                            type="button"
+                          >
+                            Inserir variavel
+                          </button>
                         </div>
                       ))}
                       {(termoVariaveisQuery.data ?? []).length === 0 && (
