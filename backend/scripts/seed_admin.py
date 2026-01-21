@@ -1,11 +1,12 @@
 from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, import_all_models
 from app.modules.auth.repository import UsuarioRepository, PerfilRepository
 from app.core.security import get_password_hash
 
 
 def main():
+    import_all_models()
     db: Session = SessionLocal()
     try:
         perfil_repo = PerfilRepository(db)
