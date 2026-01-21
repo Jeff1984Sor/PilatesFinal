@@ -38,7 +38,7 @@ def upgrade() -> None:
         sa.Column("senha_hash", sa.String(length=255), nullable=False),
         sa.Column("profissional_id", sa.Integer(), sa.ForeignKey("profissional.id"), nullable=True),
         sa.Column("perfil_acesso_id", sa.Integer(), sa.ForeignKey("perfil_acesso.id"), nullable=False),
-        sa.Column("ativo", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("ativo", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("criado_em", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
     )
     op.create_index("ix_usuario_email", "usuario", ["email"], unique=True)
@@ -48,7 +48,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("nome", sa.String(length=200), nullable=False),
         sa.Column("ocupacao_max", sa.Integer(), nullable=False),
-        sa.Column("ativo", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("ativo", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("criado_em", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
     )
 
@@ -57,7 +57,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("descricao", sa.Text(), nullable=False),
         sa.Column("versao", sa.String(length=50), nullable=False),
-        sa.Column("ativo", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("ativo", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("criado_em", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
     )
 
@@ -84,7 +84,7 @@ def upgrade() -> None:
         sa.Column("cep", sa.String(length=10), nullable=False),
         sa.Column("cidade", sa.String(length=100), nullable=False),
         sa.Column("bairro", sa.String(length=100), nullable=False),
-        sa.Column("principal", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("principal", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("criado_em", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
     )
 
@@ -116,7 +116,7 @@ def upgrade() -> None:
         sa.Column("tipo_servico_id", sa.Integer(), sa.ForeignKey("tipo_servico.id"), nullable=False),
         sa.Column("preco", sa.Numeric(10, 2), nullable=False),
         sa.Column("quantidade_aulas", sa.Integer(), nullable=True),
-        sa.Column("ativo", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("ativo", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("criado_em", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP")),
     )
 
@@ -249,7 +249,7 @@ def upgrade() -> None:
         sa.Column("regra_rrule", sa.String(length=200), nullable=True),
         sa.Column("inicio", sa.DateTime(), nullable=False),
         sa.Column("fim", sa.DateTime(), nullable=True),
-        sa.Column("ativo", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("ativo", sa.Boolean(), nullable=False, server_default=sa.text("true")),
     )
 
 
