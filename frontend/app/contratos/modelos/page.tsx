@@ -235,6 +235,11 @@ export default function Page() {
     return items.filter((m) => m.titulo.toLowerCase().includes(term));
   }, [modelosQuery.data, search]);
 
+  const insertVariable = (key: string) => {
+    if (!editor) return;
+    editor.chain().focus().insertContent(`{{${key}}}`).run();
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -433,13 +438,25 @@ export default function Page() {
                 <p className="text-xs uppercase tracking-widest text-gray-400">Variaveis</p>
                 <div className="mt-2 space-y-2 text-xs">
                   {(variaveisQuery.data ?? []).map((v) => (
-                    <div key={v.key} className="rounded-xl bg-white/80 p-2">
+                    <div
+                      key={v.key}
+                      className="cursor-pointer rounded-xl bg-white/80 p-2"
+                      onDoubleClick={() => insertVariable(v.key)}
+                      title="Duplo clique para inserir"
+                    >
                       <p className="font-medium">{v.label}</p>
                       <p className="text-gray-500">
                         {"{{"}
                         {v.key}
                         {"}}"} • ex: {v.example}
                       </p>
+                      <button
+                        className="mt-2 rounded-full bg-white/70 px-3 py-1 text-[10px]"
+                        onClick={() => insertVariable(v.key)}
+                        type="button"
+                      >
+                        Inserir variavel
+                      </button>
                     </div>
                   ))}
                   {(variaveisQuery.data ?? []).length === 0 && (
