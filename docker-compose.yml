@@ -19,7 +19,7 @@ services:
       ENV: dev
       DATABASE_URL: postgresql+psycopg://studiopilates:studiopilates@postgres:5432/studiopilates
       SECRET_KEY: change-me
-      CORS_ORIGINS: http://localhost:3000
+      CORS_ORIGINS: http://34.67.200.156:3000
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       REFRESH_TOKEN_EXPIRE_DAYS: 7
       EVOLUTION_BASE_URL: ""
@@ -39,7 +39,7 @@ services:
     build: ./frontend
     container_name: studiopilates-frontend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: http://34.67.200.156:8000
     ports:
       - "3000:3000"
     volumes:
