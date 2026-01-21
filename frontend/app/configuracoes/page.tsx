@@ -73,6 +73,7 @@ export default function Page() {
       Image
     ],
     content: termoForm.descricao || "",
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       setTermoForm((f) => ({ ...f, descricao: editor.getHTML() }));
     }
