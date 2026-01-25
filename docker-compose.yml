@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: studiopilates
       POSTGRES_DB: studiopilates
     ports:
-      - "5432:5432"
+      - "5440:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -43,8 +43,6 @@ services:
       NEXT_PUBLIC_API_URL: http://34.67.200.156:8000
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
     depends_on:
       - backend
     command: npm run dev -- --hostname 0.0.0.0 --port 3000
