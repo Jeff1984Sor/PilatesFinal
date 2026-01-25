@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h3 class="mb-0">Conta Bancaria</h3>
+    <div class="text-muted small">Concilie entradas e saidas com lancamentos manuais.</div>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#createConta">Nova Conta</button>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createMovimento">Novo Lancamento</button>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Saldo inicial</div>
+        <div class="fs-5 fw-semibold">R$ {{ saldo_inicial }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Entradas</div>
+        <div class="fs-5 fw-semibold text-success">R$ {{ total_entrada }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Saidas</div>
+        <div class="fs-5 fw-semibold text-danger">R$ {{ total_saida }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Saldo atual</div>
+        <div class="fs-5 fw-semibold">{{ saldo_atual }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-md-3">
+        <label class="form-label">Conta</label>
+        <select class="form-select" name="conta">
+          {% for c in contas %}
+            <option value="{{ c.id }}" {% if conta_selecionada and c.id == conta_selecionada.id %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" name="tipo">
+          <option value="">Todos</option>
+          <option value="ENTRADA" {% if filtros.tipo == "ENTRADA" %}selected{% endif %}>Entrada</option>
+          <option value="SAIDA" {% if filtros.tipo == "SAIDA" %}selected{% endif %}>Saida</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Data (de)</label>
+        <input class="form-control" type="date" name="inicio" value="{{ filtros.inicio }}" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Data (ate)</label>
+        <input class="form-control" type="date" name="fim" value="{{ filtros.fim }}" />
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-outline-secondary w-100" type="submit">Filtrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Descricao</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in movimentos %}
+            <tr>
+              <td>{{ m.data|date:"d/m/Y" }}</td>
+              <td>{{ m.tipo }}</td>
+              <td>{{ m.descricao|default:"-" }}</td>
+              <td>R$ {{ m.valor }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-muted">Sem movimentos.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="createConta" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Nova conta bancaria</h5>
+          <div class="small text-muted">Informe banco, agencia e conta.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form class="modal-form" method="post" action="/financeiro/conta-bancaria/criar/">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              {{ form_conta.banco.label_tag }} {{ form_conta.banco }}
+            </div>
+            <div class="col-md-3">
+              {{ form_conta.agencia.label_tag }} {{ form_conta.agencia }}
+            </div>
+            <div class="col-md-3">
+              {{ form_conta.conta.label_tag }} {{ form_conta.conta }}
+            </div>
+            <div class="col-md-4">
+              {{ form_conta.saldo_inicial.label_tag }}
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                {{ form_conta.saldo_inicial }}
+              </div>
+            </div>
+            <div class="col-md-2">
+              {{ form_conta.ativo.label_tag }} {{ form_conta.ativo }}
+            </div>
+          </div>
+          <div class="d-flex justify-content-end gap-2 pt-3">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="createMovimento" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Novo lancamento</h5>
+          <div class="small text-muted">Entrada ou saida manual.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form class="modal-form" method="post" action="/financeiro/conta-bancaria/movimentos/criar/" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              {{ form_movimento.conta.label_tag }} {{ form_movimento.conta }}
+            </div>
+            <div class="col-md-3">
+              {{ form_movimento.tipo.label_tag }} {{ form_movimento.tipo }}
+            </div>
+            <div class="col-md-3">
+              {{ form_movimento.data.label_tag }} {{ form_movimento.data }}
+            </div>
+            <div class="col-md-4">
+              {{ form_movimento.valor.label_tag }}
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                {{ form_movimento.valor }}
+              </div>
+            </div>
+            <div class="col-md-8">
+              {{ form_movimento.descricao.label_tag }} {{ form_movimento.descricao }}
+            </div>
+            <div class="col-md-6">
+              {{ form_movimento.comprovante.label_tag }} {{ form_movimento.comprovante }}
+            </div>
+          </div>
+          <div class="d-flex justify-content-end gap-2 pt-3">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

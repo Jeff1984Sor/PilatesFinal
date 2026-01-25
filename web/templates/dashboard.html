@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted">Alunos</h6>
+        <div class="display-6">{{ alunos }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted">Contratos</h6>
+        <div class="display-6">{{ contratos }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted">Reservas Hoje</h6>
+        <div class="display-6">{{ reservas_hoje }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted">Receber em Aberto</h6>
+        <div class="display-6">{{ receber_aberto }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3>Passo 4 - Contrato</h3>
+    <form method="post">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-3">
+          <input class="form-control" name="cdContrato" placeholder="Codigo" required />
+        </div>
+        <div class="col-md-3">
+          <input class="form-control" name="valor" placeholder="Valor parcela" required />
+        </div>
+        <div class="col-md-3">
+          <input class="form-control" name="dtInicioContrato" type="date" required />
+        </div>
+        <div class="col-md-3">
+          <input class="form-control" name="dtFimContrato" type="date" required />
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" name="cdAluno" required>
+            {% for a in alunos %}<option value="{{ a.id }}" {% if aluno_id == a.id %}selected{% endif %}>{{ a.dsNome }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" name="cdPlano" required>
+            {% for p in planos %}<option value="{{ p.id }}">{{ p.dsPlano }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" name="cdUnidade" required>
+            {% for u in unidades %}<option value="{{ u.id }}">{{ u.dsUnidade }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" name="cdProfissional" required>
+            {% for p in profissionais %}<option value="{{ p.id }}">{{ p.profissional }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary mt-3" type="submit">Continuar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

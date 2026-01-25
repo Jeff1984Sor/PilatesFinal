@@ -1,0 +1,21 @@
+from django.contrib import admin
+from . import models
+
+admin.site.register(models.PerfilAcesso)
+admin.site.register(models.Profissional)
+admin.site.register(models.Unidade)
+admin.site.register(models.TermoUso)
+admin.site.register(models.Aluno)
+admin.site.register(models.EnderecoAluno)
+admin.site.register(models.TelefoneAluno)
+admin.site.register(models.TipoServico)
+admin.site.register(models.Plano)
+admin.site.register(models.Contrato)
+admin.site.register(models.Fornecedor)
+admin.site.register(models.Categoria)
+admin.site.register(models.Subcategoria)
+admin.site.register(models.ContasPagar)
+admin.site.register(models.AulaSessao)
+admin.site.register(models.Reserva)
+admin.site.register(models.ContasReceber)
+admin.site.register(models.ModeloContrato)

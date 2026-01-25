@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3>Passo 1 - Documento</h3>
+    {% if student %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="confirm" value="1" />
+        <div class="row g-3">
+          <div class="col-md-6">
+            <input class="form-control" name="nome" value="{{ student.nome }}" placeholder="Nome" required />
+          </div>
+          <div class="col-md-3">
+            <input class="form-control" name="cpf" value="{{ student.cpf }}" placeholder="CPF" required />
+          </div>
+          <div class="col-md-3">
+            <input class="form-control" name="rg" value="{{ student.rg }}" placeholder="RG" />
+          </div>
+          <div class="col-md-4">
+            <select class="form-select" name="cdUnidade" required>
+              {% for u in unidades %}<option value="{{ u.id }}">{{ u.dsUnidade }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary mt-3" type="submit">Continuar</button>
+      </form>
+    {% else %}
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input class="form-control mb-3" type="file" name="documento" required />
+        <button class="btn btn-primary" type="submit">Enviar</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

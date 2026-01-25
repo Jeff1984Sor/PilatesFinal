@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3>Passo 5 - Reservas</h3>
+    <form method="post">
+      {% csrf_token %}
+      <p>Confirmar criacao de contrato e reservas automaticas.</p>
+      <button class="btn btn-primary" type="submit">Finalizar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

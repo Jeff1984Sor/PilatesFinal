@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% now "Y-m-d" as today_str %}
+{% block content %}
+<div class="agenda-page">
+  <div class="agenda-hero">
+    <div class="agenda-hero__title">
+      <div class="agenda-kicker">Voce esta em: Gestao das Aulas</div>
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <h2 class="mb-0">Agenda de Aulas</h2>
+        <div class="agenda-range">{{ week_start|date:"d/m" }} - {{ week_end|date:"d/m" }}</div>
+      </div>
+    </div>
+    <div class="agenda-hero__actions">
+      <div class="agenda-clock">{% now "D, d/m/Y - H:i" %}</div>
+      <button class="btn btn-outline-secondary">Visualizar por salas</button>
+      <button class="btn btn-outline-secondary">Atendimentos</button>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">+ Aula</button>
+    </div>
+  </div>
+
+  <div class="agenda-control">
+    <div class="agenda-left-panel">
+      <div class="agenda-card agenda-card--compact">
+        <div class="fw-semibold">Agenda Geral</div>
+        <div class="text-muted small">Ver todos profissionais</div>
+        <div class="agenda-avatars">
+          {% for prof in prof_chips %}
+            <div class="agenda-avatar" title="{{ prof.name }}">{{ prof.initials }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="agenda-nav">
+        <a class="btn btn-light" href="?week={{ prev_week|date:'Y-m-d' }}&view={{ view_mode }}{% if request.GET.profissional %}&profissional={{ request.GET.profissional }}{% endif %}">&#x276E;</a>
+        <div class="agenda-month">{{ month_label }}</div>
+        <a class="btn btn-light" href="?week={{ next_week|date:'Y-m-d' }}&view={{ view_mode }}{% if request.GET.profissional %}&profissional={{ request.GET.profissional }}{% endif %}">&#x276F;</a>
+        <a class="btn btn-outline-secondary" href="?week={{ today_str }}&view={{ view_mode }}{% if request.GET.profissional %}&profissional={{ request.GET.profissional }}{% endif %}">Hoje</a>
+      </div>
+    </div>
+    <div class="agenda-right-panel">
+      <form class="row g-2 align-items-end" method="get">
+        <div class="col-md-4">
+          <label class="form-label">Semana de</label>
+          <input type="date" class="form-control" name="week" value="{{ week_start|date:'Y-m-d' }}" />
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">Profissional</label>
+          <select class="form-select" name="profissional">
+            <option value="">Todos</option>
+            {% for prof in profissionais %}
+              <option value="{{ prof.id }}" {% if request.GET.profissional == prof.id|stringformat:"s" %}selected{% endif %}>
+                {{ prof.profissional }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <input type="hidden" name="view" value="{{ view_mode }}" />
+          <button class="btn btn-outline-secondary w-100" type="submit">Filtrar</button>
+        </div>
+      </form>
+      <div class="agenda-views">
+        <a class="btn btn-light" href="?view=list&week={{ week_start|date:'Y-m-d' }}{% if request.GET.profissional %}&profissional={{ request.GET.profissional }}{% endif %}">Lista</a>
+        <a class="btn btn-light {% if view_mode == 'day' %}active{% endif %}" href="?view=day&week={{ week_start|date:'Y-m-d' }}{% if request.GET.profissional %}&profissional={{ request.GET.profissional }}{% endif %}">Dia</a>
+        <a class="btn btn-light {% if view_mode == 'week' %}active{% endif %}" href="?view=week&week={{ week_start|date:'Y-m-d' }}{% if request.GET.profissional %}&profissional={{ request.GET.profissional }}{% endif %}">Semana</a>
+        <a class="btn btn-light {% if view_mode == 'month' %}active{% endif %}" href="?view=month&week={{ week_start|date:'Y-m-d' }}{% if request.GET.profissional %}&profissional={{ request.GET.profissional }}{% endif %}">Mes</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="agenda-grid agenda-grid--{{ view_mode }}">
+    {% for day in week_cards %}
+      {% if day.is_placeholder %}
+        <div class="agenda-day agenda-day--placeholder"></div>
+      {% else %}
+        <div class="agenda-day">
+          <div class="agenda-day-header {% if day.is_today %}is-today{% endif %}">
+            <div class="agenda-day-label">{{ day.label }}</div>
+            <div class="agenda-day-number">{{ day.number }}</div>
+          </div>
+          <div class="agenda-day-body">
+            {% if day.aulas %}
+              {% for aula in day.aulas %}
+                <div class="agenda-event js-agenda-event" data-bs-toggle="modal" data-bs-target="#aulaModal-{{ aula.id }}">
+                  <div class="agenda-event-time">{{ aula.horaInicio|time:"H:i" }} - {{ aula.horaFim|time:"H:i" }}</div>
+                  <div class="agenda-event-title">{{ aula.tipoServico }} - {{ aula.unidade }}</div>
+                  <div class="agenda-event-meta">
+                    {{ aula.profissional|default:"Sem profissional" }}
+                  </div>
+                  {% with reservas=reservas_by_aula|get_item:aula.id %}
+                    {% if reservas %}
+                      <div class="agenda-students mt-2">
+                        {% for r in reservas %}
+                          <span class="agenda-student {% if r.status == 'CONCLUIDA' %}agenda-student--ok{% elif r.status == 'FALTOU_AVISOU' %}agenda-student--warn{% elif r.status == 'FALTOU_SEM_AVISAR' %}agenda-student--miss{% endif %}">
+                            {{ r.aluno.dsNome }}
+                          </span>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="agenda-empty">Sem aulas.</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+{% for day in week_cards %}
+  {% if not day.is_placeholder and day.aulas %}
+    {% for aula in day.aulas %}
+      <div class="modal fade" id="aulaModal-{{ aula.id }}" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content modal-evolucao">
+            <div class="modal-header">
+              <div>
+                <h5 class="modal-title">Evolucao da aula</h5>
+                <div class="small text-muted">{{ aula.tipoServico }} - {{ aula.unidade }} ? {{ aula.data|date:"d/m/Y" }} {{ aula.horaInicio|time:"H:i" }} - {{ aula.horaFim|time:"H:i" }}</div>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              {% with reservas=reservas_by_aula|get_item:aula.id %}
+                {% if reservas %}
+                  <div class="evolucao-list">
+                    {% for r in reservas %}
+                      <div class="evolucao-card">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                          <div>
+                            <div class="fw-semibold">{{ r.aluno.dsNome }}</div>
+                            <div class="text-muted small">{{ aula.profissional|default:"Sem profissional" }}</div>
+                          </div>
+                          <span class="evolucao-status {% if r.status == 'CONCLUIDA' %}is-ok{% elif r.status == 'FALTOU_AVISOU' %}is-warn{% elif r.status == 'FALTOU_SEM_AVISAR' %}is-miss{% else %}is-pending{% endif %}">
+                            {{ r.status }}
+                          </span>
+                        </div>
+                        <form class="mt-3" method="post" action="{% url 'reservas_evoluir' r.id %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                          <div class="row g-2">
+                            <div class="col-md-4">
+                              <label class="form-label">Status da aula</label>
+                              <select class="form-select" name="status" required>
+                                <option value="">Selecione</option>
+                                <option value="CONCLUIDA" {% if r.status == "CONCLUIDA" %}selected{% endif %}>Aconteceu</option>
+                                <option value="FALTOU_AVISOU" {% if r.status == "FALTOU_AVISOU" %}selected{% endif %}>Faltou e avisou</option>
+                                <option value="FALTOU_SEM_AVISAR" {% if r.status == "FALTOU_SEM_AVISAR" %}selected{% endif %}>Faltou sem avisar</option>
+                              </select>
+                            </div>
+                            <div class="col-md-8">
+                              <label class="form-label">Modelo de evolucao</label>
+                              <select class="form-select js-modelo-evolucao">
+                                <option value="">Selecione um modelo (opcional)</option>
+                                {% for m in modelos_evolucao %}
+                                  <option value="{{ m.id }}" data-text="{{ m.texto|escape }}">{{ m.titulo }}</option>
+                                {% endfor %}
+                              </select>
+                            </div>
+                            <div class="col-12">
+                              <label class="form-label">Evolucao</label>
+                              <textarea class="form-control js-evolucao-text" name="texto" rows="3" placeholder="Descreva o andamento da aula..."></textarea>
+                            </div>
+                          </div>
+                          <div class="d-flex justify-content-end gap-2 mt-2">
+                            <button class="btn btn-primary" type="submit">Salvar evolucao</button>
+                          </div>
+                        </form>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="text-muted">Sem alunos vinculados nesta aula.</div>
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endfor %}
+
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Nova aula</h5>
+          <div class="small text-muted">Se a hora fim ficar vazia, usa a duracao da unidade.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form class="modal-form" method="post" action="{% url 'aulas_create' %}">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-4">
+              {{ form.unidade.label_tag }}
+              {{ form.unidade }}
+            </div>
+            <div class="col-md-4">
+              {{ form.tipoServico.label_tag }}
+              {{ form.tipoServico }}
+            </div>
+            <div class="col-md-4">
+              {{ form.profissional.label_tag }}
+              {{ form.profissional }}
+            </div>
+            <div class="col-md-4">
+              {{ form.data.label_tag }}
+              {{ form.data }}
+            </div>
+            <div class="col-md-4">
+              {{ form.horaInicio.label_tag }}
+              {{ form.horaInicio }}
+            </div>
+            <div class="col-md-4">
+              {{ form.horaFim.label_tag }}
+              {{ form.horaFim }}
+            </div>
+            <div class="col-md-4">
+              {{ form.capacidade.label_tag }}
+              {{ form.capacidade }}
+            </div>
+          </div>
+          <div class="d-flex justify-content-end gap-2 pt-3">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

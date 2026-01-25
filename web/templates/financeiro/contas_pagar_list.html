@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">{{ title }}</h3>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{% url 'contas_pagar_exportar_excel' %}?{{ request.GET.urlencode }}">Exportar Excel</a>
+    <a class="btn btn-outline-secondary" href="{% url 'contas_pagar_exportar_pdf' %}?{{ request.GET.urlencode }}">Exportar PDF</a>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">Novo</button>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form class="row g-2 mb-3" method="get">
+      <div class="col-md-3">
+        <label class="form-label">Fornecedor</label>
+        <select class="form-select" name="fornecedor">
+          <option value="">Todos</option>
+          {% for f in fornecedores %}
+            <option value="{{ f.id }}" {% if filtros.fornecedor == f.id|stringformat:"s" %}selected{% endif %}>{{ f.dsFornecedor }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Categoria</label>
+        <select class="form-select" name="categoria">
+          <option value="">Todas</option>
+          {% for c in categorias %}
+            <option value="{{ c.id }}" {% if filtros.categoria == c.id|stringformat:"s" %}selected{% endif %}>{{ c.dsCategoria }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Subcategoria</label>
+        <select class="form-select" name="subcategoria">
+          <option value="">Todas</option>
+          {% for s in subcategorias %}
+            <option value="{{ s.id }}" {% if filtros.subcategoria == s.id|stringformat:"s" %}selected{% endif %}>{{ s.dsSubcategoria }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Status</label>
+        <select class="form-select" name="status">
+          <option value="">Todos</option>
+          <option value="AGENDADO" {% if filtros.status == "AGENDADO" %}selected{% endif %}>Agendado</option>
+          <option value="PAGO" {% if filtros.status == "PAGO" %}selected{% endif %}>Pago</option>
+          <option value="ATRASADO" {% if filtros.status == "ATRASADO" %}selected{% endif %}>Atrasado</option>
+          <option value="CANCELADO" {% if filtros.status == "CANCELADO" %}selected{% endif %}>Cancelado</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Vencimento (de)</label>
+        <input class="form-control" type="date" name="inicio" value="{{ filtros.inicio }}" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Vencimento (ate)</label>
+        <input class="form-control" type="date" name="fim" value="{{ filtros.fim }}" />
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-outline-secondary w-100" type="submit">Filtrar</button>
+      </div>
+    </form>
+
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Fornecedor</th>
+            <th>Categoria</th>
+            <th>Subcategoria</th>
+            <th>Vencimento</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th>Comprovante</th>
+            <th>Acoes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for obj in page %}
+            <tr>
+              <td>{{ obj.id }}</td>
+              <td>{{ obj.cdFornecedor }}</td>
+              <td>{{ obj.cdCategoria }}</td>
+              <td>{{ obj.cdSubcategoria }}</td>
+              <td>{{ obj.dtVencimento|date:"d/m/Y" }}</td>
+              <td>R$ {{ obj.valor }}</td>
+              <td>{{ obj.display_status }}</td>
+              <td>
+                {% if obj.comprovante %}
+                  <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#comprovanteConta-{{ obj.id }}">Ver</button>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if obj.display_status != "PAGO" %}
+                  <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#pagarConta-{{ obj.id }}">Efetuar pagamento</button>
+                {% endif %}
+                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal-{{ obj.id }}">Editar</button>
+                {% if obj.display_status != "CANCELADO" %}
+                  <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelarConta-{{ obj.id }}">Cancelar</button>
+                {% endif %}
+                <a class="btn btn-sm btn-outline-danger" href="/financeiro/contas-pagar/{{ obj.id }}/excluir/">Excluir</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <nav>
+      <ul class="pagination">
+        {% if page.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Anterior</a></li>
+        {% endif %}
+        <li class="page-item active"><span class="page-link">{{ page.number }}</span></li>
+        {% if page.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Proxima</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Nova Conta a Pagar</h5>
+          <div class="small text-muted">Preencha os dados e salve para aparecer na lista.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form class="modal-form" method="post" action="/financeiro/contas-pagar/criar/">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              {{ form.cdFornecedor.label_tag }} {{ form.cdFornecedor }}
+            </div>
+            <div class="col-md-6">
+              {{ form.cdCategoria.label_tag }} {{ form.cdCategoria }}
+            </div>
+            <div class="col-md-6">
+              {{ form.cdSubcategoria.label_tag }} {{ form.cdSubcategoria }}
+            </div>
+            <div class="col-md-4">
+              {{ form.dtVencimento.label_tag }} {{ form.dtVencimento }}
+            </div>
+            <div class="col-md-4">
+              {{ form.valor.label_tag }}
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                {{ form.valor }}
+              </div>
+            </div>
+            <div class="col-md-4">
+              {{ form.recorrencia.label_tag }} {{ form.recorrencia }}
+            </div>
+            <div class="col-md-4 js-recorrencia-quantidade d-none">
+              {{ form.recorrencia_quantidade.label_tag }} {{ form.recorrencia_quantidade }}
+            </div>
+          </div>
+          <div class="d-flex justify-content-end gap-2 pt-3">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% for obj in page %}
+  <div class="modal fade" id="editModal-{{ obj.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">Editar conta</h5>
+            <div class="small text-muted">Atualize os dados e salve.</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form class="modal-form" method="post" action="/financeiro/contas-pagar/{{ obj.id }}/editar/">
+            {% csrf_token %}
+            {% with edit_form=edit_forms|get_item:obj.id %}
+              <div class="row g-3">
+                <div class="col-md-6">
+                  {{ edit_form.cdFornecedor.label_tag }} {{ edit_form.cdFornecedor }}
+                </div>
+                <div class="col-md-6">
+                  {{ edit_form.cdCategoria.label_tag }} {{ edit_form.cdCategoria }}
+                </div>
+                <div class="col-md-6">
+                  {{ edit_form.cdSubcategoria.label_tag }} {{ edit_form.cdSubcategoria }}
+                </div>
+                <div class="col-md-4">
+                  {{ edit_form.dtVencimento.label_tag }} {{ edit_form.dtVencimento }}
+                </div>
+                <div class="col-md-4">
+                  {{ edit_form.valor.label_tag }}
+                  <div class="input-group">
+                    <span class="input-group-text">R$</span>
+                    {{ edit_form.valor }}
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  {{ edit_form.recorrencia.label_tag }} {{ edit_form.recorrencia }}
+                </div>
+                <div class="col-md-4 js-recorrencia-quantidade d-none">
+                  {{ edit_form.recorrencia_quantidade.label_tag }} {{ edit_form.recorrencia_quantidade }}
+                </div>
+              </div>
+            {% endwith %}
+            <div class="d-flex justify-content-end gap-2 pt-3">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button class="btn btn-primary" type="submit">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="pagarConta-{{ obj.id }}" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">Efetuar pagamento</h5>
+            <div class="small text-muted">Registre a data e o comprovante.</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form method="post" action="/financeiro/contas-pagar/{{ obj.id }}/pagar/" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+            <div class="mb-3">
+              <label class="form-label">Data de pagamento</label>
+              <input class="form-control" type="date" name="dtPagamento" value="{{ today }}" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Comprovante</label>
+              <input class="form-control" type="file" name="comprovante" />
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button class="btn btn-success" type="submit">Confirmar pagamento</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if obj.comprovante %}
+    <div class="modal fade" id="comprovanteConta-{{ obj.id }}" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title">Comprovante</h5>
+              <div class="small text-muted">{{ obj.cdFornecedor }} · {{ obj.dtVencimento|date:"d/m/Y" }}</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            {% with comprovante_url=obj.comprovante.url|lower %}
+              {% if ".pdf" in comprovante_url %}
+                <div class="ratio ratio-4x3">
+                  <iframe src="{{ obj.comprovante.url }}" title="Comprovante PDF" style="border:0;"></iframe>
+                </div>
+              {% else %}
+                <div class="d-flex justify-content-center">
+                  <img src="{{ obj.comprovante.url }}" alt="Comprovante" style="max-width:100%; max-height:70vh; object-fit:contain;" />
+                </div>
+              {% endif %}
+            {% endwith %}
+          </div>
+          <div class="modal-footer">
+            <a class="btn btn-outline-secondary" href="{{ obj.comprovante.url }}" target="_blank" rel="noopener">Abrir em nova aba</a>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  <div class="modal fade" id="cancelarConta-{{ obj.id }}" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">Cancelar lancamento</h5>
+            <div class="small text-muted">Informe o motivo do cancelamento.</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form method="post" action="/financeiro/contas-pagar/{{ obj.id }}/cancelar/">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+            <div class="mb-3">
+              <label class="form-label">Motivo</label>
+              <textarea class="form-control" name="motivo_cancelamento" rows="3" placeholder="Descreva o motivo"></textarea>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button class="btn btn-warning" type="submit">Confirmar cancelamento</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

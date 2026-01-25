@@ -1,0 +1,682 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <div class="text-muted small">Gestao do Aluno</div>
+    <h2 class="mb-0">{{ aluno.dsNome }}</h2>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="/cadastros/alunos/">Voltar</a>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editAluno">Editar</button>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          {% if aluno.foto %}
+            <div class="avatar-lg avatar-photo">
+              <img src="{{ aluno.foto.url }}" alt="Foto do aluno" />
+            </div>
+          {% else %}
+            <div class="avatar-lg">AL</div>
+          {% endif %}
+          <div>
+            <div class="text-muted small">Aluno</div>
+            <div class="fw-semibold">{{ aluno.dsNome }}</div>
+            <div class="text-muted small">CPF: {{ aluno.dsCPF }}</div>
+          </div>
+        </div>
+        <hr />
+        <div class="mb-2"><strong>Email:</strong> {{ aluno.dsEmail|default:"-" }}</div>
+        <div class="mb-2"><strong>Nascimento:</strong> {{ aluno.dtNascimento|date:"d/m/Y"|default:"-" }}</div>
+        <div class="mb-2"><strong>Unidade:</strong> {{ aluno.cdUnidade }}</div>
+        <div class="mb-2"><strong>Termo:</strong> {{ aluno.cdTermoUso|default:"-" }}</div>
+      </div>
+    </div>
+    <div class="card shadow-sm mt-3">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Contato</div>
+        {% if telefones %}
+          {% for tel in telefones %}
+            <div class="mb-1">{{ tel }}</div>
+          {% endfor %}
+        {% else %}
+          <div class="text-muted">Sem telefones cadastrados.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Endereco</div>
+        {% if endereco %}
+          <div>{{ endereco.dsLogradouro }}, {{ endereco.dsNumero }}</div>
+          <div>{{ endereco.dsBairro }} - {{ endereco.dsCidade }}</div>
+          <div>CEP: {{ endereco.dsCEP }}</div>
+        {% else %}
+          <div class="text-muted">Sem endereco cadastrado.</div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <ul class="nav nav-pills mb-3" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-contratos" type="button" role="tab">Contratos</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-agenda" type="button" role="tab">Aulas</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-evolucao" type="button" role="tab">Evolucao</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-financeiro" type="button" role="tab">Financeiro</button>
+          </li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="tab-contratos" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="fw-semibold">Contratos</div>
+              <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#novoContrato">Novo contrato</button>
+            </div>
+            {% if contratos %}
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Contrato</th>
+                      <th>Plano</th>
+                      <th>Unidade</th>
+                      <th>Inicio</th>
+                      <th>Fim</th>
+                      <th>Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for c in contratos %}
+                      <tr>
+                        <td>{{ c.cdContrato }}</td>
+                        <td>{{ c.cdPlano }}</td>
+                        <td>{{ c.cdUnidade }}</td>
+                        <td>{{ c.dtInicioContrato|date:"d/m/Y" }}</td>
+                        <td>{{ c.dtFimContrato|date:"d/m/Y" }}</td>
+                        <td>
+                          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editContrato-{{ c.id }}">Editar</button>
+                          <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteContrato-{{ c.id }}">Excluir</button>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="text-muted">Sem contratos vinculados.</div>
+            {% endif %}
+          </div>
+          <div class="tab-pane fade" id="tab-agenda" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="fw-semibold">Aulas do aluno</div>
+            </div>
+            {% if reservas %}
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Horario</th>
+                      <th>Servico</th>
+                      <th>Unidade</th>
+                      <th>Professor</th>
+                      <th>Status</th>
+                      <th>Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for r in reservas %}
+                      <tr>
+                        <td>{{ r.aulaSessao.data|date:"d/m/Y" }}</td>
+                        <td>{{ r.aulaSessao.horaInicio|time:"H:i" }} - {{ r.aulaSessao.horaFim|time:"H:i" }}</td>
+                        <td>{{ r.aulaSessao.tipoServico }}</td>
+                        <td>{{ r.aulaSessao.unidade }}</td>
+                        <td>{{ r.aulaSessao.profissional|default:"-" }}</td>
+                        <td>{{ r.status }}</td>
+                        <td>
+                          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editReserva-{{ r.id }}">Editar</button>
+                          <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteReserva-{{ r.id }}">Excluir</button>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="text-muted">Sem aulas vinculadas.</div>
+            {% endif %}
+          </div>
+          <div class="tab-pane fade" id="tab-financeiro" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="fw-semibold">Faturas do aluno</div>
+              <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_excel' aluno.id %}?{{ request.GET.urlencode }}">Exportar Excel</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_pdf' aluno.id %}?{{ request.GET.urlencode }}">Exportar PDF</a>
+              </div>
+            </div>
+            <form class="row g-2 mb-3" method="get">
+              <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                  <option value="">Todos</option>
+                  <option value="ABERTO" {% if filtros_financeiro.status == "ABERTO" %}selected{% endif %}>ABERTO</option>
+                  <option value="PAGO" {% if filtros_financeiro.status == "PAGO" %}selected{% endif %}>PAGO</option>
+                  <option value="ATRASADO" {% if filtros_financeiro.status == "ATRASADO" %}selected{% endif %}>ATRASADO</option>
+                  <option value="CANCELADO" {% if filtros_financeiro.status == "CANCELADO" %}selected{% endif %}>CANCELADO</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Vencimento (de)</label>
+                <input class="form-control" type="date" name="inicio" value="{{ filtros_financeiro.inicio }}" />
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Vencimento (ate)</label>
+                <input class="form-control" type="date" name="fim" value="{{ filtros_financeiro.fim }}" />
+              </div>
+              <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-outline-secondary w-100" type="submit">Filtrar</button>
+              </div>
+            </form>
+            {% if contas_receber %}
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Competencia</th>
+                      <th>Vencimento</th>
+                      <th>Pagamento</th>
+                      <th>Contrato</th>
+                      <th>Status</th>
+                      <th>Valor</th>
+                      <th>Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for f in contas_receber %}
+                      <tr>
+                        <td>{{ f.competencia|default:"-" }}</td>
+                        <td>{{ f.dtVencimento|date:"d/m/Y" }}</td>
+                        <td>{{ f.dtPagamento|date:"d/m/Y"|default:"-" }}</td>
+                        <td>{{ f.contrato.cdContrato }}</td>
+                        <td>{{ f.status }}</td>
+                        <td>R$ {{ f.valor }}</td>
+                        <td>
+                          {% if f.status != "PAGO" %}
+                            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#baixarFatura-{{ f.id }}">Dar baixa</button>
+                          {% endif %}
+                          <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_recibo' f.id %}">Recibo PDF</a>
+                          <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFatura-{{ f.id }}">Excluir</button>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="text-muted">Sem faturas para este aluno.</div>
+            {% endif %}
+          </div>
+          <div class="tab-pane fade" id="tab-evolucao" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="fw-semibold">Evolucoes do aluno</div>
+              <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'evolucoes_exportar_excel' aluno.id %}">Exportar Excel</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'evolucoes_exportar_pdf' aluno.id %}">Exportar PDF</a>
+              </div>
+            </div>
+            {% if evolucoes %}
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Profissional</th>
+                      <th>Evolucao</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for e in evolucoes %}
+                      <tr>
+                        <td>{{ e.dtEvolucao|date:"d/m/Y H:i" }}</td>
+                        <td>{{ e.profissional }}</td>
+                        <td>{{ e.texto }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="text-muted">Sem evolucoes registradas.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editAluno" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content modal-aluno">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Editar aluno</h5>
+          <div class="small text-muted">Atualize os dados e salve.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form class="modal-form" method="post" action="/cadastros/alunos/{{ aluno.id }}/editar/" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}" />
+          <div class="row g-3">
+            <div class="col-md-6">
+              {{ edit_form.dsNome.label_tag }} {{ edit_form.dsNome }}
+            </div>
+            <div class="col-md-3">
+              {{ edit_form.dsCPF.label_tag }} {{ edit_form.dsCPF }}
+            </div>
+            <div class="col-md-3">
+              {{ edit_form.dsRg.label_tag }} {{ edit_form.dsRg }}
+            </div>
+            <div class="col-md-4">
+              {{ edit_form.dsEmail.label_tag }} {{ edit_form.dsEmail }}
+            </div>
+            <div class="col-md-4">
+              {{ edit_form.dtNascimento.label_tag }} {{ edit_form.dtNascimento }}
+            </div>
+            <div class="col-md-4">
+              {{ edit_form.cdUnidade.label_tag }} {{ edit_form.cdUnidade }}
+            </div>
+            <div class="col-md-4">
+              {{ edit_form.cdTermoUso.label_tag }} {{ edit_form.cdTermoUso }}
+            </div>
+            <div class="col-md-4">
+              <label>Foto</label>
+              <div class="photo-field js-photo-field">
+                {% if aluno.foto %}
+                  <img class="photo-preview js-photo-preview" src="{{ aluno.foto.url }}" alt="Foto do aluno" />
+                {% else %}
+                  <img class="photo-preview js-photo-preview" alt="Foto do aluno" />
+                {% endif %}
+                <div class="d-flex flex-wrap gap-2">
+                  <button type="button" class="btn btn-outline-secondary btn-sm js-photo-start">Capturar foto</button>
+                  <label class="btn btn-outline-secondary btn-sm mb-0">
+                    Enviar arquivo
+                    <input type="file" name="foto" accept="image/*" class="d-none js-photo-input" />
+                  </label>
+                </div>
+                <div class="photo-camera js-photo-camera d-none">
+                  <video class="photo-video js-photo-video" playsinline></video>
+                  <canvas class="photo-canvas js-photo-canvas d-none"></canvas>
+                  <div class="d-flex gap-2 mt-2">
+                    <button type="button" class="btn btn-primary btn-sm js-photo-shot">Tirar foto</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm js-photo-stop">Cancelar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <hr class="my-3" />
+          <div class="fw-semibold mb-2">Endereco</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label>CEP</label>
+              <input class="form-control js-cep" name="dsCEP" value="{{ endereco.dsCEP|default:'' }}" />
+            </div>
+            <div class="col-md-6">
+              <label>Logradouro</label>
+              <input class="form-control js-logradouro" name="dsLogradouro" value="{{ endereco.dsLogradouro|default:'' }}" />
+            </div>
+            <div class="col-md-2">
+              <label>Numero</label>
+              <input class="form-control js-numero" name="dsNumero" value="{{ endereco.dsNumero|default:'' }}" />
+            </div>
+            <div class="col-md-4">
+              <label>Bairro</label>
+              <input class="form-control js-bairro" name="dsBairro" value="{{ endereco.dsBairro|default:'' }}" />
+            </div>
+            <div class="col-md-4">
+              <label>Cidade</label>
+              <input class="form-control js-cidade" name="dsCidade" value="{{ endereco.dsCidade|default:'' }}" />
+            </div>
+          </div>
+          <hr class="my-3" />
+          <div class="fw-semibold mb-2">Telefones</div>
+          <div class="js-phones">
+            {% if telefones %}
+              {% for tel in telefones %}
+                <div class="row g-2 align-items-center mb-2 js-phone-row">
+                  <div class="col-md-6">
+                    <input class="form-control js-telefone" name="telefone_{{ forloop.counter }}" value="{{ tel }}" />
+                  </div>
+                  <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-secondary js-add-phone">Adicionar</button>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="row g-2 align-items-center mb-2 js-phone-row">
+                <div class="col-md-6">
+                  <input class="form-control js-telefone" name="telefone_1" placeholder="(00) 00000-0000" />
+                </div>
+                <div class="col-md-2">
+                  <button type="button" class="btn btn-outline-secondary js-add-phone">Adicionar</button>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+          <div class="d-flex justify-content-end gap-2 pt-2">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="novoContrato" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Novo contrato</h5>
+          <div class="small text-muted">Aluno predefinido pela ficha.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form class="modal-form" method="post" action="/contratos/criar/">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label>Aluno</label>
+              <input class="form-control" value="{{ aluno.dsNome }}" disabled />
+              <input type="hidden" name="cdAluno" value="{{ aluno.id }}" />
+            </div>
+            <div class="col-md-6">
+              <label>Plano</label>
+              <select class="form-select js-plano" name="cdPlano" required>
+                <option value="" selected>Selecione</option>
+                {% for p in planos %}
+                  <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}">{{ p.dsPlano }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label>Unidade</label>
+              <select class="form-select" name="cdUnidade" required>
+                {% for u in unidades %}
+                  <option value="{{ u.id }}">{{ u.dsUnidade }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label>Profissional</label>
+              <select class="form-select" name="cdProfissional" required>
+                {% for p in profissionais %}
+                  <option value="{{ p.id }}">{{ p.profissional }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label>Inicio do Contrato</label>
+              <input class="form-control js-contrato-inicio" name="dtInicioContrato" type="date" required />
+            </div>
+            <div class="col-md-4">
+              <label>Fim do Contrato</label>
+              <input class="form-control js-contrato-fim" name="dtFimContrato" type="date" required />
+            </div>
+            <div class="col-md-4">
+              <label>Valor (parcela)</label>
+              <input class="form-control js-valor-parcela" name="valor_parcela" type="number" step="0.01" required />
+            </div>
+            <div class="col-md-4">
+              <label>Valor total</label>
+              <input class="form-control js-valor-total" name="valor_total" type="text" readonly />
+            </div>
+          </div>
+          <div class="d-flex justify-content-end gap-2 pt-3">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if contratos %}
+  {% for c in contratos %}
+    <div class="modal fade" id="editContrato-{{ c.id }}" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title">Editar contrato</h5>
+              <div class="small text-muted">Atualize os dados e salve.</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form class="modal-form" method="post" action="{% url 'contratos_edit' c.id %}">
+              {% csrf_token %}
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label>Aluno</label>
+                  <input class="form-control" value="{{ aluno.dsNome }}" disabled />
+                  <input type="hidden" name="cdAluno" value="{{ aluno.id }}" />
+                </div>
+                <div class="col-md-6">
+                  <label>Plano</label>
+                  <select class="form-select js-plano" name="cdPlano" required>
+                    <option value="">Selecione</option>
+                    {% for p in planos %}
+                      <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" {% if c.cdPlano_id == p.id %}selected{% endif %}>
+                        {{ p.dsPlano }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label>Unidade</label>
+                  <select class="form-select" name="cdUnidade" required>
+                    {% for u in unidades %}
+                      <option value="{{ u.id }}" {% if c.cdUnidade_id == u.id %}selected{% endif %}>{{ u.dsUnidade }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label>Profissional</label>
+                  <select class="form-select" name="cdProfissional" required>
+                    {% for p in profissionais %}
+                      <option value="{{ p.id }}" {% if c.cdProfissional_id == p.id %}selected{% endif %}>{{ p.profissional }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label>Inicio do Contrato</label>
+                  <input class="form-control js-contrato-inicio" name="dtInicioContrato" type="date" value="{{ c.dtInicioContrato|date:'Y-m-d' }}" required />
+                </div>
+                <div class="col-md-4">
+                  <label>Fim do Contrato</label>
+                  <input class="form-control js-contrato-fim" name="dtFimContrato" type="date" value="{{ c.dtFimContrato|date:'Y-m-d' }}" required />
+                </div>
+                <div class="col-md-4">
+                  <label>Valor (parcela)</label>
+                  <input class="form-control js-valor-parcela" name="valor_parcela" type="number" step="0.01" value="{{ c.valor_parcela }}" required />
+                </div>
+                <div class="col-md-4">
+                  <label>Valor total</label>
+                  <input class="form-control js-valor-total" name="valor_total" type="text" value="{{ c.valor_total }}" readonly />
+                </div>
+              </div>
+              <div class="d-flex justify-content-end gap-2 pt-3">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" type="submit">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if contratos %}
+  {% for c in contratos %}
+    <div class="modal fade" id="deleteContrato-{{ c.id }}" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Excluir contrato</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            Tem certeza que deseja excluir o contrato {{ c.cdContrato }}?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <form method="post" action="{% url 'contratos_delete' c.id %}">
+              {% csrf_token %}
+              <button class="btn btn-danger" type="submit">Excluir</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if reservas %}
+  {% for r in reservas %}
+    <div class="modal fade" id="editReserva-{{ r.id }}" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title">Editar aula</h5>
+              <div class="small text-muted">Atualize horario ou status.</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form class="modal-form" method="post" action="{% url 'reservas_edit' r.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}" />
+              <input type="hidden" name="aluno" value="{{ aluno.id }}" />
+              {% with reserva_form=reserva_forms|get_item:r.id %}
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label>Aluno</label>
+                    <input class="form-control" value="{{ aluno.dsNome }}" disabled />
+                  </div>
+                  <div class="col-md-6">
+                    <label>Horario</label>
+                    {{ reserva_form.aulaSessao }}
+                  </div>
+                  <input type="hidden" name="status" value="{{ r.status }}" />
+                </div>
+              {% endwith %}
+              <div class="d-flex justify-content-end gap-2 pt-3">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" type="submit">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if reservas %}
+  {% for r in reservas %}
+    <div class="modal fade" id="deleteReserva-{{ r.id }}" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Excluir aula</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            Tem certeza que deseja excluir a aula de {{ r.aulaSessao.data|date:"d/m/Y" }}?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <form method="post" action="{% url 'reservas_delete' r.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}" />
+              <button class="btn btn-danger" type="submit">Excluir</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if contas_receber %}
+  {% for f in contas_receber %}
+    <div class="modal fade" id="baixarFatura-{{ f.id }}" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Dar baixa no lancamento</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form method="post" action="{% url 'contas_receber_baixar' f.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}" />
+              <div class="mb-3">
+                <label class="form-label">Data de pagamento</label>
+                <input class="form-control" type="date" name="dtPagamento" value="{{ today|default:'' }}" required />
+              </div>
+              <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-success" type="submit">Confirmar baixa</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="deleteFatura-{{ f.id }}" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Excluir lancamento</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            Tem certeza que deseja excluir a fatura {{ f.contrato.cdContrato }} ({{ f.dtVencimento|date:"d/m/Y" }})?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <form method="post" action="{% url 'contas_receber_excluir' f.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}" />
+              <button class="btn btn-danger" type="submit">Excluir</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

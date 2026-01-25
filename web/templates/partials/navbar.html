@@ -1,0 +1,57 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">StudioPilates</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="topNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link {% if active_menu == 'dashboard' %}active{% endif %}" href="/">Dashboard</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle {% if active_menu == 'cadastros' %}active{% endif %}" href="#" data-bs-toggle="dropdown">Cadastros</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="/cadastros/alunos/">Alunos</a></li>
+            <li><a class="dropdown-item" href="/cadastros/profissionais/">Profissionais</a></li>
+            <li><a class="dropdown-item" href="/cadastros/unidades/">Unidades</a></li>
+            <li><a class="dropdown-item" href="/cadastros/planos/">Planos</a></li>
+            <li><a class="dropdown-item" href="/cadastros/tipos-servico/">Tipos de Servico</a></li>
+            <li><a class="dropdown-item" href="/cadastros/horarios-studio/">Horario do Studio</a></li>
+            <li><a class="dropdown-item" href="/cadastros/termos/">Termo de Uso</a></li>
+            <li><a class="dropdown-item" href="/cadastros/fornecedores/">Fornecedores</a></li>
+            <li><a class="dropdown-item" href="/cadastros/categorias/">Categorias</a></li>
+            <li><a class="dropdown-item" href="/cadastros/subcategorias/">Subcategorias</a></li>
+            <li><a class="dropdown-item" href="/contratos/">Contratos</a></li>
+            <li><a class="dropdown-item" href="/contratos/modelos/">Modelos de Contrato</a></li>
+            <li><a class="dropdown-item" href="/evolucoes/modelos/">Modelos de Evolucao</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle {% if active_menu == 'agenda' %}active{% endif %}" href="#" data-bs-toggle="dropdown">Aulas</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="/agenda/aulas/">Aulas</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle {% if active_menu == 'financeiro' %}active{% endif %}" href="#" data-bs-toggle="dropdown">Financeiro</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="/financeiro/contas-receber/">Contas a Receber</a></li>
+            <li><a class="dropdown-item" href="/financeiro/contas-pagar/">Contas a Pagar</a></li>
+            <li><a class="dropdown-item" href="/financeiro/conta-bancaria/">Conta Bancaria</a></li>
+            <li><a class="dropdown-item" href="/financeiro/dre/">DRE</a></li>
+          </ul>
+        </li>
+      </ul>
+      <ul class="navbar-nav">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Conta</a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{% url 'perfil' %}">Perfil</a></li>
+            <li><a class="dropdown-item" href="{% url 'password_change' %}">Trocar Senha</a></li>
+            <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div style="height: 64px"></div>

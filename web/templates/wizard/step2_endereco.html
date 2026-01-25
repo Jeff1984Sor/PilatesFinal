@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3>Passo 2 - Comprovante de Endereco</h3>
+    {% if address %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="confirm" value="1" />
+        <div class="row g-3">
+          <div class="col-md-6">
+            <input class="form-control" name="logradouro" value="{{ address.logradouro }}" placeholder="Logradouro" required />
+          </div>
+          <div class="col-md-3">
+            <input class="form-control" name="numero" value="{{ address.numero }}" placeholder="Numero" required />
+          </div>
+          <div class="col-md-3">
+            <input class="form-control" name="cep" value="{{ address.cep }}" placeholder="CEP" required />
+          </div>
+          <div class="col-md-4">
+            <input class="form-control" name="cidade" value="{{ address.cidade }}" placeholder="Cidade" required />
+          </div>
+          <div class="col-md-4">
+            <input class="form-control" name="bairro" value="{{ address.bairro }}" placeholder="Bairro" required />
+          </div>
+        </div>
+        <button class="btn btn-primary mt-3" type="submit">Continuar</button>
+      </form>
+    {% else %}
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input class="form-control mb-3" type="file" name="comprovante" required />
+        <button class="btn btn-primary" type="submit">Enviar</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

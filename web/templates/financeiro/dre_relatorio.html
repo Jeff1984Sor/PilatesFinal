@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dre-report-hero">
+  <div>
+    <div class="dre-kicker">Relatorio Avancado</div>
+    <h2 class="mb-1">Demonstrativo de Resultado</h2>
+    <div class="text-muted">Periodo: {{ inicio|date:"d/m/Y" }} a {{ fim|date:"d/m/Y" }}</div>
+  </div>
+  <form class="dre-filters" method="get">
+    <div>
+      <label class="form-label">Inicio</label>
+      <input class="form-control" type="date" name="inicio" value="{{ inicio }}" />
+    </div>
+    <div>
+      <label class="form-label">Fim</label>
+      <input class="form-control" type="date" name="fim" value="{{ fim }}" />
+    </div>
+    <div class="dre-filter-button">
+      <button class="btn btn-primary w-100" type="submit">Atualizar</button>
+    </div>
+  </form>
+</div>
+<div class="d-flex justify-content-end gap-2 mb-3">
+  <a class="btn btn-outline-secondary" href="{% url 'dre_exportar_excel' %}?inicio={{ inicio }}&fim={{ fim }}">Exportar Excel</a>
+  <a class="btn btn-outline-secondary" href="{% url 'dre_exportar_pdf' %}?inicio={{ inicio }}&fim={{ fim }}">Exportar PDF</a>
+</div>
+
+<div class="dre-report-grid">
+  <div class="dre-report-table">
+    <div class="dre-report-row is-title">
+      <div>Saldo bancario anterior (ultimo dia do mes anterior)</div>
+      <div>R$ {{ saldo_bancario_anterior }}</div>
+    </div>
+    <div class="dre-report-row is-section">
+      <div>Receitas do periodo (+)</div>
+      <div>R$ {{ receita_bruta }}</div>
+    </div>
+    {% if receitas_por_categoria %}
+      {% for item in receitas_por_categoria %}
+        <div class="dre-report-row">
+          <div>{{ item.contrato__cdPlano__categoria_receita__dsCategoria|default:"Sem categoria" }}</div>
+          <div>R$ {{ item.total }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}
+    <div class="dre-report-row is-section">
+      <div>Despesas do periodo (-)</div>
+      <div>R$ {{ despesas_operacionais }}</div>
+    </div>
+    {% if despesas_por_categoria %}
+      {% for item in despesas_por_categoria %}
+        <div class="dre-report-row">
+          <div>{{ item.cdCategoria__dsCategoria|default:"Sem categoria" }}</div>
+          <div>R$ {{ item.total }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}
+    <div class="dre-report-row is-result {% if resultado_final >= 0 %}is-positive{% else %}is-negative{% endif %}">
+      <div>Resultado do periodo ({{ resultado_label }})</div>
+      <div>R$ {{ resultado_final }}</div>
+    </div>
+    <div class="dre-report-row is-highlight">
+      <div>Saldo bancario final</div>
+      <div>R$ {{ saldo_bancario_final }}</div>
+    </div>
+  </div>
+  <div class="dre-report-side">
+    <div class="dre-summary-card">
+      <div class="dre-summary-title">Resumo executivo</div>
+      <div class="dre-summary-item">
+        <span>Receitas</span>
+        <strong>R$ {{ receita_bruta }}</strong>
+      </div>
+      <div class="dre-summary-item">
+        <span>Despesas</span>
+        <strong>R$ {{ despesas_operacionais }}</strong>
+      </div>
+      <div class="dre-summary-item">
+        <span>{{ resultado_label }}</span>
+        <strong>R$ {{ resultado_final }}</strong>
+      </div>
+    </div>
+    <div class="dre-summary-card">
+      <div class="dre-summary-title">Insights</div>
+      <div class="dre-summary-text">
+        {% if resultado_final >= 0 %}
+          O studio operou com lucro no periodo analisado. Avalie a expansao de turmas e reforco de marketing.
+        {% else %}
+          O studio apresentou prejuizo. Revise despesas fixas e aumente a ocupacao das turmas.
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-3">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Receitas por plano</div>
+        <canvas id="chartReceitas" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Despesas por categoria</div>
+        <canvas id="chartDespesas" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-3">
+  <div class="col-md-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Receitas por categoria</div>
+        <canvas id="chartReceitasCat" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-3">
+  <div class="col-md-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Despesas por subcategoria</div>
+        <canvas id="chartDespesasSub" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-3">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Receitas por plano</div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Plano</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in receitas_por_plano %}
+                <tr>
+                  <td>{{ item.contrato__cdPlano__dsPlano|default:"Sem plano" }}</td>
+                  <td>R$ {{ item.total }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="2" class="text-muted">Sem receitas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Receitas por categoria</div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Categoria</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in receitas_por_categoria %}
+                <tr>
+                  <td>{{ item.contrato__cdPlano__categoria_receita__dsCategoria|default:"Sem categoria" }}</td>
+                  <td>R$ {{ item.total }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="2" class="text-muted">Sem receitas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-3">
+  <div class="col-md-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Despesas por categoria</div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Categoria</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in despesas_por_categoria %}
+                <tr>
+                  <td>{{ item.cdCategoria__dsCategoria|default:"Sem categoria" }}</td>
+                  <td>R$ {{ item.total }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="2" class="text-muted">Sem despesas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-3">
+  <div class="col-md-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Despesas por subcategoria</div>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Subcategoria</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in despesas_por_subcategoria %}
+                <tr>
+                  <td>{{ item.cdSubcategoria__dsSubcategoria|default:"Sem subcategoria" }}</td>
+                  <td>R$ {{ item.total }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="2" class="text-muted">Sem despesas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+  const receitasLabels = {{ chart_receitas_labels|safe }};
+  const receitasValues = {{ chart_receitas_values|safe }};
+  const despesasLabels = {{ chart_despesas_labels|safe }};
+  const despesasValues = {{ chart_despesas_values|safe }};
+  const receitasCatLabels = {{ chart_receitas_cat_labels|safe }};
+  const receitasCatValues = {{ chart_receitas_cat_values|safe }};
+  const despesasSubLabels = {{ chart_despesas_sub_labels|safe }};
+  const despesasSubValues = {{ chart_despesas_sub_values|safe }};
+
+  if (receitasLabels.length) {
+    new Chart(document.getElementById("chartReceitas"), {
+      type: "bar",
+      data: {
+        labels: receitasLabels,
+        datasets: [{
+          label: "Receitas",
+          data: receitasValues,
+          backgroundColor: "#22c55e",
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+      }
+    });
+  }
+
+  if (despesasLabels.length) {
+    new Chart(document.getElementById("chartDespesas"), {
+      type: "pie",
+      data: {
+        labels: despesasLabels,
+        datasets: [{
+          data: despesasValues,
+          backgroundColor: ["#ef4444", "#f97316", "#eab308", "#14b8a6", "#6366f1", "#a855f7"],
+        }]
+      },
+      options: { responsive: true }
+    });
+  }
+
+  if (receitasCatLabels.length) {
+    new Chart(document.getElementById("chartReceitasCat"), {
+      type: "bar",
+      data: {
+        labels: receitasCatLabels,
+        datasets: [{
+          label: "Receitas por categoria",
+          data: receitasCatValues,
+          backgroundColor: "#0ea5e9",
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+      }
+    });
+  }
+
+  if (despesasSubLabels.length) {
+    new Chart(document.getElementById("chartDespesasSub"), {
+      type: "bar",
+      data: {
+        labels: despesasSubLabels,
+        datasets: [{
+          label: "Despesas por subcategoria",
+          data: despesasSubValues,
+          backgroundColor: "#f97316",
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+      }
+    });
+  }
+</script>
+{% endblock %}

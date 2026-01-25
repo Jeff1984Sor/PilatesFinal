@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3>Confirmar exclusao</h3>
+    <p>{{ object }}</p>
+    <form method="post">
+      {% csrf_token %}
+      <button class="btn btn-danger" type="submit">Excluir</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
