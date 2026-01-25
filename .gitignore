@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+.env
+.env.*
+.venv/
+venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+.next/
+dist/
+build/
+storage/
+
+# Misc
+.DS_Store
+.idea/
+.vscode/
+coverage/
