@@ -6,6 +6,7 @@ import httpx
 from django.conf import settings
 
 from . import models
+from .models import WhatsappMessageType
 
 logger = logging.getLogger(__name__)
 PHONE_CLEAN_REGEX = re.compile(r"\D+")
