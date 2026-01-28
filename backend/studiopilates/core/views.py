@@ -1,6 +1,8 @@
-from datetime import date, datetime
+import logging
+from datetime import date, datetime, timedelta
 import calendar
 import json
+import re
 from io import BytesIO
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -13,11 +15,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.http import HttpResponse
-from datetime import timedelta
 
 from . import forms, models, services
 from .signals import ensure_profissional_for_user
 from shared.ai.gemini_client import extract_address_from_proof, extract_student_from_document
+from .whatsapp_service import WhatsappService, WhatsappMessageType
+
+logger = logging.getLogger(__name__)
 
 
 def _active_menu(path: str) -> str:
@@ -32,6 +36,22 @@ def _active_menu(path: str) -> str:
     if path.startswith("/cadastros"):
         return "cadastros"
     return "dashboard"
+
+
+PHONE_CLEAN_REGEX = re.compile(r"\D+")
+
+
+def _format_whatsapp_number(telefones):
+    for tel in telefones:
+        cleaned = PHONE_CLEAN_REGEX.sub("", tel or "")
+        if not cleaned:
+            continue
+        if cleaned.startswith("55"):
+            return cleaned
+        if len(cleaned) in (10, 11):
+            return f"55{cleaned}"
+        return cleaned
+    return None
 
 
 def login_view(request):
@@ -78,6 +98,7 @@ def aluno_detail(request, pk):
     aluno = get_object_or_404(models.Aluno, pk=pk)
     endereco = aluno.cdEndereco
     telefones = list(aluno.telefones.values_list("dsTelefone", flat=True))
+    whatsapp_number = _format_whatsapp_number(telefones)
     contratos = models.Contrato.objects.filter(cdAluno=aluno).select_related("cdPlano", "cdUnidade")
     contrato_forms = {contrato.id: forms.ContratoForm(instance=contrato) for contrato in contratos}
     reservas = (
@@ -98,10 +119,13 @@ def aluno_detail(request, pk):
     planos = models.Plano.objects.select_related("cdTipoServico").all()
     unidades = models.Unidade.objects.all()
     profissionais = models.Profissional.objects.all()
+    whatsapp_messages = aluno.whatsapp_messages.select_related("contrato").all()
+    whatsapp_form = forms.WhatsappMessageForm()
     context = {
         "aluno": aluno,
         "endereco": endereco,
         "telefones": telefones,
+        "whatsapp_number": whatsapp_number,
         "contratos": contratos,
         "contrato_forms": contrato_forms,
         "reservas": reservas,
@@ -113,11 +137,35 @@ def aluno_detail(request, pk):
         "planos": planos,
         "unidades": unidades,
         "profissionais": profissionais,
+        "whatsapp_messages": whatsapp_messages,
+        "whatsapp_form": whatsapp_form,
         "edit_form": forms.AlunoForm(instance=aluno),
         "breadcrumbs": [("Home", reverse("dashboard")), ("Alunos", reverse("alunos_list")), ("Ficha", "#")],
         "active_menu": "cadastros",
     }
     return render(request, "alunos/detail.html", context)
+
+
+@login_required
+def aluno_whatsapp_message(request, pk):
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    if request.method != "POST":
+        return redirect("alunos_detail", pk=pk)
+    form = forms.WhatsappMessageForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Informe uma mensagem válida para enviar.")
+        return redirect("alunos_detail", pk=aluno.pk)
+    service = WhatsappService()
+    telefone = service.get_aluno_phone(aluno)
+    if not telefone:
+        messages.warning(request, "Aluno sem telefone válido cadastrado.")
+        return redirect("alunos_detail", pk=aluno.pk)
+    resp = service.send(aluno, telefone, form.cleaned_data["mensagem"], WhatsappMessageType.MANUAL)
+    if resp.get("error"):
+        messages.warning(request, "Mensagem registrada, mas não foi possível enviar via WhatsApp.")
+    else:
+        messages.success(request, "Mensagem enviada e registrada.")
+    return redirect("alunos_detail", pk=aluno.pk)
 
 
 def _sync_user_for_profissional(profissional, raw_password=None, old_cd=None):
@@ -2097,6 +2145,33 @@ def contrato_assinar(request, token):
         contrato.status = "ASSINADO_DIGITALMENTE"
         contrato.assinado_em = timezone.now()
         contrato.save()
+        already_notified = models.AlunoWhatsappMessage.objects.filter(
+            contrato=contrato, tipo=WhatsappMessageType.CONTRACT_LINK
+        ).exists()
+        if not already_notified:
+            try:
+                service = WhatsappService()
+                telefone = service.get_aluno_phone(contrato.cdAluno)
+                if telefone:
+                    token = services.gerar_token_contrato(contrato)
+                    link = request.build_absolute_uri(reverse("contrato_assinar", kwargs={"token": token}))
+                    mensagem = (
+                        f"Olá {contrato.cdAluno.dsNome}, o contrato #{contrato.cdContrato} foi assinado. "
+                        f"Você pode acessá-lo em {link}"
+                    )
+                    resp = service.send(
+                        contrato.cdAluno,
+                        telefone,
+                        mensagem,
+                        WhatsappMessageType.CONTRACT_LINK,
+                        contrato=contrato,
+                    )
+                    if resp.get("error"):
+                        messages.warning(request, "Contrato assinado, mas não foi possível enviar o aviso via WhatsApp.")
+                else:
+                    messages.warning(request, "Contrato assinado, mas o aluno não possui telefone válido.")
+            except Exception:
+                logger.exception("Erro ao enviar contrato assinado pelo WhatsApp")
         return render(request, "contratos/assinatura_sucesso.html", {"contrato": contrato})
     html = services.render_contrato_html(contrato)
     return render(

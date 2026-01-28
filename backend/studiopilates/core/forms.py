@@ -263,3 +263,10 @@ class MovimentoContaForm(BaseAutoCdForm):
     class Meta:
         model = models.MovimentoConta
         fields = ["conta", "tipo", "valor", "data", "descricao", "comprovante"]
+
+
+class WhatsappMessageForm(forms.Form):
+    mensagem = forms.CharField(
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Escreva a mensagem que será enviada por WhatsApp"}),
+        label="Mensagem de WhatsApp",
+    )

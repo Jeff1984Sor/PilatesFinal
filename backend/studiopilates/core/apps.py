@@ -7,3 +7,6 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         from . import signals  # noqa: F401
+        from .whatsapp_scheduler import start_scheduler  # noqa: F401
+
+        start_scheduler()

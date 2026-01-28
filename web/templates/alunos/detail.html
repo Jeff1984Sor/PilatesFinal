@@ -37,18 +37,50 @@
         <div class="mb-2"><strong>Termo:</strong> {{ aluno.cdTermoUso|default:"-" }}</div>
       </div>
     </div>
-    <div class="card shadow-sm mt-3">
-      <div class="card-body">
-        <div class="fw-semibold mb-2">Contato</div>
-        {% if telefones %}
-          {% for tel in telefones %}
-            <div class="mb-1">{{ tel }}</div>
-          {% endfor %}
-        {% else %}
-          <div class="text-muted">Sem telefones cadastrados.</div>
-        {% endif %}
-      </div>
-    </div>
+        <div class="card shadow-sm mt-3">
+          <div class="card-body">
+            <div class="fw-semibold mb-2">Contato</div>
+            {% if telefones %}
+              {% for tel in telefones %}
+                <div class="mb-1">{{ tel }}</div>
+              {% endfor %}
+            {% else %}
+              <div class="text-muted">Sem telefones cadastrados.</div>
+            {% endif %}
+            {% if whatsapp_number %}
+              <div class="d-grid gap-2 mt-3">
+                {% with whatsapp_message="Olá" %}
+                  <a
+                    class="btn btn-success d-flex align-items-center justify-content-center gap-2 px-3 py-2"
+                    href="https://web.whatsapp.com/send?phone={{ whatsapp_number }}&text={{ whatsapp_message|urlencode }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Abrir WhatsApp Web"
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      role="presentation"
+                      aria-hidden="true"
+                    >
+                      <circle cx="10" cy="10" r="9" fill="#25d366" />
+                      <polyline
+                        points="5,7 7.2,13 9.5,9 11.8,13 14,7"
+                        stroke="#fff"
+                        stroke-width="1.5"
+                        fill="none"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                    <span class="fw-semibold">Conversar no WhatsApp</span>
+                  </a>
+                {% endwith %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
   </div>
   <div class="col-lg-9">
     <div class="card shadow-sm mb-3">
@@ -73,10 +105,13 @@
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-agenda" type="button" role="tab">Aulas</button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-evolucao" type="button" role="tab">Evolucao</button>
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-financeiro" type="button" role="tab">Financeiro</button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-financeiro" type="button" role="tab">Financeiro</button>
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-whatsapp" type="button" role="tab">WhatsApp</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-evolucao" type="button" role="tab">Evolucao</button>
           </li>
         </ul>
         <div class="tab-content">
@@ -242,6 +277,41 @@
             {% else %}
               <div class="text-muted">Sem faturas para este aluno.</div>
             {% endif %}
+          </div>
+          <div class="tab-pane fade" id="tab-whatsapp" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <div class="fw-semibold">WhatsApp</div>
+                <p class="text-muted small">Registre e envie mensagens diretamente para o aluno.</p>
+              </div>
+            </div>
+            <form method="post" action="{% url 'alunos_whatsapp_message' aluno.id %}">
+              {% csrf_token %}
+              <div class="mb-3">
+                {{ whatsapp_form.mensagem.label_tag }}
+                {{ whatsapp_form.mensagem }}
+              </div>
+              <button class="btn btn-sm btn-primary" type="submit">Enviar e registrar</button>
+            </form>
+            <div class="mt-4 space-y-3">
+              {% for msg in whatsapp_messages %}
+                <div class="rounded-xl border border-dashed border-black/10 p-3">
+                  <div class="d-flex justify-content-between">
+                    <span class="text-xs text-gray-500">{{ msg.enviado_em|date:"d/m/Y H:i" }}</span>
+                    <span class="badge bg-white border border-black/10 text-dark text-xs">{{ msg.get_tipo_display }}</span>
+                  </div>
+                  <p class="mt-2 mb-1">{{ msg.mensagem }}</p>
+                  <div class="text-xs text-gray-500">
+                    Telefone: {{ msg.telefone|default:"-" }}
+                    {% if msg.contrato %}
+                      • Contrato #{{ msg.contrato.cdContrato }}
+                    {% endif %}
+                  </div>
+                </div>
+              {% empty %}
+                <p class="text-muted">Nenhuma mensagem enviada ainda.</p>
+              {% endfor %}
+            </div>
           </div>
           <div class="tab-pane fade" id="tab-evolucao" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-2">

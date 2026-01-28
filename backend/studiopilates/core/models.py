@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 from .validators import validar_cpf
 
 
@@ -90,6 +91,28 @@ class TelefoneAluno(models.Model):
 
     def __str__(self):
         return self.dsTelefone
+
+
+class WhatsappMessageType(models.TextChoices):
+    MANUAL = "manual", "Manual"
+    AUTOMATED_REMINDER = "automated_reminder", "Lembrete diário"
+    PROFESSOR_SCHEDULE = "professor_schedule", "Agenda do professor"
+    CONTRACT_LINK = "contract_link", "Link do contrato"
+    CONTRACT_RENEWAL = "contract_renewal", "Renovação de contrato"
+
+
+class AlunoWhatsappMessage(models.Model):
+    aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE, related_name="whatsapp_messages")
+    contrato = models.ForeignKey("Contrato", null=True, blank=True, on_delete=models.SET_NULL, related_name="whatsapp_messages")
+    tipo = models.CharField(max_length=30, choices=WhatsappMessageType.choices, default=WhatsappMessageType.MANUAL)
+    telefone = models.CharField(max_length=20, blank=True)
+    mensagem = models.TextField()
+    status = models.CharField(max_length=20, default="sent")
+    response_payload = models.TextField(blank=True)
+    enviado_em = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-enviado_em"]
 
 
 class TipoServico(models.Model):

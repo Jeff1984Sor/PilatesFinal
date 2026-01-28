@@ -95,3 +95,9 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@studiopilates.com")
+
+EVOLUTION_BASE_URL = os.getenv("EVOLUTION_BASE_URL", "")
+EVOLUTION_TOKEN = os.getenv("EVOLUTION_TOKEN", "")
+EVOLUTION_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "")
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://localhost:8000")
+WHATSAPP_SCHEDULER_ENABLED = os.getenv("WHATSAPP_SCHEDULER_ENABLED", "True") == "True"
