@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3 class="mb-2">Configurações de WhatsApp</h3>
+    <p class="text-muted mb-4">Defina o acesso ao Evolution, os templates e os eventos que serão disparados automaticamente.</p>
+    <form method="get" class="mb-4">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-4">
+          <label class="form-label" for="unidade-select">Unidade</label>
+          <select name="unidade" id="unidade-select" class="form-select" onchange="this.form.submit()">
+            {% for item in unidades %}
+              <option value="{{ item.id }}" {% if item.id == unidade.id %}selected{% endif %}>{{ item.dsUnidade }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label" for="{{ form.evolution_url.id_for_label }}">{{ form.evolution_url.label }}</label>
+          {{ form.evolution_url }}
+          {% if form.evolution_url.errors %}<div class="invalid-feedback d-block">{{ form.evolution_url.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="{{ form.evolution_usuario.id_for_label }}">{{ form.evolution_usuario.label }}</label>
+          {{ form.evolution_usuario }}
+          {% if form.evolution_usuario.errors %}<div class="invalid-feedback d-block">{{ form.evolution_usuario.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="{{ form.evolution_senha.id_for_label }}">{{ form.evolution_senha.label }}</label>
+          {{ form.evolution_senha }}
+          {% if form.evolution_senha.errors %}<div class="invalid-feedback d-block">{{ form.evolution_senha.errors|striptags }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="row g-4 mt-4">
+        <div class="col-md-6">
+          <h5>Aviso ao aluno</h5>
+          <div class="mb-3">
+            {{ form.avisar_aluno }}
+            <label class="form-check-label" for="{{ form.avisar_aluno.id_for_label }}">{{ form.avisar_aluno.label }}</label>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.horario_aviso_aluno.id_for_label }}">{{ form.horario_aviso_aluno.label }}</label>
+              {{ form.horario_aviso_aluno }}
+              {% if form.horario_aviso_aluno.errors %}<div class="invalid-feedback d-block">{{ form.horario_aviso_aluno.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label" for="{{ form.template_aviso_aluno.id_for_label }}">{{ form.template_aviso_aluno.label }}</label>
+            {{ form.template_aviso_aluno }}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h5>Aviso ao professor</h5>
+          <div class="mb-3">
+            {{ form.avisar_professor }}
+            <label class="form-check-label" for="{{ form.avisar_professor.id_for_label }}">{{ form.avisar_professor.label }}</label>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.horario_aviso_professor.id_for_label }}">{{ form.horario_aviso_professor.label }}</label>
+              {{ form.horario_aviso_professor }}
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label" for="{{ form.template_aviso_professor.id_for_label }}">{{ form.template_aviso_professor.label }}</label>
+            {{ form.template_aviso_professor }}
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-4">
+        <div class="col-md-6">
+          <h5>Link do contrato</h5>
+          <div class="mb-3">
+            {{ form.enviar_link_contrato }}
+            <label class="form-check-label" for="{{ form.enviar_link_contrato.id_for_label }}">{{ form.enviar_link_contrato.label }}</label>
+          </div>
+          <div>
+            <label class="form-label" for="{{ form.template_link_contrato.id_for_label }}">{{ form.template_link_contrato.label }}</label>
+            {{ form.template_link_contrato }}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h5>Renovação</h5>
+          <div class="mb-3">
+            {{ form.avisar_renovacao }}
+            <label class="form-check-label" for="{{ form.avisar_renovacao.id_for_label }}">{{ form.avisar_renovacao.label }}</label>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.horario_aviso_renovacao.id_for_label }}">{{ form.horario_aviso_renovacao.label }}</label>
+              {{ form.horario_aviso_renovacao }}
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label" for="{{ form.template_aviso_renovacao.id_for_label }}">{{ form.template_aviso_renovacao.label }}</label>
+            {{ form.template_aviso_renovacao }}
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <label class="form-label" for="{{ form.variaveis_template.id_for_label }}">{{ form.variaveis_template.label }}</label>
+        {{ form.variaveis_template }}
+        <small class="text-muted d-block mt-1">
+          Exemplo: {"ALUNO_NOME": "Nome do aluno", "HORARIO": "Horário da aula"}
+        </small>
+      </div>
+
+      <div class="mt-4">
+        <p class="text-muted mb-2">Variáveis disponíveis para templates:</p>
+        <ul class="list-unstyled">
+          <li><strong>{aluno}</strong> – Nome do aluno</li>
+          <li><strong>{horario}</strong> – Horário da aula</li>
+          <li><strong>{tipo_servico}</strong> – Tipo de serviço/aula</li>
+          <li><strong>{professor}</strong> – Professor responsável</li>
+          <li><strong>{alunos}</strong> – Lista resumida de alunos</li>
+          <li><strong>{link_contrato}</strong> – Link para assinatura do contrato</li>
+          <li><strong>{dias_restantes}</strong> – Dias restantes para vencimento</li>
+        </ul>
+      </div>
+
+      <button class="btn btn-primary mt-3" type="submit">Salvar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

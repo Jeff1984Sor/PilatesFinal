@@ -2112,6 +2112,42 @@ def email_config_view(request):
     )
 
 
+@login_required
+def whatsapp_config_view(request):
+    unidades = models.Unidade.objects.order_by("cdUnidade").all()
+    if not unidades:
+        messages.warning(request, "Cadastre ao menos uma unidade antes de configurar o WhatsApp.")
+        return redirect("dashboard")
+    unidade_id = request.GET.get("unidade")
+    unidade = unidades.filter(pk=unidade_id).first() if unidade_id else unidades.first()
+    if not unidade:
+        unidade = unidades.first()
+    configuracao = models.WhatsappConfiguracao.objects.filter(unidade=unidade).first()
+    if request.method == "POST":
+        form = forms.WhatsappConfiguracaoForm(request.POST, instance=configuracao)
+        if form.is_valid():
+            cfg = form.save(commit=False)
+            cfg.unidade = unidade
+            cfg.save()
+            messages.success(request, "Configuracoes de WhatsApp salvas.")
+            return redirect(f"{reverse('whatsapp_config')}?unidade={unidade.id}")
+        messages.error(request, "Corrija os erros antes de salvar.")
+    else:
+        form = forms.WhatsappConfiguracaoForm(instance=configuracao)
+    return render(
+        request,
+        "configuracoes/whatsapp.html",
+        {
+            "form": form,
+            "unidades": unidades,
+            "unidade": unidade,
+            "title": "Configuracao de WhatsApp",
+            "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
+            "active_menu": "configuracoes",
+        },
+    )
+
+
 def contrato_assinar(request, token):
     try:
         contrato_id = services.validar_token_contrato(token)

@@ -247,6 +247,28 @@ class EmailConfiguracaoForm(BaseAutoCdForm):
         fields = ["cdEmail", "host", "porta", "usuario", "senha", "use_tls", "remetente", "ativo"]
 
 
+class WhatsappConfiguracaoForm(BaseAutoCdForm):
+    class Meta:
+        model = models.WhatsappConfiguracao
+        fields = [
+            "evolution_url",
+            "evolution_usuario",
+            "evolution_senha",
+            "avisar_aluno",
+            "horario_aviso_aluno",
+            "template_aviso_aluno",
+            "avisar_professor",
+            "horario_aviso_professor",
+            "template_aviso_professor",
+            "enviar_link_contrato",
+            "template_link_contrato",
+            "avisar_renovacao",
+            "horario_aviso_renovacao",
+            "template_aviso_renovacao",
+            "variaveis_template",
+        ]
+
+
 class ModeloEvolucaoForm(BaseAutoCdForm):
     class Meta:
         model = models.ModeloEvolucao

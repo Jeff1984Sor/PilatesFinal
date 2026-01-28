@@ -5,6 +5,7 @@ from . import views, forms, models
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("configuracoes/email/", views.email_config_view, name="email_config"),
+    path("configuracoes/whatsapp/", views.whatsapp_config_view, name="whatsapp_config"),
     path("contratos/assinar/<str:token>/", views.contrato_assinar, name="contrato_assinar"),
     path("contratos/<int:pk>/enviar-email/", views.contrato_enviar_email, name="contrato_enviar_email"),
     path("contratos/<int:pk>/assinar-local/", views.contrato_assinar_local, name="contrato_assinar_local"),

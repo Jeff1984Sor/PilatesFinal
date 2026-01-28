@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from datetime import datetime, time
 from .validators import validar_cpf
 
 
@@ -392,3 +393,48 @@ class EmailConfiguracao(models.Model):
 
     def __str__(self):
         return self.remetente
+
+
+class WhatsappConfiguracao(models.Model):
+    unidade = models.OneToOneField(Unidade, on_delete=models.CASCADE, related_name="whatsapp_configuracao")
+    evolution_url = models.URLField(blank=True)
+    evolution_usuario = models.CharField(max_length=150, blank=True)
+    evolution_senha = models.CharField(max_length=150, blank=True)
+
+    avisar_aluno = models.BooleanField(default=True)
+    horario_aviso_aluno = models.TimeField(default=time(19, 0))
+    template_aviso_aluno = models.TextField(
+        blank=True,
+        default="Boa noite {aluno}, amanhã temos aula de {tipo_servico} às {horario}. Podemos confirmar?"
+    )
+
+    avisar_professor = models.BooleanField(default=True)
+    horario_aviso_professor = models.TimeField(default=time(18, 0))
+    template_aviso_professor = models.TextField(
+        blank=True,
+        default="Resumo de amanhã: {horario} – {alunos}"
+    )
+
+    enviar_link_contrato = models.BooleanField(default=True)
+    template_link_contrato = models.TextField(
+        blank=True,
+        default="Olá {aluno}, confirme seu contrato pelo link: {link_contrato}"
+    )
+
+    avisar_renovacao = models.BooleanField(default=True)
+    horario_aviso_renovacao = models.TimeField(default=time(10, 0))
+    template_aviso_renovacao = models.TextField(
+        blank=True,
+        default="Seu contrato vence em {dias_restantes} dias. Deseja renovar?"
+    )
+
+    variaveis_template = models.JSONField(blank=True, null=True, default=dict)
+
+    dtCadastro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Configuração de WhatsApp"
+        verbose_name_plural = "Configurações de WhatsApp"
+
+    def __str__(self):
+        return f"WhatsApp do {self.unidade}"
