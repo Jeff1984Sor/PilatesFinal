@@ -85,8 +85,7 @@ def _send_professor_schedule(target_date):
         for slot_time in sorted(entry["slots"]):
             alunos = entry["slots"][slot_time]
             lines.append(f"{slot_time} - {', '.join(alunos)}")
-        message = "
-".join(lines)
+        message = "\n".join(lines)
         client = service._get_client_for_unidade(unidade)
         client.send_message(telefone, message)
 
