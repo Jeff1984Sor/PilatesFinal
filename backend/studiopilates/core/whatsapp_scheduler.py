@@ -8,7 +8,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from . import models
-from .whatsapp_service import EvolutionClient, WhatsappMessageType, WhatsappService
+from .whatsapp_service import WhatsappMessageType, WhatsappService
 
 logger = logging.getLogger(__name__)
 _scheduler = None
@@ -62,30 +62,34 @@ def _send_professor_schedule(target_date):
             status="RESERVADA",
             aulaSessao__profissional__isnull=False,
         )
-        .select_related("aluno", "aulaSessao__profissional")
+        .select_related("aluno", "aulaSessao__profissional", "aulaSessao__unidade")
         .order_by("aulaSessao__profissional_id", "aulaSessao__horaInicio")
     )
     schedule = {}
     for reserva in reservas:
         prof = reserva.aulaSessao.profissional
+        unidade = reserva.aulaSessao.unidade
         if not prof:
             continue
-        prof_map = schedule.setdefault(prof.id, {"prof": prof, "slots": {}})
+        prof_map = schedule.setdefault((prof.id, unidade.id), {"prof": prof, "unidade": unidade, "slots": {}})
         slot_time = reserva.aulaSessao.horaInicio.strftime("%H:%M")
         prof_map["slots"].setdefault(slot_time, []).append(reserva.aluno.dsNome)
     service = WhatsappService()
-    client = EvolutionClient()
     for entry in schedule.values():
         prof = entry["prof"]
+        unidade = entry["unidade"]
         telefone = service.clean_phone(getattr(prof, "celular", None))
         if not telefone:
             continue
-        lines = [f"Horários de {target_date.strftime('%d/%m/%Y')}:"]
+        lines = [f"Hor??rios de {target_date.strftime('%d/%m/%Y')}:"]
         for slot_time in sorted(entry["slots"]):
             alunos = entry["slots"][slot_time]
             lines.append(f"{slot_time} - {', '.join(alunos)}")
-        message = "\n".join(lines)
+        message = "
+".join(lines)
+        client = service._get_client_for_unidade(unidade)
         client.send_message(telefone, message)
+
 
 
 def _send_contract_renewals(service: WhatsappService):
