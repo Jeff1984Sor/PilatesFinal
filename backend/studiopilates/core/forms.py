@@ -248,11 +248,29 @@ class EmailConfiguracaoForm(BaseAutoCdForm):
 
 
 class WhatsappConfiguracaoForm(BaseAutoCdForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        url_field = self.fields.get("evolution_url")
+        if url_field:
+            url_field.label = "URL do Wasender"
+            url_field.widget.attrs["readonly"] = True
+            if not url_field.initial and self.instance and getattr(self.instance, "evolution_url", ""):
+                url_field.initial = self.instance.evolution_url
+            if not url_field.initial:
+                url_field.initial = "https://www.wasenderapi.com/api/send-message"
+        token_field = self.fields.get("evolution_senha")
+        if token_field:
+            token_field.label = "Token (API Key)"
+            token_field.widget.attrs["placeholder"] = "Cole aqui o token do Wasender"
+        usuario_field = self.fields.get("evolution_usuario")
+        if usuario_field:
+            usuario_field.label = "Usuario (nao usado)"
+            usuario_field.widget.attrs["readonly"] = True
+
     class Meta:
         model = models.WhatsappConfiguracao
         fields = [
             "evolution_url",
-            "evolution_usuario",
             "evolution_senha",
             "avisar_aluno",
             "horario_aviso_aluno",
