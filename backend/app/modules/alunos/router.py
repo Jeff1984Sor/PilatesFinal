@@ -1,5 +1,8 @@
+import re
+
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from fastapi.responses import FileResponse
+from sqlalchemy import text, bindparam
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_db
@@ -10,6 +13,7 @@ from app.modules.alunos.schemas import (
     EnderecoAlunoOut,
     AlunoTermoPdfIn,
     AlunoAnexoOut,
+    AlunoTelefoneLookupOut,
 )
 from app.modules.alunos.repository import AlunoRepository, EnderecoRepository, AlunoAnexoRepository
 from app.modules.alunos.service import AlunoService, AlunoAnexoService
@@ -18,6 +22,29 @@ from app.modules.termos.service import TermoRenderer
 from app.shared.pagination import Page, PageMeta
 
 router = APIRouter(prefix="/alunos", tags=["alunos"])
+PHONE_CLEAN_REGEX = re.compile(r"\\D+")
+
+
+def _normalize_phone(raw: str) -> str | None:
+    if not raw:
+        return None
+    digits = PHONE_CLEAN_REGEX.sub("", raw)
+    if not digits:
+        return None
+    if digits.startswith("55"):
+        return digits
+    if len(digits) in (10, 11):
+        return f"55{digits}"
+    return digits
+
+
+def _phone_variants(digits: str) -> list[str]:
+    variants = {digits}
+    if digits.startswith("55") and len(digits) > 2:
+        variants.add(digits[2:])
+    if not digits.startswith("55") and len(digits) in (10, 11):
+        variants.add(f"55{digits}")
+    return sorted(variants)
 
 
 @router.post("", response_model=AlunoOut)
@@ -80,3 +107,27 @@ def download_anexo(aluno_id: int, anexo_id: int, db: Session = Depends(get_db)):
     if not anexo or anexo.aluno_id != aluno_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Anexo not found")
     return FileResponse(anexo.arquivo_path, media_type=anexo.mime_type, filename=anexo.arquivo_nome)
+
+
+@router.get("/buscar-telefone", response_model=AlunoTelefoneLookupOut)
+def find_by_phone(telefone: str, db: Session = Depends(get_db)):
+    normalized = _normalize_phone(telefone)
+    if not normalized:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telefone invalido")
+    variants = _phone_variants(normalized)
+    normalized_sql = (
+        "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.\"dsTelefone\", '+', ''), '-', ''), ' ', ''), '(', ''), ')', '')"
+    )
+    sql = text(
+        f"""
+        SELECT a.id as aluno_id, a."cdAluno" as codigo, a."dsNome" as nome, t."dsTelefone" as telefone
+        FROM core_telefonealuno t
+        JOIN core_aluno a ON a.id = t."cdAluno_id"
+        WHERE {normalized_sql} IN :phones
+        ORDER BY a."dsNome"
+        LIMIT 10
+        """
+    ).bindparams(bindparam("phones", expanding=True))
+    rows = db.execute(sql, {"phones": variants}).mappings().all()
+    matches = [dict(row) for row in rows]
+    return {"exists": bool(matches), "matches": matches}

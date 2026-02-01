@@ -59,3 +59,15 @@ class AlunoAnexoOut(ORMModel):
     arquivo_nome: str
     mime_type: str
     criado_em: datetime
+
+
+class AlunoTelefoneMatch(BaseModel):
+    aluno_id: int
+    codigo: int | None = None
+    nome: str
+    telefone: str
+
+
+class AlunoTelefoneLookupOut(BaseModel):
+    exists: bool
+    matches: list[AlunoTelefoneMatch] = []
