@@ -16,6 +16,7 @@ from app.modules.alunos.schemas import (
     AlunoTelefoneLookupOut,
     AlunoWhatsappMessageIn,
     AlunoWhatsappMessageOut,
+    ContextoIAOut,
 )
 from app.modules.alunos.repository import AlunoRepository, EnderecoRepository, AlunoAnexoRepository
 from app.modules.alunos.service import AlunoService, AlunoAnexoService
@@ -197,3 +198,132 @@ def list_whatsapp_messages(
     )
     rows = db.execute(select_sql, {"aluno_id": aluno_id, "limit": limit}).mappings().all()
     return [dict(row) for row in rows]
+
+
+@router.get("/{aluno_id:int}/contexto-ia", response_model=ContextoIAOut)
+def contexto_ia(aluno_id: int, db: Session = Depends(get_db)):
+    aluno_sql = text(
+        """
+        SELECT a.id as aluno_id, a."dsNome" as nome, a."dsCPF" as cpf, a."dsEmail" as email,
+               u."dsUnidade" as unidade
+        FROM core_aluno a
+        LEFT JOIN core_unidade u ON u.id = a."cdUnidade_id"
+        WHERE a.id = :aluno_id
+        """
+    )
+    aluno = db.execute(aluno_sql, {"aluno_id": aluno_id}).mappings().first()
+    if not aluno:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno not found")
+
+    contratos_sql = text(
+        """
+        SELECT c.id,
+               c."cdContrato" as codigo,
+               c."dtInicioContrato" as dt_inicio,
+               c."dtFimContrato" as dt_fim,
+               c.status,
+               c.valor_parcela,
+               c.valor_total,
+               p."dsPlano" as plano,
+               u."dsUnidade" as unidade,
+               pr.profissional as profissional
+        FROM core_contrato c
+        LEFT JOIN core_plano p ON p.id = c."cdPlano_id"
+        LEFT JOIN core_unidade u ON u.id = c."cdUnidade_id"
+        LEFT JOIN core_profissional pr ON pr.id = c."cdProfissional_id"
+        WHERE c."cdAluno_id" = :aluno_id
+        ORDER BY c."dtFimContrato" DESC, c.id DESC
+        """
+    )
+    contratos = db.execute(contratos_sql, {"aluno_id": aluno_id}).mappings().all()
+
+    aulas_sql = text(
+        """
+        SELECT r.id as reserva_id,
+               r.status,
+               a.data,
+               a."horaInicio" as hora_inicio,
+               a."horaFim" as hora_fim,
+               ts."dsTipoServico" as tipo_servico,
+               pr.profissional as profissional,
+               u."dsUnidade" as unidade
+        FROM core_reserva r
+        JOIN core_aulasessao a ON a.id = r."aulaSessao_id"
+        LEFT JOIN core_tiposervico ts ON ts.id = a."tipoServico_id"
+        LEFT JOIN core_profissional pr ON pr.id = a.profissional_id
+        LEFT JOIN core_unidade u ON u.id = a.unidade_id
+        WHERE r.aluno_id = :aluno_id
+        ORDER BY a.data DESC, a."horaInicio" DESC
+        """
+    )
+    aulas = db.execute(aulas_sql, {"aluno_id": aluno_id}).mappings().all()
+
+    faturas_sql = text(
+        """
+        SELECT cr.id,
+               cr.contrato_id,
+               cr.status,
+               cr.valor,
+               cr."dtVencimento" as dt_vencimento,
+               cr."dtPagamento" as dt_pagamento
+        FROM core_contasreceber cr
+        JOIN core_contrato c ON c.id = cr.contrato_id
+        WHERE c."cdAluno_id" = :aluno_id
+          AND cr.status = 'ABERTO'
+        ORDER BY cr."dtVencimento" ASC
+        """
+    )
+    faturas = db.execute(faturas_sql, {"aluno_id": aluno_id}).mappings().all()
+
+    evolucoes_sql = text(
+        """
+        SELECT e.id,
+               e.texto,
+               e."dtEvolucao" as dt_evolucao,
+               e.reserva_id,
+               pr.profissional as profissional
+        FROM core_evolucaoaluno e
+        JOIN core_reserva r ON r.id = e.reserva_id
+        LEFT JOIN core_profissional pr ON pr.id = e.profissional_id
+        WHERE r.aluno_id = :aluno_id
+        ORDER BY e."dtEvolucao" DESC
+        """
+    )
+    evolucoes = db.execute(evolucoes_sql, {"aluno_id": aluno_id}).mappings().all()
+
+    whatsapp_sql = text(
+        """
+        SELECT id,
+               aluno_id,
+               contrato_id,
+               telefone,
+               mensagem,
+               tipo,
+               status,
+               response_payload,
+               enviado_em
+        FROM core_alunowhatsappmessage
+        WHERE aluno_id = :aluno_id
+        ORDER BY enviado_em DESC, id DESC
+        LIMIT 200
+        """
+    )
+    whatsapp = db.execute(whatsapp_sql, {"aluno_id": aluno_id}).mappings().all()
+
+    resumo = {
+        "total_contratos": len(contratos),
+        "total_aulas": len(aulas),
+        "total_faturas_abertas": len(faturas),
+        "total_evolucoes": len(evolucoes),
+        "total_whatsapp": len(whatsapp),
+    }
+
+    return {
+        **dict(aluno),
+        "contratos": [dict(row) for row in contratos],
+        "aulas_agendadas": [dict(row) for row in aulas],
+        "faturas_abertas": [dict(row) for row in faturas],
+        "evolucoes": [dict(row) for row in evolucoes],
+        "whatsapp": [dict(row) for row in whatsapp],
+        "resumo": resumo,
+    }

@@ -92,3 +92,58 @@ class AlunoWhatsappMessageOut(BaseModel):
     status: str
     enviado_em: datetime
     response_payload: str | None
+
+
+class ContextoContratoOut(BaseModel):
+    id: int
+    codigo: int | None = None
+    dt_inicio: datetime | None = None
+    dt_fim: datetime | None = None
+    status: str | None = None
+    plano: str | None = None
+    unidade: str | None = None
+    profissional: str | None = None
+    valor_parcela: float | None = None
+    valor_total: float | None = None
+
+
+class ContextoAulaOut(BaseModel):
+    reserva_id: int
+    status: str
+    data: datetime | None = None
+    hora_inicio: datetime | None = None
+    hora_fim: datetime | None = None
+    tipo_servico: str | None = None
+    profissional: str | None = None
+    unidade: str | None = None
+
+
+class ContextoFaturaOut(BaseModel):
+    id: int
+    contrato_id: int
+    status: str
+    valor: float | None = None
+    dt_vencimento: datetime | None = None
+    dt_pagamento: datetime | None = None
+
+
+class ContextoEvolucaoOut(BaseModel):
+    id: int
+    texto: str
+    dt_evolucao: datetime | None = None
+    reserva_id: int
+    profissional: str | None = None
+
+
+class ContextoIAOut(BaseModel):
+    aluno_id: int
+    nome: str
+    cpf: str | None = None
+    email: str | None = None
+    unidade: str | None = None
+    contratos: list[ContextoContratoOut] = []
+    aulas_agendadas: list[ContextoAulaOut] = []
+    faturas_abertas: list[ContextoFaturaOut] = []
+    evolucoes: list[ContextoEvolucaoOut] = []
+    whatsapp: list[AlunoWhatsappMessageOut] = []
+    resumo: dict
