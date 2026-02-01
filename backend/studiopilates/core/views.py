@@ -134,6 +134,7 @@ def aluno_detail(request, pk):
         "contas_receber": contas_receber,
         "filtros_financeiro": _get_filtros_financeiro(request),
         "today": timezone.now().date().strftime("%Y-%m-%d"),
+        "today_date": timezone.now().date(),
         "planos": planos,
         "unidades": unidades,
         "profissionais": profissionais,
