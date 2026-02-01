@@ -17,6 +17,7 @@ from app.modules.alunos.schemas import (
     AlunoWhatsappMessageIn,
     AlunoWhatsappMessageOut,
     ContextoIAOut,
+    ContextoAulaOut,
 )
 from app.modules.alunos.repository import AlunoRepository, EnderecoRepository, AlunoAnexoRepository
 from app.modules.alunos.service import AlunoService, AlunoAnexoService
@@ -327,3 +328,40 @@ def contexto_ia(aluno_id: int, db: Session = Depends(get_db)):
         "whatsapp": [dict(row) for row in whatsapp],
         "resumo": resumo,
     }
+
+
+@router.get("/{aluno_id:int}/proximas-aulas", response_model=list[ContextoAulaOut])
+def proximas_aulas(
+    aluno_id: int,
+    limit: int = Query(2, ge=1, le=10),
+    db: Session = Depends(get_db),
+):
+    aluno = db.execute(text('SELECT id FROM core_aluno WHERE id = :aluno_id'), {"aluno_id": aluno_id}).first()
+    if not aluno:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno not found")
+    aulas_sql = text(
+        """
+        SELECT r.id as reserva_id,
+               r.status,
+               a.data,
+               a."horaInicio" as hora_inicio,
+               a."horaFim" as hora_fim,
+               ts."dsTipoServico" as tipo_servico,
+               pr.profissional as profissional,
+               u."dsUnidade" as unidade
+        FROM core_reserva r
+        JOIN core_aulasessao a ON a.id = r."aulaSessao_id"
+        LEFT JOIN core_tiposervico ts ON ts.id = a."tipoServico_id"
+        LEFT JOIN core_profissional pr ON pr.id = a.profissional_id
+        LEFT JOIN core_unidade u ON u.id = a.unidade_id
+        WHERE r.aluno_id = :aluno_id
+          AND (
+            a.data > CURRENT_DATE
+            OR (a.data = CURRENT_DATE AND a."horaInicio" >= CURRENT_TIME)
+          )
+        ORDER BY a.data ASC, a."horaInicio" ASC
+        LIMIT :limit
+        """
+    )
+    rows = db.execute(aulas_sql, {"aluno_id": aluno_id, "limit": limit}).mappings().all()
+    return [dict(row) for row in rows]
