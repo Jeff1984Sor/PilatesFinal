@@ -19,6 +19,7 @@ from app.modules.alunos.schemas import (
     ContextoIAOut,
     ContextoAulaOut,
     ContextoContratoOut,
+    ContextoFaturaOut,
 )
 from app.modules.alunos.repository import AlunoRepository, EnderecoRepository, AlunoAnexoRepository
 from app.modules.alunos.service import AlunoService, AlunoAnexoService
@@ -400,3 +401,32 @@ def contrato_ativo(aluno_id: int, db: Session = Depends(get_db)):
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active contract")
     return dict(row)
+
+
+@router.get("/{aluno_id:int}/pagamentos/abertos", response_model=list[ContextoFaturaOut])
+def pagamentos_abertos(
+    aluno_id: int,
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    aluno = db.execute(text('SELECT id FROM core_aluno WHERE id = :aluno_id'), {"aluno_id": aluno_id}).first()
+    if not aluno:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno not found")
+    faturas_sql = text(
+        """
+        SELECT cr.id,
+               cr.contrato_id,
+               cr.status,
+               cr.valor,
+               cr."dtVencimento" as dt_vencimento,
+               cr."dtPagamento" as dt_pagamento
+        FROM core_contasreceber cr
+        JOIN core_contrato c ON c.id = cr.contrato_id
+        WHERE c."cdAluno_id" = :aluno_id
+          AND cr.status = 'ABERTO'
+        ORDER BY cr."dtVencimento" ASC
+        LIMIT :limit
+        """
+    )
+    rows = db.execute(faturas_sql, {"aluno_id": aluno_id, "limit": limit}).mappings().all()
+    return [dict(row) for row in rows]
