@@ -21,7 +21,7 @@ from app.modules.integracoes.router import router as integracoes_router
 
 configure_logging()
 
-app = FastAPI(title="StudioPilates API", version="1.0.0")
+app = FastAPI(title="StudioPilates API", version="1.0.0", root_path=settings.ROOT_PATH)
 
 app.add_middleware(
     CORSMiddleware,

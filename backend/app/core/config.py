@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     EVOLUTION_BASE_URL: str = ""
     EVOLUTION_TOKEN: str = ""
     EVOLUTION_INSTANCE: str = ""
+    ROOT_PATH: str = ""
     STORAGE_DIR: str = "./storage"
 
     RATE_LIMIT_PER_MINUTE: int = 0
