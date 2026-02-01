@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date, time
 
 from pydantic import BaseModel
 from app.shared.schemas import ORMModel
@@ -97,8 +97,8 @@ class AlunoWhatsappMessageOut(BaseModel):
 class ContextoContratoOut(BaseModel):
     id: int
     codigo: int | None = None
-    dt_inicio: datetime | None = None
-    dt_fim: datetime | None = None
+    dt_inicio: date | None = None
+    dt_fim: date | None = None
     status: str | None = None
     plano: str | None = None
     unidade: str | None = None
@@ -110,9 +110,9 @@ class ContextoContratoOut(BaseModel):
 class ContextoAulaOut(BaseModel):
     reserva_id: int
     status: str
-    data: datetime | None = None
-    hora_inicio: datetime | None = None
-    hora_fim: datetime | None = None
+    data: date | None = None
+    hora_inicio: time | None = None
+    hora_fim: time | None = None
     tipo_servico: str | None = None
     profissional: str | None = None
     unidade: str | None = None
@@ -123,8 +123,8 @@ class ContextoFaturaOut(BaseModel):
     contrato_id: int
     status: str
     valor: float | None = None
-    dt_vencimento: datetime | None = None
-    dt_pagamento: datetime | None = None
+    dt_vencimento: date | None = None
+    dt_pagamento: date | None = None
 
 
 class ContextoEvolucaoOut(BaseModel):
