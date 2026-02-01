@@ -14,6 +14,8 @@ from app.modules.alunos.schemas import (
     AlunoTermoPdfIn,
     AlunoAnexoOut,
     AlunoTelefoneLookupOut,
+    AlunoWhatsappMessageIn,
+    AlunoWhatsappMessageOut,
 )
 from app.modules.alunos.repository import AlunoRepository, EnderecoRepository, AlunoAnexoRepository
 from app.modules.alunos.service import AlunoService, AlunoAnexoService
@@ -131,3 +133,45 @@ def find_by_phone(telefone: str, db: Session = Depends(get_db)):
     rows = db.execute(sql, {"phones": variants}).mappings().all()
     matches = [dict(row) for row in rows]
     return {"exists": bool(matches), "matches": matches}
+
+
+@router.post("/{aluno_id:int}/whatsapp", response_model=AlunoWhatsappMessageOut)
+def create_whatsapp_message(aluno_id: int, payload: AlunoWhatsappMessageIn, db: Session = Depends(get_db)):
+    aluno = db.execute(text('SELECT id FROM core_aluno WHERE id = :aluno_id'), {"aluno_id": aluno_id}).first()
+    if not aluno:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno not found")
+    telefone = _normalize_phone(payload.telefone) or payload.telefone
+    insert_sql = text(
+        """
+        INSERT INTO core_alunowhatsappmessage
+            (tipo, telefone, mensagem, status, response_payload, enviado_em, aluno_id, contrato_id)
+        VALUES
+            (:tipo, :telefone, :mensagem, :status, :response_payload, CURRENT_TIMESTAMP, :aluno_id, :contrato_id)
+        """
+    )
+    db.execute(
+        insert_sql,
+        {
+            "tipo": payload.tipo,
+            "telefone": telefone,
+            "mensagem": payload.mensagem,
+            "status": payload.status,
+            "response_payload": payload.response_payload or "",
+            "aluno_id": aluno_id,
+            "contrato_id": payload.contrato_id,
+        },
+    )
+    db.commit()
+    select_sql = text(
+        """
+        SELECT id, aluno_id, contrato_id, telefone, mensagem, tipo, status, response_payload, enviado_em
+        FROM core_alunowhatsappmessage
+        WHERE aluno_id = :aluno_id
+        ORDER BY enviado_em DESC, id DESC
+        LIMIT 1
+        """
+    )
+    row = db.execute(select_sql, {"aluno_id": aluno_id}).mappings().first()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save WhatsApp message")
+    return dict(row)

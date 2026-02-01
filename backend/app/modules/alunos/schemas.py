@@ -71,3 +71,24 @@ class AlunoTelefoneMatch(BaseModel):
 class AlunoTelefoneLookupOut(BaseModel):
     exists: bool
     matches: list[AlunoTelefoneMatch] = []
+
+
+class AlunoWhatsappMessageIn(BaseModel):
+    telefone: str
+    mensagem: str
+    tipo: str = "manual"
+    status: str = "sent"
+    contrato_id: int | None = None
+    response_payload: str | None = None
+
+
+class AlunoWhatsappMessageOut(BaseModel):
+    id: int
+    aluno_id: int
+    contrato_id: int | None
+    telefone: str
+    mensagem: str
+    tipo: str
+    status: str
+    enviado_em: datetime
+    response_payload: str | None
