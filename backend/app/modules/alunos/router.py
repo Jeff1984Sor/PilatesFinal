@@ -18,6 +18,7 @@ from app.modules.alunos.schemas import (
     AlunoWhatsappMessageOut,
     ContextoIAOut,
     ContextoAulaOut,
+    ContextoContratoOut,
 )
 from app.modules.alunos.repository import AlunoRepository, EnderecoRepository, AlunoAnexoRepository
 from app.modules.alunos.service import AlunoService, AlunoAnexoService
@@ -365,3 +366,37 @@ def proximas_aulas(
     )
     rows = db.execute(aulas_sql, {"aluno_id": aluno_id, "limit": limit}).mappings().all()
     return [dict(row) for row in rows]
+
+
+@router.get("/{aluno_id:int}/contrato-ativo", response_model=ContextoContratoOut)
+def contrato_ativo(aluno_id: int, db: Session = Depends(get_db)):
+    aluno = db.execute(text('SELECT id FROM core_aluno WHERE id = :aluno_id'), {"aluno_id": aluno_id}).first()
+    if not aluno:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno not found")
+    contrato_sql = text(
+        """
+        SELECT c.id,
+               c."cdContrato" as codigo,
+               c."dtInicioContrato" as dt_inicio,
+               c."dtFimContrato" as dt_fim,
+               c.status,
+               c.valor_parcela,
+               c.valor_total,
+               p."dsPlano" as plano,
+               u."dsUnidade" as unidade,
+               pr.profissional as profissional
+        FROM core_contrato c
+        LEFT JOIN core_plano p ON p.id = c."cdPlano_id"
+        LEFT JOIN core_unidade u ON u.id = c."cdUnidade_id"
+        LEFT JOIN core_profissional pr ON pr.id = c."cdProfissional_id"
+        WHERE c."cdAluno_id" = :aluno_id
+          AND c."dtFimContrato" >= CURRENT_DATE
+          AND c.status IN ('ASSINADO', 'ASSINADO_DIGITALMENTE')
+        ORDER BY c."dtFimContrato" ASC, c.id DESC
+        LIMIT 1
+        """
+    )
+    row = db.execute(contrato_sql, {"aluno_id": aluno_id}).mappings().first()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active contract")
+    return dict(row)
