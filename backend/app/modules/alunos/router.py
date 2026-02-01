@@ -175,3 +175,25 @@ def create_whatsapp_message(aluno_id: int, payload: AlunoWhatsappMessageIn, db: 
     if not row:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save WhatsApp message")
     return dict(row)
+
+
+@router.get("/{aluno_id:int}/whatsapp", response_model=list[AlunoWhatsappMessageOut])
+def list_whatsapp_messages(
+    aluno_id: int,
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    aluno = db.execute(text('SELECT id FROM core_aluno WHERE id = :aluno_id'), {"aluno_id": aluno_id}).first()
+    if not aluno:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno not found")
+    select_sql = text(
+        """
+        SELECT id, aluno_id, contrato_id, telefone, mensagem, tipo, status, response_payload, enviado_em
+        FROM core_alunowhatsappmessage
+        WHERE aluno_id = :aluno_id
+        ORDER BY enviado_em DESC, id DESC
+        LIMIT :limit
+        """
+    )
+    rows = db.execute(select_sql, {"aluno_id": aluno_id, "limit": limit}).mappings().all()
+    return [dict(row) for row in rows]
