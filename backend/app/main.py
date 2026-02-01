@@ -17,6 +17,7 @@ from app.modules.contratos.router import router as contratos_router
 from app.modules.termos.router import router as termos_router
 from app.modules.financeiro.router import router as financeiro_router
 from app.modules.agenda.router import router as agenda_router
+from app.modules.aulas.router import router as aulas_router
 from app.modules.integracoes.router import router as integracoes_router
 
 configure_logging()
@@ -56,6 +57,7 @@ app.include_router(contratos_router)
 app.include_router(termos_router)
 app.include_router(financeiro_router)
 app.include_router(agenda_router)
+app.include_router(aulas_router)
 app.include_router(integracoes_router)
 
 
