@@ -53,7 +53,7 @@ def create_aluno(payload: AlunoCreate, db: Session = Depends(get_db)):
     return service.create(payload.model_dump())
 
 
-@router.get("/{aluno_id}", response_model=AlunoOut)
+@router.get("/{aluno_id:int}", response_model=AlunoOut)
 def get_aluno(aluno_id: int, db: Session = Depends(get_db)):
     repo = AlunoRepository(db)
     return repo.get(aluno_id)
