@@ -653,6 +653,215 @@ def atualizar_horario_funcionamento(request, pk):
     return redirect("horarios_funcionamento_list")
 
 
+@login_required
+def criar_bloqueio_agenda(request):
+    if request.method != "POST":
+        return redirect("bloqueios_list")
+    unidade_id = request.POST.get("unidade") or ""
+    tipo_id = request.POST.get("tipoServico") or ""
+    profissional_id = request.POST.get("profissional") or ""
+    recorrente = request.POST.get("recorrente") in ("1", "on", "true", "True")
+    dias = request.POST.getlist("dias")
+    data_inicio = request.POST.get("dataInicio") or ""
+    data_fim = request.POST.get("dataFim") or ""
+    inicio = _to_time(request.POST.get("horaInicio"))
+    fim = _to_time(request.POST.get("horaFim"))
+    motivo = request.POST.get("motivo", "").strip()
+    ativo = request.POST.get("ativo") in ("1", "on", "true", "True")
+
+    try:
+        unidade_id = int(unidade_id)
+    except ValueError:
+        messages.error(request, "Unidade invalida.")
+        return redirect("bloqueios_list")
+    tipo_servico_id = None
+    if tipo_id:
+        try:
+            tipo_servico_id = int(tipo_id)
+        except ValueError:
+            tipo_servico_id = None
+    prof_id = None
+    if profissional_id:
+        try:
+            prof_id = int(profissional_id)
+        except ValueError:
+            prof_id = None
+    if not data_inicio:
+        messages.error(request, "Informe a data de inicio.")
+        return redirect("bloqueios_list")
+    try:
+        data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d").date()
+    except ValueError:
+        messages.error(request, "Data de inicio invalida.")
+        return redirect("bloqueios_list")
+    data_fim_dt = None
+    if data_fim:
+        try:
+            data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "Data final invalida.")
+            return redirect("bloqueios_list")
+    if not inicio or not fim or fim <= inicio:
+        messages.error(request, "Horario final deve ser maior que o inicial.")
+        return redirect("bloqueios_list")
+
+    created = 0
+    if recorrente:
+        if not dias:
+            messages.error(request, "Selecione os dias da semana.")
+            return redirect("bloqueios_list")
+        for dia in dias:
+            try:
+                dia_int = int(dia)
+            except ValueError:
+                continue
+            models.BloqueioAgenda.objects.create(
+                unidade_id=unidade_id,
+                tipoServico_id=tipo_servico_id,
+                profissional_id=prof_id,
+                recorrente=True,
+                diaSemana=dia_int,
+                dataInicio=data_inicio_dt,
+                dataFim=data_fim_dt,
+                horaInicio=inicio,
+                horaFim=fim,
+                motivo=motivo,
+                ativo=ativo,
+            )
+            created += 1
+    else:
+        models.BloqueioAgenda.objects.create(
+            unidade_id=unidade_id,
+            tipoServico_id=tipo_servico_id,
+            profissional_id=prof_id,
+            recorrente=False,
+            diaSemana=None,
+            dataInicio=data_inicio_dt,
+            dataFim=data_fim_dt,
+            horaInicio=inicio,
+            horaFim=fim,
+            motivo=motivo,
+            ativo=ativo,
+        )
+        created = 1
+    messages.success(request, f"{created} bloqueio(s) criado(s).")
+    return redirect("bloqueios_list")
+
+
+@login_required
+def atualizar_bloqueio_agenda(request, pk):
+    obj = get_object_or_404(models.BloqueioAgenda, pk=pk)
+    if request.method != "POST":
+        return redirect("bloqueios_list")
+    unidade_id = request.POST.get("unidade") or obj.unidade_id
+    tipo_id = request.POST.get("tipoServico") or ""
+    profissional_id = request.POST.get("profissional") or ""
+    recorrente = request.POST.get("recorrente") in ("1", "on", "true", "True")
+    dias = request.POST.getlist("dias")
+    data_inicio = request.POST.get("dataInicio") or obj.dataInicio.strftime("%Y-%m-%d")
+    data_fim = request.POST.get("dataFim") or ""
+    inicio = _to_time(request.POST.get("horaInicio")) or obj.horaInicio
+    fim = _to_time(request.POST.get("horaFim")) or obj.horaFim
+    motivo = request.POST.get("motivo", "").strip()
+    ativo = request.POST.get("ativo") in ("1", "on", "true", "True")
+
+    try:
+        unidade_id = int(unidade_id)
+    except ValueError:
+        messages.error(request, "Unidade invalida.")
+        return redirect("bloqueios_list")
+    tipo_servico_id = None
+    if tipo_id:
+        try:
+            tipo_servico_id = int(tipo_id)
+        except ValueError:
+            tipo_servico_id = None
+    prof_id = None
+    if profissional_id:
+        try:
+            prof_id = int(profissional_id)
+        except ValueError:
+            prof_id = None
+    try:
+        data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d").date()
+    except ValueError:
+        messages.error(request, "Data de inicio invalida.")
+        return redirect("bloqueios_list")
+    data_fim_dt = None
+    if data_fim:
+        try:
+            data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "Data final invalida.")
+            return redirect("bloqueios_list")
+    if not inicio or not fim or fim <= inicio:
+        messages.error(request, "Horario final deve ser maior que o inicial.")
+        return redirect("bloqueios_list")
+
+    if recorrente and not dias:
+        dias = [str(obj.diaSemana)] if obj.diaSemana is not None else []
+
+    if recorrente and dias:
+        dias_int = []
+        for dia in dias:
+            try:
+                dias_int.append(int(dia))
+            except ValueError:
+                continue
+        if not dias_int:
+            messages.error(request, "Selecione os dias da semana.")
+            return redirect("bloqueios_list")
+        primary_day = dias_int[0]
+        obj.unidade_id = unidade_id
+        obj.tipoServico_id = tipo_servico_id
+        obj.profissional_id = prof_id
+        obj.recorrente = True
+        obj.diaSemana = primary_day
+        obj.dataInicio = data_inicio_dt
+        obj.dataFim = data_fim_dt
+        obj.horaInicio = inicio
+        obj.horaFim = fim
+        obj.motivo = motivo
+        obj.ativo = ativo
+        obj.save()
+        created = 0
+        for dia in dias_int[1:]:
+            models.BloqueioAgenda.objects.create(
+                unidade_id=unidade_id,
+                tipoServico_id=tipo_servico_id,
+                profissional_id=prof_id,
+                recorrente=True,
+                diaSemana=dia,
+                dataInicio=data_inicio_dt,
+                dataFim=data_fim_dt,
+                horaInicio=inicio,
+                horaFim=fim,
+                motivo=motivo,
+                ativo=ativo,
+            )
+            created += 1
+        if created:
+            messages.success(request, f"{created} bloqueio(s) extras criados.")
+        else:
+            messages.success(request, "Bloqueio atualizado.")
+        return redirect("bloqueios_list")
+
+    obj.unidade_id = unidade_id
+    obj.tipoServico_id = tipo_servico_id
+    obj.profissional_id = prof_id
+    obj.recorrente = False
+    obj.diaSemana = None
+    obj.dataInicio = data_inicio_dt
+    obj.dataFim = data_fim_dt
+    obj.horaInicio = inicio
+    obj.horaFim = fim
+    obj.motivo = motivo
+    obj.ativo = ativo
+    obj.save()
+    messages.success(request, "Bloqueio atualizado.")
+    return redirect("bloqueios_list")
+
+
 def list_view(request, model, form_class, title, allow_modal=True, extra_context=None):
     query = request.GET.get("q", "").strip()
     order = request.GET.get("order", "id")

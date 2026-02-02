@@ -273,8 +273,92 @@
                   <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-justify">Just</button>
                 </div>
               {% endif %}
-              <form class="modal-form" method="post" action="{{ request.path }}criar/" enctype="multipart/form-data">
-                {% csrf_token %}
+              {% if model_name == 'bloqueioagenda' %}
+                <form class="modal-form js-hf-form" method="post" action="/cadastros/bloqueios/criar/">
+                  {% csrf_token %}
+                  <div class="hf-grid">
+                    <div class="hf-panel">
+                      <div class="hf-label">Unidade</div>
+                      <select class="form-select" name="unidade" required>
+                        <option value="">Selecione</option>
+                        {% for u in unidades %}
+                          <option value="{{ u.id }}">{{ u.dsUnidade }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="hf-panel">
+                      <div class="hf-label">Tipo de Servico</div>
+                      <select class="form-select" name="tipoServico">
+                        <option value="">Todos</option>
+                        {% for t in tipos_servico %}
+                          <option value="{{ t.id }}">{{ t.dsTipoServico }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="hf-panel">
+                      <div class="hf-label">Profissional</div>
+                      <select class="form-select" name="profissional">
+                        <option value="">Todos</option>
+                        {% for p in profissionais %}
+                          <option value="{{ p.id }}">{{ p.profissional }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="hf-panel hf-toggle">
+                      <label class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="recorrente" />
+                        <span class="form-check-label">Bloqueio recorrente</span>
+                      </label>
+                    </div>
+                    <div class="hf-panel hf-days">
+                      <div class="hf-label">Dias da semana (recorrente)</div>
+                      <select class="form-select hf-days-select" name="dias" multiple>
+                        {% for dia in dias_semana %}
+                          <option value="{{ dia.0 }}">{{ dia.1 }}</option>
+                        {% endfor %}
+                      </select>
+                      <div class="hf-days-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-week">Seg-Sex</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-all">Todos</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary js-hf-clear">Limpar</button>
+                      </div>
+                      <div class="text-muted small mt-2">Selecione dias somente se o bloqueio for recorrente.</div>
+                    </div>
+                    <div class="hf-panel">
+                      <div class="hf-label">Data inicio</div>
+                      <input class="form-control" type="date" name="dataInicio" required />
+                    </div>
+                    <div class="hf-panel">
+                      <div class="hf-label">Data fim (opcional)</div>
+                      <input class="form-control" type="date" name="dataFim" />
+                    </div>
+                    <div class="hf-panel">
+                      <div class="hf-label">Inicio</div>
+                      <input class="form-control" type="time" name="horaInicio" required />
+                    </div>
+                    <div class="hf-panel">
+                      <div class="hf-label">Fim</div>
+                      <input class="form-control" type="time" name="horaFim" required />
+                    </div>
+                    <div class="hf-panel">
+                      <div class="hf-label">Motivo</div>
+                      <input class="form-control" type="text" name="motivo" placeholder="Ex: Viagem, feriado" />
+                    </div>
+                    <div class="hf-panel hf-toggle">
+                      <label class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="ativo" checked />
+                        <span class="form-check-label">Ativo</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-end gap-2 pt-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Salvar bloqueio</button>
+                  </div>
+                </form>
+              {% else %}
+                <form class="modal-form" method="post" action="{{ request.path }}criar/" enctype="multipart/form-data">
+                  {% csrf_token %}
                 {% if model_name == 'aluno' %}
                   <div class="row g-3">
                     <div class="col-md-6">
@@ -408,7 +492,8 @@
                   <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
                   <button class="btn btn-primary" type="submit">Salvar</button>
                 </div>
-              </form>
+                </form>
+              {% endif %}
           </div>
         </div>
       </div>
@@ -547,8 +632,91 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-justify">Just</button>
                   </div>
                 {% endif %}
-                <form class="modal-form" method="post" action="{{ request.path }}{{ obj.id }}/editar/" enctype="multipart/form-data">
-                  {% csrf_token %}
+                {% if model_name == 'bloqueioagenda' %}
+                  <form class="modal-form js-hf-form" method="post" action="/cadastros/bloqueios/{{ obj.id }}/atualizar/">
+                    {% csrf_token %}
+                    <div class="hf-grid">
+                      <div class="hf-panel">
+                        <div class="hf-label">Unidade</div>
+                        <select class="form-select" name="unidade" required>
+                          {% for u in unidades %}
+                            <option value="{{ u.id }}" {% if obj.unidade_id == u.id %}selected{% endif %}>{{ u.dsUnidade }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="hf-panel">
+                        <div class="hf-label">Tipo de Servico</div>
+                        <select class="form-select" name="tipoServico">
+                          <option value="" {% if not obj.tipoServico_id %}selected{% endif %}>Todos</option>
+                          {% for t in tipos_servico %}
+                            <option value="{{ t.id }}" {% if obj.tipoServico_id == t.id %}selected{% endif %}>{{ t.dsTipoServico }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="hf-panel">
+                        <div class="hf-label">Profissional</div>
+                        <select class="form-select" name="profissional">
+                          <option value="" {% if not obj.profissional_id %}selected{% endif %}>Todos</option>
+                          {% for p in profissionais %}
+                            <option value="{{ p.id }}" {% if obj.profissional_id == p.id %}selected{% endif %}>{{ p.profissional }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="hf-panel hf-toggle">
+                        <label class="form-check form-switch">
+                          <input class="form-check-input" type="checkbox" name="recorrente" {% if obj.recorrente %}checked{% endif %} />
+                          <span class="form-check-label">Bloqueio recorrente</span>
+                        </label>
+                      </div>
+                      <div class="hf-panel hf-days">
+                        <div class="hf-label">Dias da semana (recorrente)</div>
+                        <select class="form-select hf-days-select" name="dias" multiple>
+                          {% for dia in dias_semana %}
+                            <option value="{{ dia.0 }}" {% if obj.diaSemana == dia.0 %}selected{% endif %}>{{ dia.1 }}</option>
+                          {% endfor %}
+                        </select>
+                        <div class="hf-days-actions">
+                          <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-week">Seg-Sex</button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-all">Todos</button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary js-hf-clear">Limpar</button>
+                        </div>
+                        <div class="text-muted small mt-2">Selecionar mais dias cria novos bloqueios iguais.</div>
+                      </div>
+                      <div class="hf-panel">
+                        <div class="hf-label">Data inicio</div>
+                        <input class="form-control" type="date" name="dataInicio" value="{{ obj.dataInicio|date:'Y-m-d' }}" required />
+                      </div>
+                      <div class="hf-panel">
+                        <div class="hf-label">Data fim (opcional)</div>
+                        <input class="form-control" type="date" name="dataFim" value="{{ obj.dataFim|date:'Y-m-d' }}" />
+                      </div>
+                      <div class="hf-panel">
+                        <div class="hf-label">Inicio</div>
+                        <input class="form-control" type="time" name="horaInicio" value="{{ obj.horaInicio|time:'H:i' }}" required />
+                      </div>
+                      <div class="hf-panel">
+                        <div class="hf-label">Fim</div>
+                        <input class="form-control" type="time" name="horaFim" value="{{ obj.horaFim|time:'H:i' }}" required />
+                      </div>
+                      <div class="hf-panel">
+                        <div class="hf-label">Motivo</div>
+                        <input class="form-control" type="text" name="motivo" value="{{ obj.motivo }}" />
+                      </div>
+                      <div class="hf-panel hf-toggle">
+                        <label class="form-check form-switch">
+                          <input class="form-check-input" type="checkbox" name="ativo" {% if obj.ativo %}checked{% endif %} />
+                          <span class="form-check-label">Ativo</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-3">
+                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <button class="btn btn-primary" type="submit">Salvar</button>
+                    </div>
+                  </form>
+                {% else %}
+                  <form class="modal-form" method="post" action="{{ request.path }}{{ obj.id }}/editar/" enctype="multipart/form-data">
+                    {% csrf_token %}
                   {% with edit_form=edit_forms|get_item:obj.id %}
                     {% if model_name == 'aluno' and edit_form %}
                       <div class="row g-3">
@@ -614,7 +782,8 @@
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button class="btn btn-primary" type="submit">Salvar</button>
                   </div>
-                </form>
+                  </form>
+                {% endif %}
               </div>
             </div>
           </div>

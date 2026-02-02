@@ -74,11 +74,8 @@ urlpatterns = [
         name="horarios_funcionamento_delete",
     ),
     path("cadastros/bloqueios/", views.bloqueios_list, name="bloqueios_list"),
-    path(
-        "cadastros/bloqueios/criar/",
-        lambda r: views.create_view(r, models.BloqueioAgenda, forms.BloqueioAgendaForm, "bloqueios_list"),
-        name="bloqueios_create",
-    ),
+    path("cadastros/bloqueios/criar/", views.criar_bloqueio_agenda, name="bloqueios_create"),
+    path("cadastros/bloqueios/<int:pk>/atualizar/", views.atualizar_bloqueio_agenda, name="bloqueios_atualizar"),
     path(
         "cadastros/bloqueios/<int:pk>/editar/",
         lambda r, pk: views.edit_view(r, models.BloqueioAgenda, forms.BloqueioAgendaForm, "bloqueios_list", pk),
