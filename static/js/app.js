@@ -687,6 +687,16 @@ document.querySelectorAll(".js-photo-preview").forEach((preview) => {
   }
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+  const params = new URLSearchParams(window.location.search || "");
+  const tab = params.get("tab");
+  if (!tab) return;
+  const trigger = document.querySelector(`[data-bs-target="#tab-${tab}"]`);
+  if (!trigger || typeof bootstrap === "undefined") return;
+  const instance = bootstrap.Tab.getOrCreateInstance(trigger);
+  instance.show();
+});
+
 function maskCPF(value) {
   const v = value.replace(/\D/g, "").slice(0, 11);
   return v

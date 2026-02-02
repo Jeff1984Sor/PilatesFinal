@@ -295,6 +295,7 @@
             </div>
             <form method="post" action="{% url 'alunos_whatsapp_message' aluno.id %}">
               {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}?tab=whatsapp" />
               <div class="mb-3">
                 {{ whatsapp_form.mensagem.label_tag }}
                 {{ whatsapp_form.mensagem }}
@@ -567,6 +568,7 @@
           <div class="modal-body">
             <form class="modal-form" method="post" action="{% url 'contratos_edit' c.id %}">
               {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}?tab=contratos" />
               <div class="row g-3">
                 <div class="col-md-6">
                   <label>Aluno</label>
@@ -645,6 +647,7 @@
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
             <form method="post" action="{% url 'contratos_delete' c.id %}">
               {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}?tab=contratos" />
               <button class="btn btn-danger" type="submit">Excluir</button>
             </form>
           </div>
@@ -669,7 +672,7 @@
           <div class="modal-body">
             <form class="modal-form" method="post" action="{% url 'reservas_edit' r.id %}">
               {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}" />
+              <input type="hidden" name="next" value="{{ request.path }}?tab=agenda" />
               <input type="hidden" name="aluno" value="{{ aluno.id }}" />
               {% with reserva_form=reserva_forms|get_item:r.id %}
                 <div class="row g-3">
@@ -732,7 +735,7 @@
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
             <form method="post" action="{% url 'reservas_delete' r.id %}">
               {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}" />
+              <input type="hidden" name="next" value="{{ request.path }}?tab=agenda" />
               <button class="btn btn-danger" type="submit">Excluir</button>
             </form>
           </div>
@@ -754,7 +757,7 @@
           <div class="modal-body">
             <form method="post" action="{% url 'contas_receber_baixar' f.id %}">
               {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}" />
+              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
               <div class="mb-3">
                 <label class="form-label">Data de pagamento</label>
                 <input class="form-control" type="date" name="dtPagamento" value="{{ today|default:'' }}" required />
@@ -782,7 +785,7 @@
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
             <form method="post" action="{% url 'contas_receber_excluir' f.id %}">
               {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}" />
+              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
               <button class="btn btn-danger" type="submit">Excluir</button>
             </form>
           </div>
