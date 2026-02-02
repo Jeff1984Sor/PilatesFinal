@@ -377,6 +377,25 @@ document.addEventListener("click", (event) => {
   event.preventDefault();
   const form = event.target.closest("form");
   if (!form) return;
+  const select = form.querySelector("select[name='dias'][multiple]");
+  if (select) {
+    const options = Array.from(select.options);
+    if (btnClear) {
+      options.forEach((opt) => (opt.selected = false));
+      return;
+    }
+    if (btnAll) {
+      options.forEach((opt) => (opt.selected = true));
+      return;
+    }
+    if (btnWeek) {
+      options.forEach((opt) => {
+        const day = parseInt(opt.value || "0", 10);
+        opt.selected = day >= 0 && day <= 4;
+      });
+    }
+    return;
+  }
   const checkboxes = Array.from(form.querySelectorAll("input[name='dias']"));
   if (btnClear) {
     checkboxes.forEach((cb) => (cb.checked = false));

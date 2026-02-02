@@ -179,14 +179,11 @@
                   </div>
                   <div class="hf-panel hf-days">
                     <div class="hf-label">Dias da semana</div>
-                    <div class="hf-days-grid">
+                    <select class="form-select hf-days-select" name="dias" multiple required>
                       {% for dia in dias_semana %}
-                        <label class="hf-day">
-                          <input type="checkbox" name="dias" value="{{ dia.0 }}" />
-                          <span>{{ dia.1 }}</span>
-                        </label>
+                        <option value="{{ dia.0 }}">{{ dia.1 }}</option>
                       {% endfor %}
-                    </div>
+                    </select>
                     <div class="hf-days-actions">
                       <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-week">Seg-Sex</button>
                       <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-all">Todos</button>
@@ -455,14 +452,11 @@
                     </div>
                     <div class="hf-panel hf-days">
                       <div class="hf-label">Dias da semana</div>
-                      <div class="hf-days-grid">
+                      <select class="form-select hf-days-select" name="dias" multiple required>
                         {% for dia in dias_semana %}
-                          <label class="hf-day">
-                            <input type="checkbox" name="dias" value="{{ dia.0 }}" {% if obj.diaSemana == dia.0 %}checked{% endif %} />
-                            <span>{{ dia.1 }}</span>
-                          </label>
+                          <option value="{{ dia.0 }}" {% if obj.diaSemana == dia.0 %}selected{% endif %}>{{ dia.1 }}</option>
                         {% endfor %}
-                      </div>
+                      </select>
                       <div class="hf-days-actions">
                         <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-week">Seg-Sex</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-all">Todos</button>

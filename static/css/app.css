@@ -103,48 +103,17 @@ body {
   grid-column: 1 / -1;
 }
 
-.hf-days-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.hf-day {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #344646;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.hf-day input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-}
-
-.hf-day span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 10px 6px;
-  border-radius: 10px;
-  border: 1px solid #dbe4ea;
+.hf-days-select {
+  min-height: 140px;
+  border-radius: 12px;
   background: #f8fbfb;
-  transition: all 0.2s ease;
+  border: 1px solid #dbe4ea;
+  padding: 10px 12px;
 }
 
-.hf-day input:checked + span {
-  background: #dff4f4;
-  border-color: #7cc6c6;
-  box-shadow: 0 6px 14px rgba(45, 122, 122, 0.18);
-  color: #0f2f2f;
+.hf-days-select option {
+  padding: 6px 10px;
+  border-radius: 8px;
 }
 
 .hf-days-actions {
@@ -163,9 +132,6 @@ body {
 @media (max-width: 992px) {
   .hf-grid {
     grid-template-columns: 1fr;
-  }
-  .hf-days-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
