@@ -2537,26 +2537,31 @@ def contrato_agenda(request, pk):
             conflitos = []
             faltando_prof = False
             usados = set()
+            dias_usados = set()
             for idx, slot_value, dia_raw in escolhidas:
-                unique_key = f"{dia_raw}|{slot_value}"
-                if unique_key in usados:
+                if slot_value in usados:
                     messages.error(request, "Nao repita o mesmo horario.")
                     return redirect("contratos_agenda", pk=contrato.id)
-                usados.add(unique_key)
-                if dia_raw:
-                    try:
-                        weekday = int(dia_raw)
-                    except ValueError:
-                        messages.error(request, "Dia da semana invalido.")
-                        return redirect("contratos_agenda", pk=contrato.id)
-                else:
-                    messages.error(request, "Selecione o dia da semana.")
-                    return redirect("contratos_agenda", pk=contrato.id)
+                usados.add(slot_value)
                 try:
-                    inicio, fim = slot_value.split("|")
+                    weekday_raw, inicio, fim = slot_value.split("|")
+                    weekday = int(weekday_raw)
                 except ValueError:
                     messages.error(request, "Horario invalido na selecao.")
                     return redirect("contratos_agenda", pk=contrato.id)
+                if dia_raw:
+                    try:
+                        dia_selected = int(dia_raw)
+                    except ValueError:
+                        messages.error(request, "Dia da semana invalido.")
+                        return redirect("contratos_agenda", pk=contrato.id)
+                    if dia_selected != weekday:
+                        messages.error(request, "Dia e horario nao conferem.")
+                        return redirect("contratos_agenda", pk=contrato.id)
+                if weekday in dias_usados:
+                    messages.error(request, "Selecione apenas um horario por dia.")
+                    return redirect("contratos_agenda", pk=contrato.id)
+                dias_usados.add(weekday)
                 prof_id = request.POST.get(f"prof_for_{idx}") or ""
                 try:
                     prof_id = int(prof_id)
@@ -2645,7 +2650,7 @@ def contrato_agenda(request, pk):
         slots_by_day[item["weekday"]].append(
             {
                 "label": f'{item["inicio"].strftime("%H:%M")} - {item["fim"].strftime("%H:%M")}',
-                "value": f'{item["inicio"].strftime("%H:%M")}|{item["fim"].strftime("%H:%M")}',
+                "value": f'{item["weekday"]}|{item["inicio"].strftime("%H:%M")}|{item["fim"].strftime("%H:%M")}',
                 "allowed_profs": ",".join(
                     [str(pid) for pid in (item.get("allowed_profs") or [])]
                 ),
