@@ -6,6 +6,19 @@ document.addEventListener("submit", (event) => {
   }
 });
 
+document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (!form || !form.querySelector) return;
+  const timeSelects = form.querySelectorAll(".js-slot-time");
+  if (!timeSelects.length) return;
+  timeSelects.forEach((timeSelect) => {
+    const container = timeSelect.closest(".border");
+    const slotId = timeSelect.dataset.slot;
+    const hidden = container?.querySelector(`.js-slot-hidden[data-slot="${slotId}"]`);
+    if (hidden) hidden.value = timeSelect.value || "";
+  });
+});
+
 document.addEventListener("click", (event) => {
   const btn = event.target.closest(".js-var");
   if (!btn) return;
