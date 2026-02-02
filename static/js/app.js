@@ -350,7 +350,11 @@ function renderTimeOptions(select, dayValue) {
     return;
   }
   select.add(new Option("Selecione um horario", ""));
+  const seen = new Set();
   filtered.forEach((opt) => {
+    const key = `${opt.value}::${opt.text}`;
+    if (seen.has(key)) return;
+    seen.add(key);
     const option = new Option(opt.text, opt.value);
     if (opt.allowedProfs) {
       option.dataset.allowedProfs = opt.allowedProfs;
