@@ -39,7 +39,7 @@
               <div class="row g-2">
                 <div class="col-md-5">
                   <label class="form-label">Dia da semana</label>
-                  <select class="form-select js-slot-day" data-slot="{{ idx }}" required>
+                  <select class="form-select js-slot-day" name="slot_day_{{ idx }}" data-slot="{{ idx }}" required>
                     <option value="">Selecione</option>
                     {% for day, label in weekday_labels.items %}
                       <option value="{{ day }}">{{ label }}</option>

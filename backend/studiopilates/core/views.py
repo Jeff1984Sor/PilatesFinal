@@ -2528,21 +2528,30 @@ def contrato_agenda(request, pk):
         escolhidas = []
         for idx in range(1, aulas_por_semana + 1):
             valor = request.POST.get(f"slot_{idx}") or ""
+            dia_raw = request.POST.get(f"slot_day_{idx}") or ""
             if valor:
-                escolhidas.append((idx, valor))
+                escolhidas.append((idx, valor, dia_raw))
         if len(escolhidas) != aulas_por_semana:
             messages.error(request, f"Selecione exatamente {aulas_por_semana} horarios por semana.")
         else:
             conflitos = []
             faltando_prof = False
             usados = set()
-            for idx, slot_value in escolhidas:
+            for idx, slot_value, dia_raw in escolhidas:
                 if slot_value in usados:
                     messages.error(request, "Nao repita o mesmo horario.")
                     return redirect("contratos_agenda", pk=contrato.id)
                 usados.add(slot_value)
                 weekday, inicio, fim = slot_value.split("|")
                 weekday = int(weekday)
+                if dia_raw:
+                    try:
+                        dia_selected = int(dia_raw)
+                    except ValueError:
+                        messages.error(request, "Dia da semana invalido.")
+                        return redirect("contratos_agenda", pk=contrato.id)
+                    if dia_selected != weekday:
+                        weekday = dia_selected
                 prof_id = request.POST.get(f"prof_for_{idx}") or ""
                 try:
                     prof_id = int(prof_id)
@@ -2558,6 +2567,9 @@ def contrato_agenda(request, pk):
                     messages.error(request, "Horario invalido na selecao.")
                     return redirect("contratos_agenda", pk=contrato.id)
                 horario_key = (weekday, inicio_time, fim_time)
+                if horario_key not in slots:
+                    messages.error(request, "Horario invalido para o dia selecionado.")
+                    return redirect("contratos_agenda", pk=contrato.id)
                 slot_payload = slots.get(horario_key, {})
                 allowed = set(slot_payload.get("allowed_profs") or [])
                 if allowed and prof_id not in allowed:
