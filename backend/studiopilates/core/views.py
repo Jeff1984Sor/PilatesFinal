@@ -2193,18 +2193,21 @@ def contrato_agenda(request, pk):
                 except ValueError:
                     messages.error(request, "Horario invalido na selecao.")
                     return redirect("contratos_agenda", pk=contrato.id)
-                horario_key = (weekday, inicio_time, fim_time)                slot_payload = slots.get(horario_key, {})
+                horario_key = (weekday, inicio_time, fim_time)
+                slot_payload = slots.get(horario_key, {})
                 allowed = set(slot_payload.get("allowed_profs") or [])
                 if allowed and prof_id not in allowed:
                     messages.error(request, "Professor invalido para o horario selecionado.")
                     return redirect("contratos_agenda", pk=contrato.id)
                 current = contrato.dtInicioContrato
-                while current <= contrato.dtFimContrato:                        blocks = blocks_by_prof.get(prof_id, [])
+                while current <= contrato.dtFimContrato:
+                    if current.weekday() == weekday:
+                        blocks = blocks_by_prof.get(prof_id, [])
                         if _is_slot_blocked(blocks, current, inicio_time, fim_time):
                             conflitos.append(f"Bloqueio em {current} {inicio}")
                             current = current + timedelta(days=1)
                             continue
-
+                        aula = models.AulaSessao.objects.filter(
                             unidade=contrato.cdUnidade,
                             tipoServico=plano.cdTipoServico,
                             profissional_id=prof_id,
