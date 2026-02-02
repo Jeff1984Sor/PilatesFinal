@@ -6,18 +6,6 @@ document.addEventListener("submit", (event) => {
   }
 });
 
-document.addEventListener("submit", (event) => {
-  const form = event.target;
-  if (!form || !form.querySelector) return;
-  const timeSelects = form.querySelectorAll(".js-slot-time");
-  if (!timeSelects.length) return;
-  timeSelects.forEach((timeSelect) => {
-    const container = timeSelect.closest(".border");
-    const slotId = timeSelect.dataset.slot;
-    const hidden = container?.querySelector(`.js-slot-hidden[data-slot="${slotId}"]`);
-    if (hidden) hidden.value = timeSelect.value || "";
-  });
-});
 
 document.addEventListener("click", (event) => {
   const btn = event.target.closest(".js-var");
@@ -450,9 +438,6 @@ document.addEventListener("change", (event) => {
   const timeSelect = container?.querySelector(".js-slot-time");
   if (!timeSelect) return;
   renderTimeOptions(timeSelect, daySelect.value);
-  const slotId = timeSelect.dataset.slot;
-  const hidden = container.querySelector(`.js-slot-hidden[data-slot="${slotId}"]`);
-  if (hidden) hidden.value = "";
   const profSelect = container.querySelector(".js-prof-select");
   if (profSelect) profSelect.value = "";
 });
@@ -460,10 +445,6 @@ document.addEventListener("change", (event) => {
 document.addEventListener("change", (event) => {
   const timeSelect = event.target.closest(".js-slot-time");
   if (!timeSelect) return;
-  const container = timeSelect.closest(".border");
-  const slotId = timeSelect.dataset.slot;
-  const hidden = container?.querySelector(`.js-slot-hidden[data-slot="${slotId}"]`);
-  if (hidden) hidden.value = timeSelect.value;
   updateProfOptionsFromTime(timeSelect);
 });
 
