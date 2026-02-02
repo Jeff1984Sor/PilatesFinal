@@ -37,12 +37,23 @@
             <div class="border rounded p-3 h-100">
               <div class="fw-semibold mb-2">Aula {{ idx }}</div>
               <div class="row g-2">
-                <div class="col-md-7">
-                  <label class="form-label">Dia e horario</label>
-                  <select class="form-select js-slot-select" name="slot_{{ idx }}" required>
+                <div class="col-md-5">
+                  <label class="form-label">Dia da semana</label>
+                  <select class="form-select js-slot-day" data-slot="{{ idx }}" required>
                     <option value="">Selecione</option>
-                    {% for slot in slot_options %}
-                      <option value="{{ slot.value }}" data-allowed-profs="{{ slot.allowed_profs|join:',' }}">{{ slot.label }}</option>
+                    {% for day, label in weekday_labels.items %}
+                      <option value="{{ day }}">{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Horario</label>
+                  <select class="form-select js-slot-time" data-slot="{{ idx }}" required disabled>
+                    <option value="">Selecione o dia</option>
+                    {% for day, slots in slots_by_day.items %}
+                      {% for slot in slots %}
+                        <option value="{{ slot.value }}" data-day="{{ day }}" data-allowed-profs="{{ slot.allowed_profs }}">{{ slot.label }}</option>
+                      {% endfor %}
                     {% endfor %}
                   </select>
                 </div>
@@ -56,6 +67,7 @@
                   </select>
                 </div>
               </div>
+              <input type="hidden" name="slot_{{ idx }}" class="js-slot-hidden" data-slot="{{ idx }}" />
             </div>
           </div>
         {% endfor %}

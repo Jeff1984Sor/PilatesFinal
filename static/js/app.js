@@ -319,6 +319,78 @@ document.addEventListener("change", (event) => {
 });
 
 const profOptionsCache = new WeakMap();
+const slotTimeCache = new WeakMap();
+
+function buildTimeOptions(select) {
+  const options = Array.from(select.options)
+    .filter((opt) => opt.value)
+    .map((opt) => ({
+      value: opt.value,
+      text: opt.text,
+      day: opt.dataset.day || "",
+      allowedProfs: opt.dataset.allowedProfs || "",
+    }));
+  slotTimeCache.set(select, options);
+  return options;
+}
+
+function renderTimeOptions(select, dayValue) {
+  const day = String(dayValue || "");
+  const options = slotTimeCache.get(select) || buildTimeOptions(select);
+  select.innerHTML = "";
+  if (!day) {
+    select.add(new Option("Selecione o dia", ""));
+    select.disabled = true;
+    return;
+  }
+  const filtered = options.filter((opt) => String(opt.day) === day);
+  if (!filtered.length) {
+    select.add(new Option("Sem horarios para este dia", ""));
+    select.disabled = true;
+    return;
+  }
+  select.add(new Option("Selecione um horario", ""));
+  filtered.forEach((opt) => {
+    const option = new Option(opt.text, opt.value);
+    if (opt.allowedProfs) {
+      option.dataset.allowedProfs = opt.allowedProfs;
+    }
+    select.add(option);
+  });
+  select.disabled = false;
+}
+
+function updateProfOptionsFromTime(timeSelect) {
+  const container = timeSelect.closest(".border");
+  const profSelect = container?.querySelector(".js-prof-select");
+  if (!profSelect) return;
+  if (!profOptionsCache.has(profSelect)) {
+    const options = Array.from(profSelect.options).map((opt) => ({
+      value: opt.value,
+      text: opt.text,
+    }));
+    profOptionsCache.set(profSelect, options);
+  }
+  const allOptions = profOptionsCache.get(profSelect) || [];
+  const allowedRaw = timeSelect.selectedOptions[0]?.dataset?.allowedProfs || "";
+  const allowed = allowedRaw ? allowedRaw.split(",").filter(Boolean) : null;
+  const current = profSelect.value;
+  profSelect.innerHTML = "";
+  allOptions.forEach((opt) => {
+    if (!opt.value) {
+      profSelect.add(new Option(opt.text, opt.value));
+      return;
+    }
+    if (!allowed || allowed.includes(opt.value)) {
+      profSelect.add(new Option(opt.text, opt.value));
+    }
+  });
+  if (allowed && current && !allowed.includes(current)) {
+    profSelect.value = "";
+  } else if (current) {
+    profSelect.value = current;
+  }
+}
 
 document.addEventListener("change", (event) => {
   const slotSelect = event.target.closest(".js-slot-select");
@@ -352,6 +424,45 @@ document.addEventListener("change", (event) => {
   } else if (current) {
     profSelect.value = current;
   }
+});
+
+document.addEventListener("change", (event) => {
+  const daySelect = event.target.closest(".js-slot-day");
+  if (!daySelect) return;
+  const container = daySelect.closest(".border");
+  const timeSelect = container?.querySelector(".js-slot-time");
+  if (!timeSelect) return;
+  renderTimeOptions(timeSelect, daySelect.value);
+  const slotId = timeSelect.dataset.slot;
+  const hidden = container.querySelector(`.js-slot-hidden[data-slot="${slotId}"]`);
+  if (hidden) hidden.value = "";
+  const profSelect = container.querySelector(".js-prof-select");
+  if (profSelect) profSelect.value = "";
+});
+
+document.addEventListener("change", (event) => {
+  const timeSelect = event.target.closest(".js-slot-time");
+  if (!timeSelect) return;
+  const container = timeSelect.closest(".border");
+  const slotId = timeSelect.dataset.slot;
+  const hidden = container?.querySelector(`.js-slot-hidden[data-slot="${slotId}"]`);
+  if (hidden) hidden.value = timeSelect.value;
+  updateProfOptionsFromTime(timeSelect);
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".js-slot-time").forEach((select) => {
+    buildTimeOptions(select);
+  });
+  document.querySelectorAll(".js-slot-day").forEach((select) => {
+    if (select.value) {
+      const container = select.closest(".border");
+      const timeSelect = container?.querySelector(".js-slot-time");
+      if (timeSelect) {
+        renderTimeOptions(timeSelect, select.value);
+      }
+    }
+  });
 });
 
 document.addEventListener("change", (event) => {

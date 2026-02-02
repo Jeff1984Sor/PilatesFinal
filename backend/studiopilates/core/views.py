@@ -2624,6 +2624,9 @@ def contrato_agenda(request, pk):
             {
                 "label": f'{item["inicio"].strftime("%H:%M")} - {item["fim"].strftime("%H:%M")}',
                 "value": f'{item["weekday"]}|{item["inicio"].strftime("%H:%M")}|{item["fim"].strftime("%H:%M")}',
+                "allowed_profs": ",".join(
+                    [str(pid) for pid in (item.get("allowed_profs") or [])]
+                ),
             }
         )
 
