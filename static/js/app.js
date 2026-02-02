@@ -137,6 +137,10 @@ document.addEventListener("shown.bs.modal", (event) => {
       quantidade.classList.add("d-none");
     }
   }
+
+  if (modal.querySelector(".js-reserva-date")) {
+    initReservaModal(modal);
+  }
 });
 
 document.addEventListener("hidden.bs.modal", (event) => {
@@ -405,6 +409,80 @@ function handleDropdowns() {
       menu.style.display = "";
     });
   }
+}
+
+function initReservaModal(modal) {
+  const dateInput = modal.querySelector(".js-reserva-date");
+  const timeSelect = modal.querySelector(".js-reserva-time");
+  const aulaSelect = modal.querySelector("select[name='aulaSessao']");
+  const emptyHint = modal.querySelector(".js-reserva-empty");
+  const scriptId = modal.dataset.reservaSlots;
+  if (!dateInput || !timeSelect || !aulaSelect || !scriptId) return;
+  const script = document.getElementById(scriptId);
+  if (!script) return;
+  let slots = [];
+  try {
+    slots = JSON.parse(script.textContent || "[]");
+  } catch (err) {
+    slots = [];
+  }
+  const byDate = new Map();
+  slots.forEach((slot) => {
+    if (!slot?.date) return;
+    if (!byDate.has(slot.date)) byDate.set(slot.date, []);
+    byDate.get(slot.date).push(slot);
+  });
+  byDate.forEach((items) => {
+    items.sort((a, b) => (a.time_start || "").localeCompare(b.time_start || ""));
+  });
+
+  const setEmpty = (isEmpty) => {
+    if (isEmpty) {
+      timeSelect.innerHTML = '<option value="">Sem horarios disponiveis</option>';
+      timeSelect.disabled = true;
+      if (emptyHint) emptyHint.classList.remove("d-none");
+    } else {
+      timeSelect.disabled = false;
+      if (emptyHint) emptyHint.classList.add("d-none");
+    }
+  };
+
+  const renderTimes = (dateValue, selectedId) => {
+    const items = byDate.get(dateValue) || [];
+    if (!items.length) {
+      setEmpty(true);
+      return;
+    }
+    setEmpty(false);
+    timeSelect.innerHTML = '<option value="">Selecione um horario</option>';
+    items.forEach((slot) => {
+      const opt = new Option(slot.label || slot.time_start || "", String(slot.id));
+      timeSelect.add(opt);
+    });
+    if (selectedId) {
+      timeSelect.value = String(selectedId);
+    } else {
+      timeSelect.selectedIndex = 0;
+    }
+  };
+
+  const currentId = aulaSelect.value;
+  const currentSlot = slots.find((slot) => String(slot.id) === String(currentId));
+  if (currentSlot?.date) {
+    dateInput.value = currentSlot.date;
+  } else if (!dateInput.value && slots.length) {
+    dateInput.value = slots[0].date;
+  }
+  renderTimes(dateInput.value, currentId);
+
+  dateInput.addEventListener("change", () => {
+    renderTimes(dateInput.value, null);
+    aulaSelect.value = "";
+  });
+
+  timeSelect.addEventListener("change", () => {
+    aulaSelect.value = timeSelect.value;
+  });
 }
 
 window.addEventListener("resize", handleDropdowns);

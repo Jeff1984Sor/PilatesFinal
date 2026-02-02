@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -52,6 +52,64 @@ def _format_whatsapp_number(telefones):
             return f"55{cleaned}"
         return cleaned
     return None
+
+
+def _build_reserva_slots(reservas, days_ahead=60):
+    reservas_list = list(reservas or [])
+    if not reservas_list:
+        return {}
+    today = timezone.now().date()
+    end_date = today + timedelta(days=days_ahead)
+    slots_map = {}
+    for reserva in reservas_list:
+        aula_atual = reserva.aulaSessao
+        if not aula_atual:
+            slots_map[reserva.id] = []
+            continue
+        start_date = min(today, aula_atual.data)
+        aulas = list(
+            models.AulaSessao.objects.select_related("unidade", "profissional", "tipoServico")
+            .filter(
+                data__range=(start_date, end_date),
+                unidade_id=aula_atual.unidade_id,
+                tipoServico_id=aula_atual.tipoServico_id,
+            )
+            .order_by("data", "horaInicio")
+        )
+        aula_ids = [a.id for a in aulas]
+        if aula_atual.id not in aula_ids:
+            aulas.append(aula_atual)
+            aula_ids.append(aula_atual.id)
+        reserva_counts = {
+            row["aulaSessao_id"]: row["total"]
+            for row in models.Reserva.objects.filter(aulaSessao_id__in=aula_ids, status="RESERVADA")
+            .values("aulaSessao_id")
+            .annotate(total=Count("id"))
+        }
+        slots = []
+        for aula in aulas:
+            capacidade = aula.capacidade if aula.capacidade is not None else (aula.unidade.capacidade if aula.unidade else 0)
+            reservadas = reserva_counts.get(aula.id, 0)
+            is_current = aula.id == aula_atual.id
+            if not is_current and (capacidade is None or capacidade <= 0 or reservadas >= capacidade):
+                continue
+            vagas = max((capacidade or 0) - reservadas, 0)
+            label = f"{aula.horaInicio.strftime('%H:%M')} - {aula.horaFim.strftime('%H:%M')}"
+            if aula.profissional_id:
+                label = f"{label} • {aula.profissional}"
+            if capacidade and capacidade > 0:
+                label = f"{label} ({vagas} vaga(s))"
+            slots.append(
+                {
+                    "id": aula.id,
+                    "date": aula.data.strftime("%Y-%m-%d"),
+                    "time_start": aula.horaInicio.strftime("%H:%M"),
+                    "time_end": aula.horaFim.strftime("%H:%M"),
+                    "label": label,
+                }
+            )
+        slots_map[reserva.id] = slots
+    return slots_map
 
 
 def login_view(request):
@@ -107,6 +165,7 @@ def aluno_detail(request, pk):
         .order_by("aulaSessao__data", "aulaSessao__horaInicio")
     )
     reserva_forms = {reserva.id: forms.ReservaForm(instance=reserva) for reserva in reservas}
+    reserva_slots = _build_reserva_slots(reservas)
     evolucoes = (
         models.EvolucaoAluno.objects.filter(reserva__aluno=aluno)
         .select_related("profissional", "reserva")
@@ -130,6 +189,7 @@ def aluno_detail(request, pk):
         "contrato_forms": contrato_forms,
         "reservas": reservas,
         "reserva_forms": reserva_forms,
+        "reserva_slots": reserva_slots,
         "evolucoes": evolucoes,
         "contas_receber": contas_receber,
         "filtros_financeiro": _get_filtros_financeiro(request),

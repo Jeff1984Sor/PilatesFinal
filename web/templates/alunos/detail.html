@@ -656,7 +656,7 @@
 
 {% if reservas %}
   {% for r in reservas %}
-    <div class="modal fade" id="editReserva-{{ r.id }}" tabindex="-1">
+    <div class="modal fade" id="editReserva-{{ r.id }}" tabindex="-1" data-reserva-slots="reserva-slots-{{ r.id }}">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
@@ -678,7 +678,22 @@
                     <input class="form-control" value="{{ aluno.dsNome }}" disabled />
                   </div>
                   <div class="col-md-6">
+                    <label>Data</label>
+                    <input
+                      class="form-control js-reserva-date"
+                      type="date"
+                      value="{{ r.aulaSessao.data|date:'Y-m-d' }}"
+                      min="{{ today }}"
+                    />
+                  </div>
+                  <div class="col-md-6">
                     <label>Horario</label>
+                    <select class="form-select js-reserva-time" disabled>
+                      <option value="">Selecione uma data</option>
+                    </select>
+                    <div class="form-text text-muted js-reserva-empty d-none">Sem horarios disponiveis para esta data.</div>
+                  </div>
+                  <div class="d-none">
                     {{ reserva_form.aulaSessao }}
                   </div>
                   <input type="hidden" name="status" value="{{ r.status }}" />
@@ -689,6 +704,11 @@
                 <button class="btn btn-primary" type="submit">Salvar</button>
               </div>
             </form>
+            {% with slot_data=reserva_slots|get_item:r.id %}
+              {% with script_id="reserva-slots-"|add:r.id %}
+                {{ slot_data|json_script:script_id }}
+              {% endwith %}
+            {% endwith %}
           </div>
         </div>
       </div>
