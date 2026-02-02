@@ -417,14 +417,18 @@ function initReservaModal(modal) {
   const aulaSelect = modal.querySelector("select[name='aulaSessao']");
   const emptyHint = modal.querySelector(".js-reserva-empty");
   const scriptId = modal.dataset.reservaSlots;
-  if (!dateInput || !timeSelect || !aulaSelect || !scriptId) return;
-  const script = document.getElementById(scriptId);
-  if (!script) return;
+  if (!dateInput || !timeSelect || !aulaSelect) return;
+  const script = scriptId ? document.getElementById(scriptId) : null;
   let slots = [];
-  try {
-    slots = JSON.parse(script.textContent || "[]");
-  } catch (err) {
-    slots = [];
+  if (script) {
+    try {
+      slots = JSON.parse(script.textContent || "[]");
+    } catch (err) {
+      slots = [];
+    }
+  }
+  if (!Array.isArray(slots) || slots.length === 0) {
+    slots = buildSlotsFromSelect(aulaSelect);
   }
   const byDate = new Map();
   slots.forEach((slot) => {
@@ -483,6 +487,26 @@ function initReservaModal(modal) {
   timeSelect.addEventListener("change", () => {
     aulaSelect.value = timeSelect.value;
   });
+}
+
+function buildSlotsFromSelect(select) {
+  const slots = [];
+  Array.from(select.options).forEach((opt) => {
+    const value = opt.value;
+    if (!value) return;
+    const text = (opt.text || "").trim();
+    const match = text.match(/(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/);
+    if (!match) return;
+    const date = match[1];
+    const time = match[2];
+    slots.push({
+      id: value,
+      date,
+      time_start: time,
+      label: text,
+    });
+  });
+  return slots;
 }
 
 window.addEventListener("resize", handleDropdowns);
