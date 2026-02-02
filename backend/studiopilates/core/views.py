@@ -2538,20 +2538,25 @@ def contrato_agenda(request, pk):
             faltando_prof = False
             usados = set()
             for idx, slot_value, dia_raw in escolhidas:
-                if slot_value in usados:
+                unique_key = f"{dia_raw}|{slot_value}"
+                if unique_key in usados:
                     messages.error(request, "Nao repita o mesmo horario.")
                     return redirect("contratos_agenda", pk=contrato.id)
-                usados.add(slot_value)
-                weekday, inicio, fim = slot_value.split("|")
-                weekday = int(weekday)
+                usados.add(unique_key)
                 if dia_raw:
                     try:
-                        dia_selected = int(dia_raw)
+                        weekday = int(dia_raw)
                     except ValueError:
                         messages.error(request, "Dia da semana invalido.")
                         return redirect("contratos_agenda", pk=contrato.id)
-                    if dia_selected != weekday:
-                        weekday = dia_selected
+                else:
+                    messages.error(request, "Selecione o dia da semana.")
+                    return redirect("contratos_agenda", pk=contrato.id)
+                try:
+                    inicio, fim = slot_value.split("|")
+                except ValueError:
+                    messages.error(request, "Horario invalido na selecao.")
+                    return redirect("contratos_agenda", pk=contrato.id)
                 prof_id = request.POST.get(f"prof_for_{idx}") or ""
                 try:
                     prof_id = int(prof_id)
@@ -2640,7 +2645,7 @@ def contrato_agenda(request, pk):
         slots_by_day[item["weekday"]].append(
             {
                 "label": f'{item["inicio"].strftime("%H:%M")} - {item["fim"].strftime("%H:%M")}',
-                "value": f'{item["weekday"]}|{item["inicio"].strftime("%H:%M")}|{item["fim"].strftime("%H:%M")}',
+                "value": f'{item["inicio"].strftime("%H:%M")}|{item["fim"].strftime("%H:%M")}',
                 "allowed_profs": ",".join(
                     [str(pid) for pid in (item.get("allowed_profs") or [])]
                 ),
