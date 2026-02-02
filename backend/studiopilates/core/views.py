@@ -524,6 +524,64 @@ def gerar_horarios_studio(request):
     return redirect("horarios_studio_list")
 
 
+@login_required
+def gerar_horarios_funcionamento(request):
+    if request.method != "POST":
+        return redirect("horarios_funcionamento_list")
+    unidade_id = request.POST.get("unidade") or ""
+    tipo_id = request.POST.get("tipoServico") or ""
+    dias = request.POST.getlist("dias")
+    inicio = _to_time(request.POST.get("horaInicio"))
+    fim = _to_time(request.POST.get("horaFim"))
+    ativo = request.POST.get("ativo") in ("1", "on", "true", "True")
+    if not (unidade_id and dias and inicio and fim):
+        messages.error(request, "Preencha unidade, dias e horarios.")
+        return redirect("horarios_funcionamento_list")
+    try:
+        unidade_id = int(unidade_id)
+    except ValueError:
+        messages.error(request, "Unidade invalida.")
+        return redirect("horarios_funcionamento_list")
+    tipo_servico_id = None
+    if tipo_id:
+        try:
+            tipo_servico_id = int(tipo_id)
+        except ValueError:
+            tipo_servico_id = None
+    if fim <= inicio:
+        messages.error(request, "Horario final deve ser maior que o inicial.")
+        return redirect("horarios_funcionamento_list")
+    created = 0
+    for dia in dias:
+        try:
+            dia_int = int(dia)
+        except ValueError:
+            continue
+        exists = models.HorarioFuncionamento.objects.filter(
+            unidade_id=unidade_id,
+            tipoServico_id=tipo_servico_id,
+            diaSemana=dia_int,
+            horaInicio=inicio,
+            horaFim=fim,
+        ).exists()
+        if exists:
+            continue
+        models.HorarioFuncionamento.objects.create(
+            unidade_id=unidade_id,
+            tipoServico_id=tipo_servico_id,
+            diaSemana=dia_int,
+            horaInicio=inicio,
+            horaFim=fim,
+            ativo=ativo,
+        )
+        created += 1
+    if created:
+        messages.success(request, f"{created} horarios criados.")
+    else:
+        messages.info(request, "Nenhum horario novo criado.")
+    return redirect("horarios_funcionamento_list")
+
+
 def list_view(request, model, form_class, title, allow_modal=True, extra_context=None):
     query = request.GET.get("q", "").strip()
     order = request.GET.get("order", "id")
