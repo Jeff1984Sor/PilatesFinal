@@ -48,8 +48,8 @@
                 </div>
                 <div class="col-md-4">
                   <label class="form-label">Horario</label>
-                  <select class="form-select js-slot-time" data-slot="{{ idx }}" required disabled>
-                    <option value="">Selecione o dia</option>
+                  <select class="form-select js-slot-time" data-slot="{{ idx }}" required {% if not slot_options %}disabled{% endif %}>
+                    <option value="">Selecione um horario</option>
                     {% for day, slots in slots_by_day.items %}
                       {% for slot in slots %}
                         <option value="{{ slot.value }}" data-day="{{ day }}" data-allowed-profs="{{ slot.allowed_profs }}">{{ slot.label }}</option>
