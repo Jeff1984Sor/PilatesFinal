@@ -452,7 +452,11 @@ function initReservaModal(modal) {
   };
 
   const renderTimes = (dateValue, selectedId) => {
-    const items = byDate.get(dateValue) || [];
+    const normalizedDate = normalizeDateValue(dateValue);
+    if (normalizedDate && normalizedDate !== dateValue) {
+      dateInput.value = normalizedDate;
+    }
+    const items = byDate.get(normalizedDate || dateValue) || [];
     if (!items.length) {
       setEmpty(true);
       return;
@@ -473,9 +477,9 @@ function initReservaModal(modal) {
   const currentId = aulaSelect.value;
   const currentSlot = slots.find((slot) => String(slot.id) === String(currentId));
   if (currentSlot?.date) {
-    dateInput.value = currentSlot.date;
+    dateInput.value = normalizeDateValue(currentSlot.date) || currentSlot.date;
   } else if (!dateInput.value && slots.length) {
-    dateInput.value = slots[0].date;
+    dateInput.value = normalizeDateValue(slots[0].date) || slots[0].date;
   }
   renderTimes(dateInput.value, currentId);
 
@@ -495,9 +499,11 @@ function buildSlotsFromSelect(select) {
     const value = opt.value;
     if (!value) return;
     const text = (opt.text || "").trim();
-    const match = text.match(/(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/);
+    const matchIso = text.match(/(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/);
+    const matchBr = text.match(/(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/);
+    const match = matchIso || matchBr;
     if (!match) return;
-    const date = match[1];
+    const date = normalizeDateValue(match[1]) || match[1];
     const time = match[2];
     slots.push({
       id: value,
@@ -507,6 +513,15 @@ function buildSlotsFromSelect(select) {
     });
   });
   return slots;
+}
+
+function normalizeDateValue(value) {
+  if (!value) return "";
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const br = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!br) return raw;
+  return `${br[3]}-${br[2]}-${br[1]}`;
 }
 
 window.addEventListener("resize", handleDropdowns);
