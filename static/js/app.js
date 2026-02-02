@@ -369,6 +369,31 @@ document.addEventListener("change", (event) => {
   }
 });
 
+document.addEventListener("click", (event) => {
+  const btnWeek = event.target.closest(".js-hf-select-week");
+  const btnAll = event.target.closest(".js-hf-select-all");
+  const btnClear = event.target.closest(".js-hf-clear");
+  if (!btnWeek && !btnAll && !btnClear) return;
+  event.preventDefault();
+  const form = event.target.closest("form");
+  if (!form) return;
+  const checkboxes = Array.from(form.querySelectorAll("input[name='dias']"));
+  if (btnClear) {
+    checkboxes.forEach((cb) => (cb.checked = false));
+    return;
+  }
+  if (btnAll) {
+    checkboxes.forEach((cb) => (cb.checked = true));
+    return;
+  }
+  if (btnWeek) {
+    checkboxes.forEach((cb) => {
+      const day = parseInt(cb.value || "0", 10);
+      cb.checked = day >= 0 && day <= 4;
+    });
+  }
+});
+
 document.addEventListener("change", (event) => {
   const select = event.target.closest(".js-modelo-evolucao");
   if (!select) return;

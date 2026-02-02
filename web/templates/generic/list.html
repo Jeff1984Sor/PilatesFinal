@@ -94,6 +94,7 @@
         </div>
       </div>
     {% endif %}
+    
     <div class="table-responsive">
       <table class="table table-hover">
         <thead>
@@ -143,224 +144,96 @@
 </div>
 
   {% if allow_modal %}
-    <div class="modal fade" id="createModal" tabindex="-1">
-      <div class="modal-dialog {% if model_name == 'aluno' %}modal-xl modal-dialog-scrollable{% else %}modal-lg{% endif %}">
-        <div class="modal-content {% if model_name == 'aluno' %}modal-aluno{% endif %}">
-          <div class="modal-header">
-            <div>
-          <h5 class="modal-title">{% if model_name == 'contaspagar' %}Nova Conta a Pagar{% else %}Novo cadastro{% endif %}</h5>
-              <div class="small text-muted">Preencha os dados e salve para aparecer na lista.</div>
+    {% if model_name == 'horariofuncionamento' %}
+      <div class="modal fade" id="createModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header">
+              <div>
+                <h5 class="modal-title">Novo horario de funcionamento</h5>
+                <div class="small text-muted">Selecione os dias, informe o intervalo e salve.</div>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body" data-variable-target="{{ variable_target|default:'conteudo_html' }}">
-            {% if model_name == 'aluno' %}
-              <div class="aluno-intro mb-3">
-                <div class="aluno-intro__badge">Cadastro completo</div>
-                <div class="aluno-intro__title">Dados do aluno</div>
-                <div class="aluno-intro__text">Dados pessoais e informacoes de cadastro em um unico fluxo.</div>
-              </div>
-            {% endif %}
-            {% if variables %}
-              <div class="mb-3">
-                <div class="fw-semibold">Variaveis disponiveis</div>
-                <div class="text-muted small">Clique para inserir no contrato.</div>
-                <div class="mt-2 d-flex flex-wrap gap-2 js-var-list">
-                  {% for var in variables %}
-                    <button type="button" class="btn btn-sm btn-outline-secondary js-var" data-var="{{ var.key }}">
-                      {{ var.key }}
-                    </button>
-                  {% endfor %}
-                </div>
-              </div>
-            {% endif %}
-            {% if variable_target == 'conteudo_html' or variable_target == 'dsTermoUso' %}
-              <div class="toolbar mb-2">
-                <select class="form-select form-select-sm js-font-family">
-                  <option value="">Fonte</option>
-                  <option value="Manrope">Manrope</option>
-                  <option value="Georgia">Georgia</option>
-                  <option value="Times New Roman">Times New Roman</option>
-                  <option value="Arial">Arial</option>
-                </select>
-                <select class="form-select form-select-sm js-font-size">
-                  <option value="">Tamanho</option>
-                  <option value="12px">12</option>
-                  <option value="14px">14</option>
-                  <option value="16px">16</option>
-                  <option value="18px">18</option>
-                  <option value="20px">20</option>
-                </select>
-                <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="bold"><strong>B</strong></button>
-                <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="italic"><em>I</em></button>
-                <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="underline"><span style="text-decoration: underline;">U</span></button>
-                <span class="toolbar-sep"></span>
-                <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-left">Esq</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-center">Centro</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-right">Dir</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-justify">Just</button>
-              </div>
-            {% endif %}
-            <form class="modal-form" method="post" action="{{ request.path }}criar/" enctype="multipart/form-data">
-              {% csrf_token %}
-              {% if model_name == 'aluno' %}
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    {{ form.dsNome.label_tag }}
-                    {{ form.dsNome }}
+            <div class="modal-body">
+              <form class="modal-form js-hf-form" method="post" action="/cadastros/horarios-funcionamento/gerar/">
+                {% csrf_token %}
+                <div class="hf-grid">
+                  <div class="hf-panel">
+                    <div class="hf-label">Unidade</div>
+                    <select class="form-select" name="unidade" required>
+                      <option value="">Selecione</option>
+                      {% for u in unidades %}
+                        <option value="{{ u.id }}">{{ u.dsUnidade }}</option>
+                      {% endfor %}
+                    </select>
                   </div>
-                  <div class="col-md-3">
-                    {{ form.dsCPF.label_tag }}
-                    {{ form.dsCPF }}
+                  <div class="hf-panel">
+                    <div class="hf-label">Tipo de Servico</div>
+                    <select class="form-select" name="tipoServico">
+                      <option value="">Todos</option>
+                      {% for t in tipos_servico %}
+                        <option value="{{ t.id }}">{{ t.dsTipoServico }}</option>
+                      {% endfor %}
+                    </select>
                   </div>
-                  <div class="col-md-3">
-                    {{ form.dsRg.label_tag }}
-                    {{ form.dsRg }}
-                  </div>
-                  <div class="col-md-4">
-                    {{ form.dsEmail.label_tag }}
-                    {{ form.dsEmail }}
-                  </div>
-                  <div class="col-md-4">
-                    {{ form.dtNascimento.label_tag }}
-                    {{ form.dtNascimento }}
-                  </div>
-                  <div class="col-md-4">
-                    {{ form.cdUnidade.label_tag }}
-                    {{ form.cdUnidade }}
-                  </div>
-                  <div class="col-md-4">
-                    {{ form.cdTermoUso.label_tag }}
-                    {{ form.cdTermoUso }}
-                  </div>
-                  <div class="col-md-4">
-                    <label>Foto</label>
-                    <div class="photo-field js-photo-field">
-                      <img class="photo-preview js-photo-preview" alt="Foto do aluno" />
-                      <div class="d-flex flex-wrap gap-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm js-photo-start">Capturar foto</button>
-                        <label class="btn btn-outline-secondary btn-sm mb-0">
-                          Enviar arquivo
-                          <input type="file" name="foto" accept="image/*" class="d-none js-photo-input" />
+                  <div class="hf-panel hf-days">
+                    <div class="hf-label">Dias da semana</div>
+                    <div class="hf-days-grid">
+                      {% for dia in dias_semana %}
+                        <label class="hf-day">
+                          <input type="checkbox" name="dias" value="{{ dia.0 }}" />
+                          <span>{{ dia.1 }}</span>
                         </label>
-                      </div>
-                      <div class="photo-camera js-photo-camera d-none">
-                        <video class="photo-video js-photo-video" playsinline></video>
-                        <canvas class="photo-canvas js-photo-canvas d-none"></canvas>
-                        <div class="d-flex gap-2 mt-2">
-                          <button type="button" class="btn btn-primary btn-sm js-photo-shot">Tirar foto</button>
-                          <button type="button" class="btn btn-outline-secondary btn-sm js-photo-stop">Cancelar</button>
-                        </div>
-                      </div>
+                      {% endfor %}
                     </div>
+                    <div class="hf-days-actions">
+                      <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-week">Seg-Sex</button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-all">Todos</button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary js-hf-clear">Limpar</button>
+                    </div>
+                  </div>
+                  <div class="hf-panel">
+                    <div class="hf-label">Inicio</div>
+                    <input class="form-control" type="time" name="horaInicio" required />
+                  </div>
+                  <div class="hf-panel">
+                    <div class="hf-label">Fim</div>
+                    <input class="form-control" type="time" name="horaFim" required />
+                  </div>
+                  <div class="hf-panel hf-toggle">
+                    <label class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" name="ativo" checked />
+                      <span class="form-check-label">Ativo</span>
+                    </label>
                   </div>
                 </div>
-                <hr class="my-3" />
-                <div class="fw-semibold mb-2">Endereco</div>
-                <div class="row g-3">
-                  <div class="col-md-4">
-                    <label>CEP</label>
-                    <input class="form-control js-cep" name="dsCEP" />
-                  </div>
-                  <div class="col-md-6">
-                    <label>Logradouro</label>
-                    <input class="form-control js-logradouro" name="dsLogradouro" />
-                  </div>
-                  <div class="col-md-2">
-                    <label>Numero</label>
-                    <input class="form-control js-numero" name="dsNumero" />
-                  </div>
-                  <div class="col-md-4">
-                    <label>Bairro</label>
-                    <input class="form-control js-bairro" name="dsBairro" />
-                  </div>
-                  <div class="col-md-4">
-                    <label>Cidade</label>
-                    <input class="form-control js-cidade" name="dsCidade" />
-                  </div>
+                <div class="d-flex justify-content-end gap-2 pt-3">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                  <button class="btn btn-primary" type="submit">Salvar horarios</button>
                 </div>
-                <hr class="my-3" />
-                <div class="fw-semibold mb-2">Telefones</div>
-                <div class="js-phones">
-                  <div class="row g-2 align-items-center mb-2 js-phone-row">
-                    <div class="col-md-6">
-                      <input class="form-control js-telefone" name="telefone_1" placeholder="(00) 00000-0000" />
-                    </div>
-                    <div class="col-md-2">
-                      <button type="button" class="btn btn-outline-secondary js-add-phone">Adicionar</button>
-                    </div>
-                  </div>
-                </div>
-              {% elif model_name == 'termouso' %}
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    {{ form.nome.label_tag }} {{ form.nome }}
-                  </div>
-                </div>
-                <hr class="my-3" />
-                {{ form.dsTermoUso.label_tag }} {{ form.dsTermoUso }}
-              {% else %}
-                {% if model_name == 'contaspagar' %}
-                  <div class="row g-3">
-                    <div class="col-md-6">
-                      {{ form.cdFornecedor.label_tag }} {{ form.cdFornecedor }}
-                    </div>
-                    <div class="col-md-6">
-                      {{ form.cdCategoria.label_tag }} {{ form.cdCategoria }}
-                    </div>
-                    <div class="col-md-6">
-                      {{ form.cdSubcategoria.label_tag }} {{ form.cdSubcategoria }}
-                    </div>
-                    <div class="col-md-4">
-                      {{ form.dtVencimento.label_tag }} {{ form.dtVencimento }}
-                    </div>
-                    <div class="col-md-4">
-                      {{ form.valor.label_tag }}
-                      <div class="input-group">
-                        <span class="input-group-text">R$</span>
-                        {{ form.valor }}
-                      </div>
-                    </div>
-                    <div class="col-md-4">
-                      {{ form.recorrencia.label_tag }} {{ form.recorrencia }}
-                    </div>
-                    <div class="col-md-4 js-recorrencia-quantidade d-none">
-                      {{ form.recorrencia_quantidade.label_tag }} {{ form.recorrencia_quantidade }}
-                    </div>
-                  </div>
-                {% else %}
-                  {{ form.as_p }}
-                {% endif %}
-              {% endif %}
-              <div class="d-flex justify-content-end gap-2 pt-2">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-primary" type="submit">Salvar</button>
-              </div>
-            </form>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-{% endif %}
-
-  {% if allow_modal %}
-    {% for obj in page %}
-      <div class="modal fade" id="editModal-{{ obj.id }}" tabindex="-1">
+    {% else %}
+      <div class="modal fade" id="createModal" tabindex="-1">
         <div class="modal-dialog {% if model_name == 'aluno' %}modal-xl modal-dialog-scrollable{% else %}modal-lg{% endif %}">
           <div class="modal-content {% if model_name == 'aluno' %}modal-aluno{% endif %}">
             <div class="modal-header">
               <div>
-                <h5 class="modal-title">Editar</h5>
-                <div class="small text-muted">Atualize os dados e salve.</div>
+                <h5 class="modal-title">{% if model_name == 'contaspagar' %}Nova Conta a Pagar{% else %}Novo cadastro{% endif %}</h5>
+                <div class="small text-muted">Preencha os dados e salve para aparecer na lista.</div>
               </div>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" data-variable-target="{{ variable_target|default:'conteudo_html' }}">
               {% if model_name == 'aluno' %}
                 <div class="aluno-intro mb-3">
-                  <div class="aluno-intro__badge">Atualizacao rapida</div>
-                  <div class="aluno-intro__title">Perfil do aluno</div>
-                  <div class="aluno-intro__text">Revise informacoes pessoais antes de salvar.</div>
+                  <div class="aluno-intro__badge">Cadastro completo</div>
+                  <div class="aluno-intro__title">Dados do aluno</div>
+                  <div class="aluno-intro__text">Dados pessoais e informacoes de cadastro em um unico fluxo.</div>
                 </div>
               {% endif %}
               {% if variables %}
@@ -403,167 +276,356 @@
                   <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-justify">Just</button>
                 </div>
               {% endif %}
-              <form class="modal-form" method="post" action="{{ request.path }}{{ obj.id }}/editar/" enctype="multipart/form-data">
+              <form class="modal-form" method="post" action="{{ request.path }}criar/" enctype="multipart/form-data">
                 {% csrf_token %}
-                {% with edit_form=edit_forms|get_item:obj.id %}
-                  {% if model_name == 'aluno' and edit_form %}
-                    <div class="row g-3">
+                {% if model_name == 'aluno' %}
+                  <div class="row g-3">
                     <div class="col-md-6">
-                        {{ edit_form.dsNome.label_tag }}
-                        {{ edit_form.dsNome }}
-                      </div>
-                  <div class="col-md-3">
-                    {{ edit_form.dsCPF.label_tag }}
-                    {{ edit_form.dsCPF }}
-                  </div>
-                      <div class="col-md-3">
-                        {{ edit_form.dsRg.label_tag }}
-                        {{ edit_form.dsRg }}
-                      </div>
-                      <div class="col-md-4">
-                        {{ edit_form.dsEmail.label_tag }}
-                        {{ edit_form.dsEmail }}
-                      </div>
-                      <div class="col-md-4">
-                        {{ edit_form.dtNascimento.label_tag }}
-                        {{ edit_form.dtNascimento }}
-                      </div>
-                      <div class="col-md-4">
-                        {{ edit_form.cdUnidade.label_tag }}
-                        {{ edit_form.cdUnidade }}
-                      </div>
-                      <div class="col-md-4">
-                        {{ edit_form.cdTermoUso.label_tag }}
-                        {{ edit_form.cdTermoUso }}
-                      </div>
-                      <div class="col-md-4">
-                        <label>Foto</label>
-                        <div class="photo-field js-photo-field">
-                          {% if obj.foto %}
-                            <img class="photo-preview js-photo-preview" src="{{ obj.foto.url }}" alt="Foto do aluno" />
-                          {% else %}
-                            <img class="photo-preview js-photo-preview" alt="Foto do aluno" />
-                          {% endif %}
-                          <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm js-photo-start">Capturar foto</button>
-                            <label class="btn btn-outline-secondary btn-sm mb-0">
-                              Enviar arquivo
-                              <input type="file" name="foto" accept="image/*" class="d-none js-photo-input" />
-                            </label>
-                          </div>
-                          <div class="photo-camera js-photo-camera d-none">
-                            <video class="photo-video js-photo-video" playsinline></video>
-                            <canvas class="photo-canvas js-photo-canvas d-none"></canvas>
-                            <div class="d-flex gap-2 mt-2">
-                              <button type="button" class="btn btn-primary btn-sm js-photo-shot">Tirar foto</button>
-                              <button type="button" class="btn btn-outline-secondary btn-sm js-photo-stop">Cancelar</button>
-                            </div>
+                      {{ form.dsNome.label_tag }}
+                      {{ form.dsNome }}
+                    </div>
+                    <div class="col-md-3">
+                      {{ form.dsCPF.label_tag }}
+                      {{ form.dsCPF }}
+                    </div>
+                    <div class="col-md-3">
+                      {{ form.dsRg.label_tag }}
+                      {{ form.dsRg }}
+                    </div>
+                    <div class="col-md-4">
+                      {{ form.dsEmail.label_tag }}
+                      {{ form.dsEmail }}
+                    </div>
+                    <div class="col-md-4">
+                      {{ form.dtNascimento.label_tag }}
+                      {{ form.dtNascimento }}
+                    </div>
+                    <div class="col-md-4">
+                      {{ form.cdUnidade.label_tag }}
+                      {{ form.cdUnidade }}
+                    </div>
+                    <div class="col-md-4">
+                      {{ form.cdTermoUso.label_tag }}
+                      {{ form.cdTermoUso }}
+                    </div>
+                    <div class="col-md-4">
+                      <label>Foto</label>
+                      <div class="photo-field js-photo-field">
+                        <img class="photo-preview js-photo-preview" alt="Foto do aluno" />
+                        <div class="d-flex flex-wrap gap-2">
+                          <button type="button" class="btn btn-outline-secondary btn-sm js-photo-start">Capturar foto</button>
+                          <label class="btn btn-outline-secondary btn-sm mb-0">
+                            Enviar arquivo
+                            <input type="file" name="foto" accept="image/*" class="d-none js-photo-input" />
+                          </label>
+                        </div>
+                        <div class="photo-camera js-photo-camera d-none">
+                          <video class="photo-video js-photo-video" playsinline></video>
+                          <canvas class="photo-canvas js-photo-canvas d-none"></canvas>
+                          <div class="d-flex gap-2 mt-2">
+                            <button type="button" class="btn btn-primary btn-sm js-photo-shot">Tirar foto</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm js-photo-stop">Cancelar</button>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <hr class="my-3" />
-                    <div class="fw-semibold mb-2">Endereco</div>
-                    <div class="row g-3">
-                      <div class="col-md-4">
-                        <label>CEP</label>
-                        <input class="form-control js-cep" name="dsCEP" value="{{ address_map|get_item:obj.id|default_if_none:''|attr:'dsCEP' }}" />
-                      </div>
+                  </div>
+                  <hr class="my-3" />
+                  <div class="fw-semibold mb-2">Endereco</div>
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label>CEP</label>
+                      <input class="form-control js-cep" name="dsCEP" />
+                    </div>
+                    <div class="col-md-6">
+                      <label>Logradouro</label>
+                      <input class="form-control js-logradouro" name="dsLogradouro" />
+                    </div>
+                    <div class="col-md-2">
+                      <label>Numero</label>
+                      <input class="form-control js-numero" name="dsNumero" />
+                    </div>
+                    <div class="col-md-4">
+                      <label>Bairro</label>
+                      <input class="form-control js-bairro" name="dsBairro" />
+                    </div>
+                    <div class="col-md-4">
+                      <label>Cidade</label>
+                      <input class="form-control js-cidade" name="dsCidade" />
+                    </div>
+                  </div>
+                  <hr class="my-3" />
+                  <div class="fw-semibold mb-2">Telefones</div>
+                  <div class="js-phones">
+                    <div class="row g-2 align-items-center mb-2 js-phone-row">
                       <div class="col-md-6">
-                        <label>Logradouro</label>
-                        <input class="form-control js-logradouro" name="dsLogradouro" value="{{ address_map|get_item:obj.id|default_if_none:''|attr:'dsLogradouro' }}" />
+                        <input class="form-control js-telefone" name="telefone_1" placeholder="(00) 00000-0000" />
                       </div>
                       <div class="col-md-2">
-                        <label>Numero</label>
-                        <input class="form-control js-numero" name="dsNumero" value="{{ address_map|get_item:obj.id|default_if_none:''|attr:'dsNumero' }}" />
-                      </div>
-                      <div class="col-md-4">
-                        <label>Bairro</label>
-                        <input class="form-control js-bairro" name="dsBairro" value="{{ address_map|get_item:obj.id|default_if_none:''|attr:'dsBairro' }}" />
-                      </div>
-                      <div class="col-md-4">
-                        <label>Cidade</label>
-                        <input class="form-control js-cidade" name="dsCidade" value="{{ address_map|get_item:obj.id|default_if_none:''|attr:'dsCidade' }}" />
+                        <button type="button" class="btn btn-outline-secondary js-add-phone">Adicionar</button>
                       </div>
                     </div>
-                    <hr class="my-3" />
-                    <div class="fw-semibold mb-2">Telefones</div>
-                    <div class="js-phones">
-                      {% with phones=phones_map|get_item:obj.id %}
-                        {% if phones %}
-                          {% for phone in phones %}
-                            <div class="row g-2 align-items-center mb-2 js-phone-row">
-                              <div class="col-md-6">
-                                <input class="form-control js-telefone" name="telefone_{{ forloop.counter }}" value="{{ phone }}" />
-                              </div>
-                              <div class="col-md-2">
-                                <button type="button" class="btn btn-outline-secondary js-add-phone">Adicionar</button>
-                              </div>
-                            </div>
-                          {% endfor %}
-                        {% else %}
-                          <div class="row g-2 align-items-center mb-2 js-phone-row">
-                            <div class="col-md-6">
-                              <input class="form-control js-telefone" name="telefone_1" placeholder="(00) 00000-0000" />
-                            </div>
-                            <div class="col-md-2">
-                              <button type="button" class="btn btn-outline-secondary js-add-phone">Adicionar</button>
-                            </div>
-                          </div>
-                        {% endif %}
-                      {% endwith %}
+                  </div>
+                {% elif model_name == 'termouso' %}
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      {{ form.nome.label_tag }} {{ form.nome }}
                     </div>
-                  {% elif model_name == 'termouso' and edit_form %}
+                  </div>
+                  <hr class="my-3" />
+                  {{ form.dsTermoUso.label_tag }} {{ form.dsTermoUso }}
+                {% else %}
+                  {% if model_name == 'contaspagar' %}
                     <div class="row g-3">
                       <div class="col-md-6">
-                        {{ edit_form.nome.label_tag }} {{ edit_form.nome }}
+                        {{ form.cdFornecedor.label_tag }} {{ form.cdFornecedor }}
+                      </div>
+                      <div class="col-md-6">
+                        {{ form.cdCategoria.label_tag }} {{ form.cdCategoria }}
+                      </div>
+                      <div class="col-md-6">
+                        {{ form.cdSubcategoria.label_tag }} {{ form.cdSubcategoria }}
+                      </div>
+                      <div class="col-md-4">
+                        {{ form.dtVencimento.label_tag }} {{ form.dtVencimento }}
+                      </div>
+                      <div class="col-md-4">
+                        {{ form.valor.label_tag }}
+                        <div class="input-group">
+                          <span class="input-group-text">R$</span>
+                          {{ form.valor }}
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        {{ form.recorrencia.label_tag }} {{ form.recorrencia }}
+                      </div>
+                      <div class="col-md-4 js-recorrencia-quantidade d-none">
+                        {{ form.recorrencia_quantidade.label_tag }} {{ form.recorrencia_quantidade }}
                       </div>
                     </div>
-                    <hr class="my-3" />
-                    {{ edit_form.dsTermoUso.label_tag }} {{ edit_form.dsTermoUso }}
-                  {% elif edit_form %}
-                    {% if model_name == 'contaspagar' %}
+                  {% else %}
+                    {{ form.as_p }}
+                  {% endif %}
+                {% endif %}
+                <div class="d-flex justify-content-end gap-2 pt-2">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                  <button class="btn btn-primary" type="submit">Salvar</button>
+                </div>
+              </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endif %}
+
+  {% if allow_modal %}
+    {% for obj in page %}
+      {% if model_name == 'horariofuncionamento' %}
+        <div class="modal fade" id="editModal-{{ obj.id }}" tabindex="-1">
+          <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <div>
+                  <h5 class="modal-title">Editar horario de funcionamento</h5>
+                  <div class="small text-muted">Selecione os dias para aplicar este horario.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <form class="modal-form js-hf-form" method="post" action="/cadastros/horarios-funcionamento/{{ obj.id }}/atualizar/">
+                  {% csrf_token %}
+                  <div class="hf-grid">
+                    <div class="hf-panel">
+                      <div class="hf-label">Unidade</div>
+                      <select class="form-select" name="unidade" required>
+                        {% for u in unidades %}
+                          <option value="{{ u.id }}" {% if obj.unidade_id == u.id %}selected{% endif %}>{{ u.dsUnidade }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="hf-panel">
+                      <div class="hf-label">Tipo de Servico</div>
+                      <select class="form-select" name="tipoServico">
+                        <option value="" {% if not obj.tipoServico_id %}selected{% endif %}>Todos</option>
+                        {% for t in tipos_servico %}
+                          <option value="{{ t.id }}" {% if obj.tipoServico_id == t.id %}selected{% endif %}>{{ t.dsTipoServico }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="hf-panel hf-days">
+                      <div class="hf-label">Dias da semana</div>
+                      <div class="hf-days-grid">
+                        {% for dia in dias_semana %}
+                          <label class="hf-day">
+                            <input type="checkbox" name="dias" value="{{ dia.0 }}" {% if obj.diaSemana == dia.0 %}checked{% endif %} />
+                            <span>{{ dia.1 }}</span>
+                          </label>
+                        {% endfor %}
+                      </div>
+                      <div class="hf-days-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-week">Seg-Sex</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary js-hf-select-all">Todos</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary js-hf-clear">Limpar</button>
+                      </div>
+                      <div class="text-muted small mt-2">Selecionar mais dias cria novos horarios iguais.</div>
+                    </div>
+                    <div class="hf-panel">
+                      <div class="hf-label">Inicio</div>
+                      <input class="form-control" type="time" name="horaInicio" value="{{ obj.horaInicio|time:'H:i' }}" required />
+                    </div>
+                    <div class="hf-panel">
+                      <div class="hf-label">Fim</div>
+                      <input class="form-control" type="time" name="horaFim" value="{{ obj.horaFim|time:'H:i' }}" required />
+                    </div>
+                    <div class="hf-panel hf-toggle">
+                      <label class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="ativo" {% if obj.ativo %}checked{% endif %} />
+                        <span class="form-check-label">Ativo</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-end gap-2 pt-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Salvar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="modal fade" id="editModal-{{ obj.id }}" tabindex="-1">
+          <div class="modal-dialog {% if model_name == 'aluno' %}modal-xl modal-dialog-scrollable{% else %}modal-lg{% endif %}">
+            <div class="modal-content {% if model_name == 'aluno' %}modal-aluno{% endif %}">
+              <div class="modal-header">
+                <div>
+                  <h5 class="modal-title">Editar</h5>
+                  <div class="small text-muted">Atualize os dados e salve.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body" data-variable-target="{{ variable_target|default:'conteudo_html' }}">
+                {% if model_name == 'aluno' %}
+                  <div class="aluno-intro mb-3">
+                    <div class="aluno-intro__badge">Atualizacao rapida</div>
+                    <div class="aluno-intro__title">Perfil do aluno</div>
+                    <div class="aluno-intro__text">Revise informacoes pessoais antes de salvar.</div>
+                  </div>
+                {% endif %}
+                {% if variables %}
+                  <div class="mb-3">
+                    <div class="fw-semibold">Variaveis disponiveis</div>
+                    <div class="text-muted small">Clique para inserir no contrato.</div>
+                    <div class="mt-2 d-flex flex-wrap gap-2 js-var-list">
+                      {% for var in variables %}
+                        <button type="button" class="btn btn-sm btn-outline-secondary js-var" data-var="{{ var.key }}">
+                          {{ var.key }}
+                        </button>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endif %}
+                {% if variable_target == 'conteudo_html' or variable_target == 'dsTermoUso' %}
+                  <div class="toolbar mb-2">
+                    <select class="form-select form-select-sm js-font-family">
+                      <option value="">Fonte</option>
+                      <option value="Manrope">Manrope</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Arial">Arial</option>
+                    </select>
+                    <select class="form-select form-select-sm js-font-size">
+                      <option value="">Tamanho</option>
+                      <option value="12px">12</option>
+                      <option value="14px">14</option>
+                      <option value="16px">16</option>
+                      <option value="18px">18</option>
+                      <option value="20px">20</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="bold"><strong>B</strong></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="italic"><em>I</em></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="underline"><span style="text-decoration: underline;">U</span></button>
+                    <span class="toolbar-sep"></span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-left">Esq</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-center">Centro</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-right">Dir</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-justify">Just</button>
+                  </div>
+                {% endif %}
+                <form class="modal-form" method="post" action="{{ request.path }}{{ obj.id }}/editar/" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  {% with edit_form=edit_forms|get_item:obj.id %}
+                    {% if model_name == 'aluno' and edit_form %}
                       <div class="row g-3">
-                        <div class="col-md-6">
-                          {{ edit_form.cdFornecedor.label_tag }} {{ edit_form.cdFornecedor }}
+                      <div class="col-md-6">
+                          {{ edit_form.dsNome.label_tag }}
+                          {{ edit_form.dsNome }}
                         </div>
-                        <div class="col-md-6">
-                          {{ edit_form.cdCategoria.label_tag }} {{ edit_form.cdCategoria }}
-                        </div>
-                        <div class="col-md-6">
-                          {{ edit_form.cdSubcategoria.label_tag }} {{ edit_form.cdSubcategoria }}
+                    <div class="col-md-3">
+                      {{ edit_form.dsCPF.label_tag }}
+                      {{ edit_form.dsCPF }}
+                    </div>
+                        <div class="col-md-3">
+                          {{ edit_form.dsRg.label_tag }}
+                          {{ edit_form.dsRg }}
                         </div>
                         <div class="col-md-4">
-                          {{ edit_form.dtVencimento.label_tag }} {{ edit_form.dtVencimento }}
+                          {{ edit_form.dsEmail.label_tag }}
+                          {{ edit_form.dsEmail }}
                         </div>
                         <div class="col-md-4">
-                          {{ edit_form.valor.label_tag }}
-                          <div class="input-group">
-                            <span class="input-group-text">R$</span>
-                            {{ edit_form.valor }}
+                          {{ edit_form.dtNascimento.label_tag }}
+                          {{ edit_form.dtNascimento }}
+                        </div>
+                        <div class="col-md-4">
+                          {{ edit_form.cdUnidade.label_tag }}
+                          {{ edit_form.cdUnidade }}
+                        </div>
+                        <div class="col-md-4">
+                          {{ edit_form.cdTermoUso.label_tag }}
+                          {{ edit_form.cdTermoUso }}
+                        </div>
+                        <div class="col-md-4">
+                          <label>Foto</label>
+                          <div class="photo-field js-photo-field">
+                            {% if obj.foto %}
+                              <img class="photo-preview js-photo-preview" src="{{ obj.foto.url }}" alt="Foto do aluno" />
+                            {% else %}
+                              <img class="photo-preview js-photo-preview" alt="Foto do aluno" />
+                            {% endif %}
+                            <div class="d-flex flex-wrap gap-2">
+                              <button type="button" class="btn btn-outline-secondary btn-sm js-photo-start">Capturar foto</button>
+                              <label class="btn btn-outline-secondary btn-sm mb-0">
+                                Enviar arquivo
+                                <input type="file" name="foto" accept="image/*" class="d-none js-photo-input" />
+                              </label>
+                            </div>
+                            <div class="photo-camera js-photo-camera d-none">
+                              <video class="photo-video js-photo-video" playsinline></video>
+                              <canvas class="photo-canvas js-photo-canvas d-none"></canvas>
+                              <div class="d-flex gap-2 mt-2">
+                                <button type="button" class="btn btn-primary btn-sm js-photo-shot">Tirar foto</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm js-photo-stop">Cancelar</button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div class="col-md-4">
-                          {{ edit_form.recorrencia.label_tag }} {{ edit_form.recorrencia }}
-                        </div>
-                        <div class="col-md-4 js-recorrencia-quantidade d-none">
-                          {{ edit_form.recorrencia_quantidade.label_tag }} {{ edit_form.recorrencia_quantidade }}
                         </div>
                       </div>
                     {% else %}
                       {{ edit_form.as_p }}
                     {% endif %}
-                  {% endif %}
-                {% endwith %}
-              <div class="d-flex justify-content-end gap-2 pt-2">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-primary" type="submit">Salvar</button>
+                  {% endwith %}
+                  <div class="d-flex justify-content-end gap-2 pt-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Salvar</button>
+                  </div>
+                </form>
               </div>
-            </form>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  {% endfor %}
-{% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
 {% endblock %}
