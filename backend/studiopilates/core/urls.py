@@ -59,6 +59,11 @@ urlpatterns = [
     ),
     path("cadastros/horarios-funcionamento/gerar/", views.gerar_horarios_funcionamento, name="horarios_funcionamento_gerar"),
     path(
+        "cadastros/horarios-funcionamento/<int:pk>/atualizar/",
+        views.atualizar_horario_funcionamento,
+        name="horarios_funcionamento_atualizar",
+    ),
+    path(
         "cadastros/horarios-funcionamento/<int:pk>/editar/",
         lambda r, pk: views.edit_view(r, models.HorarioFuncionamento, forms.HorarioFuncionamentoForm, "horarios_funcionamento_list", pk),
         name="horarios_funcionamento_edit",
