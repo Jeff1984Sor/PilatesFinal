@@ -148,6 +148,22 @@ class HorarioStudio(models.Model):
         return f"{self.get_diaSemana_display()} {self.horaInicio} - {self.horaFim}"
 
 
+class HorarioFuncionamento(models.Model):
+    unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT)
+    tipoServico = models.ForeignKey(TipoServico, on_delete=models.PROTECT, null=True, blank=True)
+    diaSemana = models.IntegerField(choices=HorarioStudio.DIAS_SEMANA)
+    horaInicio = models.TimeField()
+    horaFim = models.TimeField()
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("unidade", "tipoServico", "diaSemana", "horaInicio", "horaFim")
+        ordering = ["unidade", "diaSemana", "horaInicio"]
+
+    def __str__(self):
+        return f"{self.unidade} {self.get_diaSemana_display()} {self.horaInicio} - {self.horaFim}"
+
+
 class Plano(models.Model):
     cdPlano = models.IntegerField(unique=True, db_index=True)
     dsPlano = models.CharField(max_length=120)
@@ -160,6 +176,35 @@ class Plano(models.Model):
 
     def __str__(self):
         return self.dsPlano
+
+
+class BloqueioAgenda(models.Model):
+    unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT)
+    tipoServico = models.ForeignKey(TipoServico, on_delete=models.PROTECT, null=True, blank=True)
+    profissional = models.ForeignKey(Profissional, on_delete=models.PROTECT, null=True, blank=True)
+    recorrente = models.BooleanField(default=False)
+    diaSemana = models.IntegerField(choices=HorarioStudio.DIAS_SEMANA, null=True, blank=True)
+    dataInicio = models.DateField()
+    dataFim = models.DateField(null=True, blank=True)
+    horaInicio = models.TimeField()
+    horaFim = models.TimeField()
+    motivo = models.CharField(max_length=200, blank=True)
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-dataInicio", "horaInicio"]
+
+    def clean(self):
+        if self.horaFim <= self.horaInicio:
+            raise ValidationError({"horaFim": "Horario final deve ser maior que o inicial."})
+        if self.recorrente and self.diaSemana is None:
+            raise ValidationError({"diaSemana": "Informe o dia da semana para bloqueio recorrente."})
+
+    def __str__(self):
+        base = f"{self.unidade} {self.horaInicio} - {self.horaFim}"
+        if self.recorrente:
+            return f"{base} ({self.get_diaSemana_display()})"
+        return f"{base} ({self.dataInicio})"
 
 
 class Contrato(models.Model):

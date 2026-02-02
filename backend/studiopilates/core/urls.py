@@ -51,6 +51,38 @@ urlpatterns = [
     path("cadastros/horarios-studio/<int:pk>/editar/", lambda r, pk: views.edit_view(r, models.HorarioStudio, forms.HorarioStudioForm, "horarios_studio_list", pk), name="horarios_studio_edit"),
     path("cadastros/horarios-studio/<int:pk>/excluir/", lambda r, pk: views.delete_view(r, models.HorarioStudio, "horarios_studio_list", pk), name="horarios_studio_delete"),
     path("cadastros/horarios-studio/gerar/", views.gerar_horarios_studio, name="horarios_studio_gerar"),
+    path("cadastros/horarios-funcionamento/", views.horarios_funcionamento_list, name="horarios_funcionamento_list"),
+    path(
+        "cadastros/horarios-funcionamento/criar/",
+        lambda r: views.create_view(r, models.HorarioFuncionamento, forms.HorarioFuncionamentoForm, "horarios_funcionamento_list"),
+        name="horarios_funcionamento_create",
+    ),
+    path(
+        "cadastros/horarios-funcionamento/<int:pk>/editar/",
+        lambda r, pk: views.edit_view(r, models.HorarioFuncionamento, forms.HorarioFuncionamentoForm, "horarios_funcionamento_list", pk),
+        name="horarios_funcionamento_edit",
+    ),
+    path(
+        "cadastros/horarios-funcionamento/<int:pk>/excluir/",
+        lambda r, pk: views.delete_view(r, models.HorarioFuncionamento, "horarios_funcionamento_list", pk),
+        name="horarios_funcionamento_delete",
+    ),
+    path("cadastros/bloqueios/", views.bloqueios_list, name="bloqueios_list"),
+    path(
+        "cadastros/bloqueios/criar/",
+        lambda r: views.create_view(r, models.BloqueioAgenda, forms.BloqueioAgendaForm, "bloqueios_list"),
+        name="bloqueios_create",
+    ),
+    path(
+        "cadastros/bloqueios/<int:pk>/editar/",
+        lambda r, pk: views.edit_view(r, models.BloqueioAgenda, forms.BloqueioAgendaForm, "bloqueios_list", pk),
+        name="bloqueios_edit",
+    ),
+    path(
+        "cadastros/bloqueios/<int:pk>/excluir/",
+        lambda r, pk: views.delete_view(r, models.BloqueioAgenda, "bloqueios_list", pk),
+        name="bloqueios_delete",
+    ),
     path(
         "cadastros/termos/",
         lambda r: views.list_view(

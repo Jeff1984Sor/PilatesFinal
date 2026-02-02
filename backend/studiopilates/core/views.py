@@ -54,6 +54,83 @@ def _format_whatsapp_number(telefones):
     return None
 
 
+def _round_to_next_hour(dt_value):
+    if dt_value.minute == 0 and dt_value.second == 0 and dt_value.microsecond == 0:
+        return dt_value
+    return dt_value.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+
+
+AULA_INTERVALO_MINUTOS = 10
+
+
+def _load_funcionamento(unidade_id, tipo_servico_id=None):
+    qs = models.HorarioFuncionamento.objects.filter(unidade_id=unidade_id, ativo=True)
+    if tipo_servico_id:
+        qs = qs.filter(Q(tipoServico_id=tipo_servico_id) | Q(tipoServico__isnull=True))
+    else:
+        qs = qs.filter(tipoServico__isnull=True)
+    horarios = list(qs.order_by("diaSemana", "horaInicio"))
+    by_day = {}
+    if tipo_servico_id:
+        specific_days = {}
+        for item in horarios:
+            if item.tipoServico_id == tipo_servico_id:
+                specific_days.setdefault(item.diaSemana, []).append(item)
+            else:
+                by_day.setdefault(item.diaSemana, []).append(item)
+        for day, items in specific_days.items():
+            by_day[day] = items
+    else:
+        for item in horarios:
+            by_day.setdefault(item.diaSemana, []).append(item)
+    return by_day
+
+
+def _load_bloqueios(unidade_id, tipo_servico_id, profissional_id, start_date, end_date):
+    qs = models.BloqueioAgenda.objects.filter(unidade_id=unidade_id, ativo=True)
+    if tipo_servico_id:
+        qs = qs.filter(Q(tipoServico_id=tipo_servico_id) | Q(tipoServico__isnull=True))
+    else:
+        qs = qs.filter(tipoServico__isnull=True)
+    if profissional_id:
+        qs = qs.filter(Q(profissional_id=profissional_id) | Q(profissional__isnull=True))
+    else:
+        qs = qs.filter(profissional__isnull=True)
+    qs = qs.filter(Q(dataInicio__lte=end_date) & (Q(dataFim__isnull=True) | Q(dataFim__gte=start_date)))
+    return list(qs)
+
+
+def _is_slot_blocked(blocks, slot_date, slot_start, slot_end):
+    for block in blocks:
+        if block.recorrente:
+            if block.diaSemana is None or block.diaSemana != slot_date.weekday():
+                continue
+            if block.dataInicio and slot_date < block.dataInicio:
+                continue
+            if block.dataFim and slot_date > block.dataFim:
+                continue
+        else:
+            if slot_date < block.dataInicio:
+                continue
+            if block.dataFim and slot_date > block.dataFim:
+                continue
+        if slot_start < block.horaFim and slot_end > block.horaInicio:
+            return True
+    return False
+
+
+def _generate_slots_for_date(target_date, horario_windows, duracao_minutos):
+    slots = []
+    for window in horario_windows:
+        start_dt = _round_to_next_hour(datetime.combine(target_date, window.horaInicio))
+        end_dt = datetime.combine(target_date, window.horaFim)
+        while start_dt + timedelta(minutes=duracao_minutos) <= end_dt:
+            slot_end = start_dt + timedelta(minutes=duracao_minutos)
+            slots.append((start_dt.time(), slot_end.time()))
+            start_dt += timedelta(minutes=duracao_minutos + AULA_INTERVALO_MINUTOS)
+    return slots
+
+
 def _build_reserva_slots(reservas, days_ahead=60):
     reservas_list = list(reservas or [])
     if not reservas_list:
@@ -66,20 +143,53 @@ def _build_reserva_slots(reservas, days_ahead=60):
         if not aula_atual:
             slots_map[reserva.id] = []
             continue
+        unidade = aula_atual.unidade
+        if not unidade:
+            slots_map[reserva.id] = []
+            continue
         start_date = min(today, aula_atual.data)
-        aulas = list(
+        duracao = unidade.duracao_aula_minutos or 50
+        funcionamento = _load_funcionamento(unidade.id, aula_atual.tipoServico_id)
+        if not funcionamento:
+            slots_map[reserva.id] = []
+            continue
+        blocks = _load_bloqueios(unidade.id, aula_atual.tipoServico_id, aula_atual.profissional_id, start_date, end_date)
+        existing_aulas = list(
             models.AulaSessao.objects.select_related("unidade", "profissional", "tipoServico")
             .filter(
                 data__range=(start_date, end_date),
-                unidade_id=aula_atual.unidade_id,
+                unidade_id=unidade.id,
                 tipoServico_id=aula_atual.tipoServico_id,
+                profissional_id=aula_atual.profissional_id,
             )
             .order_by("data", "horaInicio")
         )
-        aula_ids = [a.id for a in aulas]
-        if aula_atual.id not in aula_ids:
+        existing_by_key = {(a.data, a.horaInicio): a for a in existing_aulas}
+        current_date = start_date
+        while current_date <= end_date:
+            windows = funcionamento.get(current_date.weekday(), [])
+            if windows:
+                for hora_inicio, hora_fim in _generate_slots_for_date(current_date, windows, duracao):
+                    if _is_slot_blocked(blocks, current_date, hora_inicio, hora_fim):
+                        continue
+                    key = (current_date, hora_inicio)
+                    if key in existing_by_key:
+                        continue
+                    aula = models.AulaSessao.objects.create(
+                        unidade_id=unidade.id,
+                        tipoServico_id=aula_atual.tipoServico_id,
+                        profissional_id=aula_atual.profissional_id,
+                        data=current_date,
+                        horaInicio=hora_inicio,
+                        horaFim=hora_fim,
+                    )
+                    existing_by_key[key] = aula
+            current_date += timedelta(days=1)
+
+        aulas = list(existing_by_key.values())
+        if aula_atual not in aulas:
             aulas.append(aula_atual)
-            aula_ids.append(aula_atual.id)
+        aula_ids = [a.id for a in aulas]
         reserva_counts = {
             row["aulaSessao_id"]: row["total"]
             for row in models.Reserva.objects.filter(aulaSessao_id__in=aula_ids, status="RESERVADA")
@@ -87,8 +197,8 @@ def _build_reserva_slots(reservas, days_ahead=60):
             .annotate(total=Count("id"))
         }
         slots = []
-        for aula in aulas:
-            capacidade = aula.capacidade if aula.capacidade is not None else (aula.unidade.capacidade if aula.unidade else 0)
+        for aula in sorted(aulas, key=lambda x: (x.data, x.horaInicio)):
+            capacidade = aula.capacidade if aula.capacidade is not None else unidade.capacidade
             reservadas = reserva_counts.get(aula.id, 0)
             is_current = aula.id == aula_atual.id
             if not is_current and (capacidade is None or capacidade <= 0 or reservadas >= capacidade):
@@ -96,7 +206,7 @@ def _build_reserva_slots(reservas, days_ahead=60):
             vagas = max((capacidade or 0) - reservadas, 0)
             label = f"{aula.horaInicio.strftime('%H:%M')} - {aula.horaFim.strftime('%H:%M')}"
             if aula.profissional_id:
-                label = f"{label} • {aula.profissional}"
+                label = f"{label} | {aula.profissional}"
             if capacidade and capacidade > 0:
                 label = f"{label} ({vagas} vaga(s))"
             slots.append(
@@ -110,6 +220,7 @@ def _build_reserva_slots(reservas, days_ahead=60):
             )
         slots_map[reserva.id] = slots
     return slots_map
+
 
 
 def login_view(request):
@@ -470,6 +581,39 @@ def horarios_studio_list(request):
         models.HorarioStudio,
         forms.HorarioStudioForm,
         "Horario do Studio",
+        extra_context=extra_context,
+    )
+
+
+@login_required
+def horarios_funcionamento_list(request):
+    extra_context = {
+        "unidades": models.Unidade.objects.all(),
+        "tipos_servico": models.TipoServico.objects.all(),
+        "dias_semana": models.HorarioStudio.DIAS_SEMANA,
+    }
+    return list_view(
+        request,
+        models.HorarioFuncionamento,
+        forms.HorarioFuncionamentoForm,
+        "Horario de Funcionamento",
+        extra_context=extra_context,
+    )
+
+
+@login_required
+def bloqueios_list(request):
+    extra_context = {
+        "unidades": models.Unidade.objects.all(),
+        "tipos_servico": models.TipoServico.objects.all(),
+        "profissionais": models.Profissional.objects.all(),
+        "dias_semana": models.HorarioStudio.DIAS_SEMANA,
+    }
+    return list_view(
+        request,
+        models.BloqueioAgenda,
+        forms.BloqueioAgendaForm,
+        "Bloqueios de Agenda",
         extra_context=extra_context,
     )
 
@@ -1948,73 +2092,75 @@ def contrato_agenda(request, pk):
 
     profissionais = list(models.Profissional.objects.all())
     prof_ids = [prof.id for prof in profissionais]
-    horarios = models.HorarioStudio.objects.filter(
-        unidade=contrato.cdUnidade,
-        tipoServico=plano.cdTipoServico,
-    ).order_by("diaSemana", "horaInicio")
+    duracao = contrato.cdUnidade.duracao_aula_minutos or 50
+    funcionamento = _load_funcionamento(contrato.cdUnidade_id, plano.cdTipoServico_id)
+    horarios_configurados = bool(funcionamento)
 
     slots = {}
     aulas_by_key = {(aula.data, aula.horaInicio, aula.horaFim, aula.profissional_id): aula for aula in aulas}
     capacidade_padrao = contrato.cdUnidade.capacidade or 0
-    horarios_by_slot = {}
-    for horario in horarios:
-        key = (horario.diaSemana, horario.horaInicio, horario.horaFim)
-        horarios_by_slot.setdefault(key, []).append(horario)
 
-    def _capacidade_para(horarios_list, prof_id):
-        match = next((h for h in horarios_list if h.profissional_id == prof_id), None)
-        if match and match.capacidade is not None:
-            return match.capacidade
-        general = next((h for h in horarios_list if h.profissional_id is None and h.capacidade is not None), None)
-        if general:
-            return general.capacidade
-        return capacidade_padrao
+    dates_by_weekday = {i: [] for i in range(7)}
+    current = contrato.dtInicioContrato
+    while current <= contrato.dtFimContrato:
+        dates_by_weekday[current.weekday()].append(current)
+        current += timedelta(days=1)
 
-    for key, horarios_list in horarios_by_slot.items():
-        weekday, inicio, fim = key
-        allowed = {h.profissional_id for h in horarios_list if h.profissional_id}
-        candidate_profs = allowed if allowed else set(prof_ids)
-        slot_ok = False
-        for prof_id in candidate_profs:
-            if not prof_id:
-                continue
-            prof_ok = True
-            current = contrato.dtInicioContrato
-            while current <= contrato.dtFimContrato:
-                if current.weekday() == weekday:
-                    aula = aulas_by_key.get((current, inicio, fim, prof_id))
+    blocks_by_prof = {}
+    for prof in profissionais:
+        blocks_by_prof[prof.id] = _load_bloqueios(
+            contrato.cdUnidade_id,
+            plano.cdTipoServico_id,
+            prof.id,
+            contrato.dtInicioContrato,
+            contrato.dtFimContrato,
+        )
+
+    for weekday, windows in funcionamento.items():
+        if not dates_by_weekday.get(weekday):
+            continue
+        sample_date = dates_by_weekday[weekday][0]
+        time_slots = _generate_slots_for_date(sample_date, windows, duracao)
+        for inicio, fim in time_slots:
+            allowed_profs = []
+            for prof in profissionais:
+                prof_ok = True
+                blocks = blocks_by_prof.get(prof.id, [])
+                for day in dates_by_weekday[weekday]:
+                    if _is_slot_blocked(blocks, day, inicio, fim):
+                        prof_ok = False
+                        break
+                    aula = aulas_by_key.get((day, inicio, fim, prof.id))
                     if aula:
                         reservadas = models.Reserva.objects.filter(aulaSessao=aula, status="RESERVADA").count()
                         cap = aula.capacidade_efetiva()
                     else:
                         reservadas = 0
-                        cap = _capacidade_para(horarios_list, prof_id)
+                        cap = capacidade_padrao
                     if reservadas >= (cap or 0):
                         prof_ok = False
                         break
-                current = current + timedelta(days=1)
-            if prof_ok:
-                slot_ok = True
-                break
-        if slot_ok:
-            slots[key] = {
-                "weekday": weekday,
-                "inicio": inicio,
-                "fim": fim,
-                "allowed_profs": sorted(list(allowed)),
-                "horarios": horarios_list,
-            }
+                if prof_ok:
+                    allowed_profs.append(prof.id)
+            if allowed_profs:
+                slots[(weekday, inicio, fim)] = {
+                    "weekday": weekday,
+                    "inicio": inicio,
+                    "fim": fim,
+                    "allowed_profs": allowed_profs,
+                }
 
-    if not slots and not horarios.exists():
+    if not slots and not horarios_configurados:
         slots = {}
         for aula in aulas:
             reservadas = models.Reserva.objects.filter(aulaSessao=aula, status="RESERVADA").count()
             if reservadas >= aula.capacidade_efetiva():
                 continue
             key = (aula.data.weekday(), aula.horaInicio, aula.horaFim)
-            slots[key] = {"weekday": key[0], "inicio": key[1], "fim": key[2], "allowed_profs": [], "horarios": []}
+            slots[key] = {"weekday": key[0], "inicio": key[1], "fim": key[2], "allowed_profs": []}
 
     if request.method == "POST":
+
         escolhidas = []
         for idx in range(1, aulas_por_semana + 1):
             valor = request.POST.get(f"slot_{idx}") or ""
@@ -2047,21 +2193,18 @@ def contrato_agenda(request, pk):
                 except ValueError:
                     messages.error(request, "Horario invalido na selecao.")
                     return redirect("contratos_agenda", pk=contrato.id)
-                horario_key = (weekday, inicio_time, fim_time)
-                slot_payload = slots.get(horario_key, {})
+                horario_key = (weekday, inicio_time, fim_time)                slot_payload = slots.get(horario_key, {})
                 allowed = set(slot_payload.get("allowed_profs") or [])
-                horarios_list = slot_payload.get("horarios") or []
                 if allowed and prof_id not in allowed:
                     messages.error(request, "Professor invalido para o horario selecionado.")
                     return redirect("contratos_agenda", pk=contrato.id)
-                horario_config = next((h for h in horarios_list if h.profissional_id == prof_id), None) or next(
-                    (h for h in horarios_list if h.profissional_id is None),
-                    None,
-                )
                 current = contrato.dtInicioContrato
-                while current <= contrato.dtFimContrato:
-                    if current.weekday() == weekday:
-                        aula = models.AulaSessao.objects.filter(
+                while current <= contrato.dtFimContrato:                        blocks = blocks_by_prof.get(prof_id, [])
+                        if _is_slot_blocked(blocks, current, inicio_time, fim_time):
+                            conflitos.append(f"Bloqueio em {current} {inicio}")
+                            current = current + timedelta(days=1)
+                            continue
+
                             unidade=contrato.cdUnidade,
                             tipoServico=plano.cdTipoServico,
                             profissional_id=prof_id,
@@ -2078,14 +2221,10 @@ def contrato_agenda(request, pk):
                                     data=current,
                                     horaInicio=inicio_time,
                                     horaFim=fim_time,
-                                    capacidade=getattr(horario_config, "capacidade", None),
                                 )
                             else:
                                 update_fields = ["profissional"]
                                 aula.profissional_id = prof_id
-                                if aula.capacidade is None and horario_config and horario_config.capacidade is not None:
-                                    aula.capacidade = horario_config.capacidade
-                                    update_fields.append("capacidade")
                                 aula.save(update_fields=update_fields)
                             if models.Reserva.objects.filter(aluno=contrato.cdAluno, aulaSessao=aula).exists():
                                 current = current + timedelta(days=1)
@@ -2140,7 +2279,7 @@ def contrato_agenda(request, pk):
         "weekday_labels": weekday_labels,
         "slot_options": slot_options,
         "profissionais": profissionais,
-        "horarios_configurados": horarios.exists(),
+        "horarios_configurados": horarios_configurados,
         "breadcrumbs": [("Home", reverse("dashboard")), ("Contratos", reverse("contratos_list")), ("Agenda", "#")],
         "active_menu": "cadastros",
     }

@@ -60,6 +60,11 @@ class BaseAutoCdForm(forms.ModelForm):
             "diaSemana": "Dia da Semana",
             "horaInicio": "Hora Inicio",
             "horaFim": "Hora Fim",
+            "dataInicio": "Data Inicio",
+            "dataFim": "Data Fim",
+            "recorrente": "Recorrente",
+            "motivo": "Motivo",
+            "ativo": "Ativo",
             "capacidade": "Capacidade",
             "tipoServico": "Tipo de Servico",
             "unidade": "Unidade",
@@ -107,6 +112,8 @@ class BaseAutoCdForm(forms.ModelForm):
             if name == "dtVencimento":
                 field.widget = forms.DateInput(attrs={"type": "date", "class": "form-control"})
             if name == "data":
+                field.widget = forms.DateInput(attrs={"type": "date", "class": "form-control"})
+            if name in ("dataInicio", "dataFim"):
                 field.widget = forms.DateInput(attrs={"type": "date", "class": "form-control"})
             if name == "senha":
                 field.widget = forms.PasswordInput(render_value=True, attrs={"class": "form-control"})
@@ -165,6 +172,12 @@ class HorarioStudioForm(BaseAutoCdForm):
         fields = ["cdHorario", "unidade", "tipoServico", "profissional", "diaSemana", "horaInicio", "horaFim", "capacidade"]
 
 
+class HorarioFuncionamentoForm(BaseAutoCdForm):
+    class Meta:
+        model = models.HorarioFuncionamento
+        fields = ["unidade", "tipoServico", "diaSemana", "horaInicio", "horaFim", "ativo"]
+
+
 class TermoUsoForm(BaseAutoCdForm):
     class Meta:
         model = models.TermoUso
@@ -215,6 +228,24 @@ class AulaSessaoForm(BaseAutoCdForm):
     class Meta:
         model = models.AulaSessao
         fields = ["unidade", "tipoServico", "profissional", "data", "horaInicio", "horaFim", "capacidade"]
+
+
+class BloqueioAgendaForm(BaseAutoCdForm):
+    class Meta:
+        model = models.BloqueioAgenda
+        fields = [
+            "unidade",
+            "tipoServico",
+            "profissional",
+            "recorrente",
+            "diaSemana",
+            "dataInicio",
+            "dataFim",
+            "horaInicio",
+            "horaFim",
+            "motivo",
+            "ativo",
+        ]
 
 
 class ReservaForm(BaseAutoCdForm):
