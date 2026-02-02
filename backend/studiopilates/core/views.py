@@ -2619,7 +2619,12 @@ def contrato_agenda(request, pk):
         6: "Domingo",
     }
     slots_by_day = {key: [] for key in weekday_labels}
+    seen_slots = set()
     for item in sorted(slots.values(), key=lambda x: (x["weekday"], x["inicio"])):
+        key = (item["weekday"], item["inicio"], item["fim"])
+        if key in seen_slots:
+            continue
+        seen_slots.add(key)
         slots_by_day[item["weekday"]].append(
             {
                 "label": f'{item["inicio"].strftime("%H:%M")} - {item["fim"].strftime("%H:%M")}',
