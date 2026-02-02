@@ -1927,23 +1927,49 @@ def edit_view(request, model, form_class, redirect_name, pk):
 
 def delete_view(request, model, redirect_name, pk):
     obj = get_object_or_404(model, pk=pk)
+    delete_context = {}
+    if model is models.Contrato:
+        reservas_qs = models.Reserva.objects.filter(
+            aluno=obj.cdAluno,
+            aulaSessao__data__range=(obj.dtInicioContrato, obj.dtFimContrato),
+            aulaSessao__unidade=obj.cdUnidade,
+            aulaSessao__tipoServico=obj.cdPlano.cdTipoServico,
+        )
+        aula_ids = list(reservas_qs.values_list("aulaSessao_id", flat=True))
+        delete_context = {
+            "requires_confirm": True,
+            "delete_summary": {
+                "contas_receber": models.ContasReceber.objects.filter(contrato=obj).count(),
+                "reservas": reservas_qs.count(),
+                "aulas": len(set(aula_ids)),
+            },
+        }
     if request.method == "POST":
         next_url = request.POST.get("next", "").strip()
         if next_url and not next_url.startswith("/"):
             next_url = ""
         if model is models.Contrato:
-            models.ContasReceber.objects.filter(contrato=obj, status="ABERTO").delete()
-            if models.ContasReceber.objects.filter(contrato=obj).exists():
-                messages.error(request, "Nao foi possivel excluir: existem contas pagas ou atrasadas.")
+            if request.POST.get("confirm_delete") != "1":
+                messages.error(request, "Confirme a exclusao do contrato.")
                 return redirect(next_url or redirect_name)
+            # Remove contas a receber e reservas do aluno dentro do periodo do contrato.
+            models.ContasReceber.objects.filter(contrato=obj).delete()
+            reservas_qs = models.Reserva.objects.filter(
+                aluno=obj.cdAluno,
+                aulaSessao__data__range=(obj.dtInicioContrato, obj.dtFimContrato),
+                aulaSessao__unidade=obj.cdUnidade,
+                aulaSessao__tipoServico=obj.cdPlano.cdTipoServico,
+            )
+            aula_ids = list(reservas_qs.values_list("aulaSessao_id", flat=True))
+            reservas_qs.delete()
+            if aula_ids:
+                models.AulaSessao.objects.filter(id__in=aula_ids).annotate(total=Count("reserva")).filter(total=0).delete()
         obj.delete()
         messages.success(request, "Removido")
         return redirect(next_url or redirect_name)
-    return render(
-        request,
-        "generic/confirm_delete.html",
-        {"object": obj, "title": "Excluir", "active_menu": _active_menu(request.path)},
-    )
+    context = {"object": obj, "title": "Excluir", "active_menu": _active_menu(request.path)}
+    context.update(delete_context)
+    return render(request, "generic/confirm_delete.html", context)
 
 
 @login_required

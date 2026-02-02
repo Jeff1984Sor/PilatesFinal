@@ -4,8 +4,24 @@
   <div class="card-body">
     <h3>Confirmar exclusao</h3>
     <p>{{ object }}</p>
+    {% if delete_summary %}
+      <div class="alert alert-warning">
+        <div class="fw-semibold mb-1">Isso vai apagar permanentemente:</div>
+        <ul class="mb-0">
+          <li>{{ delete_summary.contas_receber }} conta(s) a receber</li>
+          <li>{{ delete_summary.reservas }} reserva(s) de aula</li>
+          <li>{{ delete_summary.aulas }} aula(s) sem alunos vinculados</li>
+        </ul>
+      </div>
+    {% endif %}
     <form method="post">
       {% csrf_token %}
+      {% if requires_confirm %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="confirmDelete" name="confirm_delete" value="1" />
+          <label class="form-check-label" for="confirmDelete">OK, entendo que isso apaga tudo.</label>
+        </div>
+      {% endif %}
       <button class="btn btn-danger" type="submit">Excluir</button>
     </form>
   </div>
