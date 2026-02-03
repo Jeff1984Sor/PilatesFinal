@@ -3,13 +3,13 @@
   --brand-700: #1d4d4d;
   --brand-500: #2d7a7a;
   --brand-300: #7cc6c6;
-  --surface: #f7f7f9;
-  --surface-2: #ffffff;
-  --ink: #2b2b2b;
+  --surface: #0b0b0e;
+  --surface-2: #141418;
+  --ink: #f5f5f5;
   --marsala: #7b2c2f;
   --marsala-200: #e8c9cb;
   --success: #1fbf74;
-  --border: #e5e7eb;
+  --border: #2a2a31;
 }
 
 body {
@@ -1818,4 +1818,269 @@ body {
     top: 80px;
     height: calc(100vh - 100px);
   }
+}
+
+/* Dark theme overrides */
+body,
+.mayris-body {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+a {
+  color: #d7d7de;
+}
+
+a:hover {
+  color: #ffffff;
+}
+
+.card,
+.mayris-card,
+.agenda-card,
+.agenda-right-panel,
+.agenda-day,
+.agenda-event,
+.evolucao-card,
+.dre-summary-card,
+.dre-report-table,
+.mayris-login__card,
+.aulas-drawer {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--ink);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.mayris-topbar,
+.modal-content,
+.modal-header,
+.modal-body,
+.modal-footer {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.modal-title,
+.mayris-title,
+.mayris-card__value,
+.agenda-event-title,
+.agenda-day-label,
+.mayris-profile__name {
+  color: var(--ink);
+}
+
+.mayris-topbar__label,
+.mayris-kicker,
+.mayris-card__label,
+.mayris-card__trend,
+.mayris-filter label,
+.mayris-card__meta,
+.agenda-event-meta,
+.agenda-event-time,
+.agenda-kicker,
+.agenda-range,
+.agenda-clock,
+.agenda-empty,
+.dre-kicker,
+.dre-summary-text,
+.mayris-login__subtitle,
+.mayris-field span {
+  color: #b6b6c3;
+}
+
+.mayris-icon-btn,
+.agenda-month,
+.agenda-day-header,
+.agenda-day-header.is-today,
+.agenda-day--placeholder,
+.agenda-event,
+.toolbar,
+.photo-camera,
+.photo-preview,
+.hf-panel,
+.hf-days-select,
+.aluno-intro {
+  background: #1a1a21;
+  border-color: var(--border);
+}
+
+.agenda-day-header.is-today .agenda-day-number {
+  background: #f59e0b;
+}
+
+.agenda-day-number,
+.mayris-avatar,
+.mayris-logo__mark {
+  color: #ffffff;
+}
+
+.mayris-topbar__search .form-control,
+.form-control,
+.form-select,
+.modal-form input,
+.modal-form select,
+.modal-form textarea,
+.mayris-login__form input,
+.mayris-login__form select,
+.mayris-login__form textarea {
+  background: #121218;
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.form-control::placeholder,
+.modal-form input::placeholder,
+.modal-form textarea::placeholder {
+  color: #8f90a1;
+}
+
+.input-group-text {
+  background: #1a1a21;
+  border-color: var(--border);
+  color: #b6b6c3;
+}
+
+.table,
+.table th,
+.table td,
+.mayris-table th,
+.mayris-table td {
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+.table thead th,
+.mayris-table th {
+  background: #16161d;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pagination .page-link,
+.mayris-pagination .page-link {
+  background: #16161d;
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.pagination .page-link:hover,
+.mayris-pagination .page-link:hover {
+  background: #22222b;
+}
+
+.nav-pills .nav-link,
+.mayris-tabs .nav-pills .nav-link {
+  background: #16161d;
+  color: #c7c7d2;
+  border-color: var(--border);
+}
+
+.nav-pills .nav-link.active,
+.mayris-tabs .nav-pills .nav-link.active {
+  background: var(--marsala);
+  color: #ffffff;
+}
+
+.aulas-toolbar,
+.aulas-filters,
+.aulas-time-row,
+.aulas-card,
+.aulas-card__actions,
+.aulas-search,
+.aulas-filter,
+.aulas-chip {
+  background: #16161d;
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.aulas-card {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.aulas-time-label,
+.aulas-card__meta,
+.aulas-card__label {
+  color: #b6b6c3;
+}
+
+.aulas-drawer__header,
+.aulas-drawer__section {
+  background: #1a1a21;
+  border-color: var(--border);
+}
+
+.aulas-drawer.is-aguardando_chegar .aulas-drawer__header {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.aulas-drawer.is-em_aula .aulas-drawer__header {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.aulas-drawer.is-finalizada .aulas-drawer__header {
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.aulas-drawer.is-faltou .aulas-drawer__header {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.aulas-drawer.is-remarcada .aulas-drawer__header {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.alert,
+.mayris-alert {
+  background: #1a1a21;
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.btn-outline-secondary {
+  color: #d7d7de;
+  border-color: #3a3a44;
+}
+
+.btn-outline-secondary:hover {
+  background: #2a2a33;
+  color: #ffffff;
+}
+
+.btn:active,
+.btn.active,
+.btn-check:checked + .btn,
+.btn-check:active + .btn,
+.btn-check:focus + .btn,
+.btn-check:checked + .btn:hover {
+  background: var(--marsala);
+  border-color: var(--marsala);
+  color: #ffffff;
+}
+
+.btn-outline-secondary.btn:active,
+.btn-outline-secondary.btn.active,
+.btn-outline-secondary.btn-check:checked + .btn-outline-secondary,
+.btn-outline-secondary.btn-check:active + .btn-outline-secondary,
+.btn-outline-secondary.btn-check:focus + .btn-outline-secondary {
+  background: var(--marsala);
+  border-color: var(--marsala);
+  color: #ffffff;
+}
+
+.mayris-topbar {
+  border-bottom-color: var(--border);
+}
+
+.mayris-nav__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.mayris-logo__tag,
+.mayris-nav__item {
+  color: #c7c7d2;
 }
