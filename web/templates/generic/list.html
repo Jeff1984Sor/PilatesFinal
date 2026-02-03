@@ -1,27 +1,30 @@
 {% extends "base.html" %}
 {% load core_extras %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">{{ title }}</h3>
-  {% if allow_modal %}
-    <div class="d-flex gap-2">
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">Novo</button>
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Gestao</div>
+      <h2 class="mayris-title">{{ title }}</h2>
     </div>
-  {% else %}
-    <a class="btn btn-primary" href="{{ request.path }}criar/">Novo</a>
-  {% endif %}
-</div>
+    {% if allow_modal %}
+      <button class="btn btn-primary mayris-btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">Novo</button>
+    {% else %}
+      <a class="btn btn-primary mayris-btn-primary" href="{{ request.path }}criar/">Novo</a>
+    {% endif %}
+  </div>
 
-<div class="card shadow-sm">
-  <div class="card-body">
-    <form class="row g-2 mb-3" method="get">
-      <div class="col-md-4">
+  <div class="mayris-card">
+    <form class="mayris-filter-bar" method="get">
+      <div class="mayris-filter">
+        <label>Busca</label>
         <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Buscar" />
       </div>
-      <div class="col-md-3">
+      <div class="mayris-filter">
+        <label>Ordenar</label>
         <input class="form-control" name="order" value="{{ request.GET.order }}" placeholder="Ordenar" />
       </div>
-      <div class="col-md-2">
+      <div class="mayris-filter mayris-filter--actions">
         <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
       </div>
     </form>
@@ -96,7 +99,7 @@
     {% endif %}
     
     <div class="table-responsive">
-      <table class="table table-hover">
+      <table class="table table-hover mayris-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -125,7 +128,7 @@
               {% for field in display_fields %}
                 <td>{{ obj|attr:field.name }}</td>
               {% endfor %}
-              <td>
+              <td class="mayris-actions">
                 {% if model_name == 'aluno' %}
                   <a class="btn btn-sm btn-outline-secondary" href="/cadastros/alunos/{{ obj.id }}/ficha/">Ficha</a>
                 {% endif %}
@@ -160,7 +163,7 @@
         </tbody>
       </table>
     </div>
-    <nav>
+    <nav class="mayris-pagination">
       <ul class="pagination">
         {% if page.has_previous %}
           <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}">Anterior</a></li>

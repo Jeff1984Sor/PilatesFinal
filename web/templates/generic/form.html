@@ -1,12 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card shadow-sm">
-  <div class="card-body">
-    <h3 class="mb-3">{{ title }}</h3>
-    <form method="post" enctype="multipart/form-data">
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Cadastro</div>
+      <h2 class="mayris-title">{{ title }}</h2>
+    </div>
+  </div>
+
+  <div class="mayris-card">
+    <form method="post" enctype="multipart/form-data" class="mayris-form">
       {% csrf_token %}
       {{ form.as_p }}
-      <button class="btn btn-primary" type="submit">Salvar</button>
+      <div class="mayris-form__actions">
+        <button class="btn btn-primary mayris-btn-primary" type="submit">Salvar</button>
+      </div>
     </form>
   </div>
 </div>

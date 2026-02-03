@@ -36,11 +36,15 @@ def _mensagem_contrato_whatsapp(contrato, link, is_new=False):
     aluno = contrato.cdAluno
     plano = contrato.cdPlano
     unidade = contrato.cdUnidade
-    prefix = "Seu contrato foi gerado" if not is_new else "Seu contrato foi criado com sucesso"
+    prefix = "Seu contrato foi criado com sucesso" if is_new else "Seu contrato foi gerado"
     return (
-        f"Oi {aluno.dsNome}! {prefix}. "
-        f"Contrato #{contrato.cdContrato} - Plano {plano} - Unidade {unidade}. "
-        f"Para ler e assinar: {link}"
+        f"Oi {aluno.dsNome}, tudo bem?\\n"
+        f"{prefix} no Mayris Pilates.\\n\\n"
+        f"Contrato: #{contrato.cdContrato}\\n"
+        f"Plano: {plano}\\n"
+        f"Unidade: {unidade}\\n\\n"
+        f"Para ler e assinar, acesse:\\n{link}\\n\\n"
+        "Qualquer duvida, estamos a disposicao."
     )
 
 
