@@ -1,15 +1,15 @@
 :root {
-  --brand-900: #0f1c1c;
-  --brand-700: #1d4d4d;
-  --brand-500: #2d7a7a;
-  --brand-300: #7cc6c6;
-  --surface: #0b0b0e;
-  --surface-2: #141418;
-  --ink: #f5f5f5;
+  --brand-900: #5c1f22;
+  --brand-700: #7b2c2f;
+  --brand-500: #8a3538;
+  --brand-300: #e8c9cb;
+  --surface: #f7f7f9;
+  --surface-2: #ffffff;
+  --ink: #2b2b2b;
   --marsala: #7b2c2f;
   --marsala-200: #e8c9cb;
   --success: #1fbf74;
-  --border: #2a2a31;
+  --border: #e5e7eb;
 }
 
 body {
@@ -789,8 +789,8 @@ body {
 
 .mayris-sidebar {
   width: 240px;
-  background: #141416;
-  color: #f3f4f6;
+  background: linear-gradient(180deg, #6b2326 0%, #7b2c2f 45%, #8f3539 100%);
+  color: #ffffff;
   display: flex;
   flex-direction: column;
   padding: 24px 18px;
@@ -825,7 +825,7 @@ body {
 
 .mayris-logo__tag {
   font-size: 12px;
-  color: #c7c9d1;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .mayris-nav {
@@ -840,7 +840,7 @@ body {
   gap: 10px;
   padding: 10px 12px;
   border-radius: 12px;
-  color: #e5e7eb;
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
   font-weight: 600;
   font-size: 14px;
@@ -850,15 +850,15 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #3f3f46;
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .mayris-nav__item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .mayris-nav__item.is-active {
-  background: rgba(123, 44, 47, 0.2);
+  background: rgba(255, 255, 255, 0.22);
   color: #fff;
 }
 
@@ -1820,7 +1820,7 @@ body {
   }
 }
 
-/* Dark theme overrides */
+/* Marsala theme overrides */
 body,
 .mayris-body {
   background: var(--surface);
@@ -1828,11 +1828,11 @@ body,
 }
 
 a {
-  color: #d7d7de;
+  color: #6b5b5e;
 }
 
 a:hover {
-  color: #ffffff;
+  color: var(--marsala);
 }
 
 .card,
@@ -1849,7 +1849,7 @@ a:hover {
   background: var(--surface-2);
   border-color: var(--border);
   color: var(--ink);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
 }
 
 .mayris-topbar,
@@ -1880,14 +1880,17 @@ a:hover {
 .agenda-event-meta,
 .agenda-event-time,
 .agenda-kicker,
-.agenda-range,
-.agenda-clock,
 .agenda-empty,
 .dre-kicker,
 .dre-summary-text,
 .mayris-login__subtitle,
 .mayris-field span {
-  color: #b6b6c3;
+  color: #6b7280;
+}
+
+.agenda-range,
+.agenda-clock {
+  color: #ffffff;
 }
 
 .mayris-icon-btn,
@@ -1902,7 +1905,7 @@ a:hover {
 .hf-panel,
 .hf-days-select,
 .aluno-intro {
-  background: #1a1a21;
+  background: #f8fafc;
   border-color: var(--border);
 }
 
@@ -1925,7 +1928,7 @@ a:hover {
 .mayris-login__form input,
 .mayris-login__form select,
 .mayris-login__form textarea {
-  background: #121218;
+  background: #ffffff;
   border-color: var(--border);
   color: var(--ink);
 }
@@ -1933,13 +1936,13 @@ a:hover {
 .form-control::placeholder,
 .modal-form input::placeholder,
 .modal-form textarea::placeholder {
-  color: #8f90a1;
+  color: #9aa3af;
 }
 
 .input-group-text {
-  background: #1a1a21;
+  background: #f8fafc;
   border-color: var(--border);
-  color: #b6b6c3;
+  color: #6b7280;
 }
 
 .table,
@@ -1953,29 +1956,29 @@ a:hover {
 
 .table thead th,
 .mayris-table th {
-  background: #16161d;
+  background: #f3f4f6;
 }
 
 .table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(123, 44, 47, 0.05);
 }
 
 .pagination .page-link,
 .mayris-pagination .page-link {
-  background: #16161d;
+  background: #ffffff;
   border-color: var(--border);
   color: var(--ink);
 }
 
 .pagination .page-link:hover,
 .mayris-pagination .page-link:hover {
-  background: #22222b;
+  background: #f3f4f6;
 }
 
 .nav-pills .nav-link,
 .mayris-tabs .nav-pills .nav-link {
-  background: #16161d;
-  color: #c7c7d2;
+  background: #ffffff;
+  color: #6b7280;
   border-color: var(--border);
 }
 
@@ -1993,62 +1996,62 @@ a:hover {
 .aulas-search,
 .aulas-filter,
 .aulas-chip {
-  background: #16161d;
+  background: #ffffff;
   border-color: var(--border);
   color: var(--ink);
 }
 
 .aulas-card {
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
 }
 
 .aulas-time-label,
 .aulas-card__meta,
 .aulas-card__label {
-  color: #b6b6c3;
+  color: #6b7280;
 }
 
 .aulas-drawer__header,
 .aulas-drawer__section {
-  background: #1a1a21;
+  background: #f8fafc;
   border-color: var(--border);
 }
 
 .aulas-drawer.is-aguardando_chegar .aulas-drawer__header {
-  background: rgba(245, 158, 11, 0.15);
+  background: #fff7ed;
 }
 
 .aulas-drawer.is-em_aula .aulas-drawer__header {
-  background: rgba(16, 185, 129, 0.15);
+  background: #ecfdf5;
 }
 
 .aulas-drawer.is-finalizada .aulas-drawer__header {
-  background: rgba(148, 163, 184, 0.15);
+  background: #f1f5f9;
 }
 
 .aulas-drawer.is-faltou .aulas-drawer__header {
-  background: rgba(239, 68, 68, 0.15);
+  background: #fef2f2;
 }
 
 .aulas-drawer.is-remarcada .aulas-drawer__header {
-  background: rgba(139, 92, 246, 0.15);
+  background: #f5f3ff;
 }
 
 .alert,
 .mayris-alert {
-  background: #1a1a21;
+  background: #ffffff;
   border-color: var(--border);
   color: var(--ink);
 }
 
 .btn-outline-secondary {
-  color: #d7d7de;
-  border-color: #3a3a44;
+  color: #6b5b5e;
+  border-color: #d1d5db;
 }
 
 .btn-outline-secondary:hover {
-  background: #2a2a33;
-  color: #ffffff;
+  background: #f3f4f6;
+  color: var(--marsala);
 }
 
 .btn:active,
@@ -2077,10 +2080,10 @@ a:hover {
 }
 
 .mayris-nav__item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(123, 44, 47, 0.08);
 }
 
 .mayris-logo__tag,
 .mayris-nav__item {
-  color: #c7c7d2;
+  color: #d9d2d3;
 }
