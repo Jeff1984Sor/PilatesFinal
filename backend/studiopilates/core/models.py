@@ -363,6 +363,19 @@ class EvolucaoAluno(models.Model):
         return f"Evolucao {self.reserva_id}"
 
 
+class AvaliacaoAluno(models.Model):
+    reserva = models.ForeignKey(Reserva, on_delete=models.CASCADE, related_name="avaliacoes")
+    profissional = models.ForeignKey(Profissional, on_delete=models.PROTECT)
+    texto = models.TextField()
+    dtAvaliacao = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-dtAvaliacao"]
+
+    def __str__(self):
+        return f"Avaliacao {self.reserva_id}"
+
+
 class ContasReceber(models.Model):
     STATUS_CHOICES = [
         ("ABERTO", "ABERTO"),

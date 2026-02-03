@@ -799,6 +799,9 @@ function initAulasOperacao() {
 
   const url = root.dataset.operacaoUrl || "";
   const evolucaoTemplate = root.dataset.evolucaoUrlTemplate || "";
+  const avaliacaoTemplate = root.dataset.avaliacaoUrlTemplate || "";
+  const cobrancaTemplate = root.dataset.cobrancaUrlTemplate || "";
+  const historicoTemplate = root.dataset.historicoUrlTemplate || "";
   const statusTemplate = root.dataset.statusUrlTemplate || "";
 
   const searchInput = root.querySelector(".js-operacao-search");
@@ -815,13 +818,21 @@ function initAulasOperacao() {
   const drawerName = root.querySelector(".js-drawer-name");
   const drawerMeta = root.querySelector(".js-drawer-meta");
   const drawerStatus = root.querySelector(".js-drawer-status");
+  const drawerAvatar = root.querySelector(".js-drawer-avatar");
+  const drawerFicha = root.querySelector(".js-ficha-link");
   const drawerConfirmacao = root.querySelector(".js-drawer-confirmacao");
   const drawerPreliminares = root.querySelector(".js-drawer-preliminares");
   const drawerPreliminaresCta = root.querySelector(".js-drawer-preliminares-cta");
   const drawerCobranca = root.querySelector(".js-drawer-cobranca");
   const evolucaoText = root.querySelector(".js-evolucao-text");
+  const evolucaoList = root.querySelector(".js-evolucao-list");
+  const avaliacaoText = root.querySelector(".js-avaliacao-text");
+  const avaliacaoList = root.querySelector(".js-avaliacao-list");
+  const cobrancaList = root.querySelector(".js-cobranca-list");
+  const historicoList = root.querySelector(".js-historico-list");
 
   let selected = null;
+  let selectedId = null;
   let items = [];
   let debounceTimer = null;
   let selectedStatus = "";
@@ -840,6 +851,43 @@ function initAulasOperacao() {
     if (status === "finalizada") return "aulas-badge is-done";
     if (status === "faltou" || status === "remarcada") return "aulas-badge is-miss";
     return "aulas-badge is-pending";
+  }
+
+  function statusThemeClass(status) {
+    if (status === "em_aula") return "is-em_aula";
+    if (status === "finalizada") return "is-finalizada";
+    if (status === "faltou") return "is-faltou";
+    if (status === "remarcada") return "is-remarcada";
+    return "is-aguardando_chegar";
+  }
+
+  function applyStatusTheme(target, status) {
+    if (!target) return;
+    const classes = [
+      "is-aguardando_chegar",
+      "is-em_aula",
+      "is-finalizada",
+      "is-faltou",
+      "is-remarcada",
+    ];
+    target.classList.remove(...classes);
+    target.classList.add(statusThemeClass(status));
+  }
+
+  function applyActionButtons(status) {
+    const actionMap = {
+      aguardando_chegar: "chegou",
+      em_aula: "chegou",
+      finalizada: "finalizar",
+      faltou: "faltou",
+      remarcada: "remarcar",
+    };
+    root.querySelectorAll(".js-drawer-action").forEach((btn) => {
+      btn.classList.remove("is-active");
+      if (btn.dataset.action === actionMap[status]) {
+        btn.classList.add("is-active");
+      }
+    });
   }
 
   function formatTime(iso) {
@@ -880,7 +928,7 @@ function initAulasOperacao() {
       cards.className = "aulas-cards";
       grouped[time].forEach((item) => {
         const card = document.createElement("div");
-        card.className = "aulas-card";
+        card.className = `aulas-card ${statusThemeClass(item.status_aula)}`;
         const indicators = [];
         indicators.push(item.confirmacao ? "Confirmado" : "Nao confirmado");
         if (!item.flags.tem_preliminares) indicators.push("Preliminares pendentes");
@@ -934,12 +982,34 @@ function initAulasOperacao() {
 
   function openDrawer(item) {
     selected = item;
+    selectedId = item.id;
     if (!drawer) return;
     drawer.classList.add("is-open");
     drawer.setAttribute("aria-hidden", "false");
+    applyStatusTheme(drawer, item.status_aula);
     if (drawerName) drawerName.textContent = item.aluno.nome;
     if (drawerMeta) drawerMeta.textContent = `${formatTime(item.dt_inicio)}  ${item.sala || "Sala principal"}`;
-    if (drawerStatus) drawerStatus.textContent = item.status_aula.replace("_", " ");
+    if (drawerStatus) {
+      drawerStatus.textContent = item.status_aula.replace("_", " ");
+      drawerStatus.className = `${statusBadgeClass(item.status_aula)} js-drawer-status`;
+    }
+    if (drawerAvatar) {
+      const initials = (item.aluno.nome || "A")
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((chunk) => chunk[0].toUpperCase())
+        .join("");
+      drawerAvatar.textContent = initials || "A";
+    }
+    if (drawerFicha) {
+      if (item.aluno.ficha_url) {
+        drawerFicha.href = item.aluno.ficha_url;
+        drawerFicha.classList.remove("d-none");
+      } else {
+        drawerFicha.classList.add("d-none");
+      }
+    }
     if (drawerConfirmacao) drawerConfirmacao.textContent = item.confirmacao ? "Confirmado" : "Nao confirmado";
     if (drawerPreliminares) drawerPreliminares.textContent = item.flags.tem_preliminares ? "OK" : "Pendente";
     if (drawerPreliminaresCta) {
@@ -949,6 +1019,12 @@ function initAulasOperacao() {
       drawerCobranca.textContent = item.flags.cobranca_pendente ? "Ha cobrancas pendentes." : "Sem cobrancas pendentes.";
     }
     if (evolucaoText) evolucaoText.value = item.ultima_evolucao?.texto || "";
+    if (avaliacaoText) avaliacaoText.value = "";
+    applyActionButtons(item.status_aula);
+    loadEvolucoes();
+    loadAvaliacoes();
+    loadCobranca();
+    loadHistorico();
   }
 
   function closeDrawer() {
@@ -956,6 +1032,7 @@ function initAulasOperacao() {
     drawer.classList.remove("is-open");
     drawer.setAttribute("aria-hidden", "true");
     selected = null;
+    selectedId = null;
   }
 
   function updateStatus(item, action) {
@@ -968,7 +1045,25 @@ function initAulasOperacao() {
         "X-CSRFToken": csrf
       },
       body: JSON.stringify({ acao: action })
-    }).then(() => loadData());
+    }).then(() => {
+      const actionMap = {
+        chegou: "em_aula",
+        iniciar: "em_aula",
+        finalizar: "finalizada",
+        faltou: "faltou",
+        remarcar: "remarcada",
+      };
+      if (actionMap[action]) {
+        item.status_aula = actionMap[action];
+        applyStatusTheme(drawer, item.status_aula);
+        if (drawerStatus) {
+          drawerStatus.textContent = item.status_aula.replace("_", " ");
+          drawerStatus.className = `${statusBadgeClass(item.status_aula)} js-drawer-status`;
+        }
+        applyActionButtons(item.status_aula);
+      }
+      loadData();
+    });
   }
 
   function saveEvolucao(finalizar) {
@@ -984,7 +1079,140 @@ function initAulasOperacao() {
         "X-CSRFToken": csrf
       },
       body: JSON.stringify({ texto: text, profissional_id: selected.profissional?.id, finalizar: finalizar })
-    }).then(() => loadData());
+    }).then(() => {
+      evolucaoText.value = "";
+      loadEvolucoes();
+      loadData();
+    });
+  }
+
+  function saveAvaliacao() {
+    if (!selected || !avaliacaoText) return;
+    const text = avaliacaoText.value.trim();
+    if (!text) return;
+    const csrf = getCookie("csrftoken");
+    const urlAction = avaliacaoTemplate.replace("/0/", `/${selected.id}/`);
+    fetch(urlAction, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrf
+      },
+      body: JSON.stringify({ texto: text, profissional_id: selected.profissional?.id })
+    }).then(() => {
+      avaliacaoText.value = "";
+      loadAvaliacoes();
+    });
+  }
+
+  function renderList(container, items, type) {
+    if (!container) return;
+    if (!items.length) {
+      container.innerHTML = '<div class="aulas-empty">Sem registros.</div>';
+      return;
+    }
+    container.innerHTML = items
+      .map((item) => {
+        if (type === "evolucao") {
+          return `
+            <div class="aulas-note">
+              <div class="aulas-note__meta">${item.dt_evolucao ? new Date(item.dt_evolucao).toLocaleString("pt-BR") : ""} ${item.profissional ? "- " + item.profissional : ""}</div>
+              <div class="aulas-note__text">${item.texto}</div>
+            </div>
+          `;
+        }
+        if (type === "avaliacao") {
+          return `
+            <div class="aulas-note">
+              <div class="aulas-note__meta">${item.dt_avaliacao ? new Date(item.dt_avaliacao).toLocaleString("pt-BR") : ""} ${item.profissional ? "- " + item.profissional : ""}</div>
+              <div class="aulas-note__text">${item.texto}</div>
+            </div>
+          `;
+        }
+        if (type === "historico") {
+          const statusLabel = item.status ? item.status.replace("_", " ") : "";
+          return `
+            <div class="aulas-note">
+              <div class="aulas-note__meta">${item.data || ""} - ${item.hora_inicio || ""}-${item.hora_fim || ""}</div>
+              <div class="aulas-note__text">${item.servico || "Servico"} ${item.profissional ? "- " + item.profissional : ""}</div>
+              <div class="aulas-note__meta">${item.unidade || ""} - ${statusLabel}</div>
+            </div>
+          `;
+        }
+        return "";
+      })
+      .join("");
+  }
+
+  function renderCobranca(container, items) {
+    if (!container) return;
+    if (!items.length) {
+      container.innerHTML = '<div class="aulas-empty">Sem cobrancas.</div>';
+      return;
+    }
+    container.innerHTML = items
+      .map((item) => {
+        const venc = item.dt_vencimento ? new Date(item.dt_vencimento).toLocaleDateString("pt-BR") : "-";
+        return `
+          <div class="aulas-cobranca">
+            <div>
+              <div class="aulas-note__text">Contrato ${item.contrato || "-"}</div>
+              <div class="aulas-note__meta">Vencimento ${venc} - ${item.status} - R$ ${item.valor}</div>
+            </div>
+            <div class="aulas-cobranca__actions">
+              ${item.status !== "PAGO" ? `<button class="btn btn-sm btn-outline-success js-cobranca-acao" data-acao="baixar" data-url="${item.baixar_url}">Dar baixa</button>` : ""}
+              <a class="btn btn-sm btn-outline-secondary" href="${item.recibo_url}" target="_blank" rel="noopener noreferrer">Recibo</a>
+              <button class="btn btn-sm btn-outline-danger js-cobranca-acao" data-acao="excluir" data-url="${item.excluir_url}">Excluir</button>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+    container.querySelectorAll(".js-cobranca-acao").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const urlTarget = btn.dataset.url;
+        if (!urlTarget) return;
+        const csrf = getCookie("csrftoken");
+        fetch(urlTarget, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrf
+          },
+        }).then(() => loadCobranca());
+      });
+    });
+  }
+
+  function loadEvolucoes() {
+    if (!selected || !evolucaoTemplate) return;
+    const urlAction = evolucaoTemplate.replace("/0/", `/${selected.id}/`);
+    fetch(urlAction)
+      .then((resp) => resp.json())
+      .then((data) => renderList(evolucaoList, data.items || [], "evolucao"));
+  }
+
+  function loadAvaliacoes() {
+    if (!selected || !avaliacaoTemplate) return;
+    const urlAction = avaliacaoTemplate.replace("/0/", `/${selected.id}/`);
+    fetch(urlAction)
+      .then((resp) => resp.json())
+      .then((data) => renderList(avaliacaoList, data.items || [], "avaliacao"));
+  }
+
+  function loadCobranca() {
+    if (!selected || !cobrancaTemplate) return;
+    const urlAction = cobrancaTemplate.replace("/0/", `/${selected.id}/`);
+    fetch(urlAction)
+      .then((resp) => resp.json())
+      .then((data) => renderCobranca(cobrancaList, data.items || []));
+  }
+
+  function loadHistorico() {
+    if (!selected || !historicoTemplate) return;
+    const urlAction = historicoTemplate.replace("/0/", `/${selected.id}/`);
+    fetch(urlAction)
+      .then((resp) => resp.json())
+      .then((data) => renderList(historicoList, data.items || [], "historico"));
   }
 
   function loadData() {
@@ -1003,6 +1231,10 @@ function initAulasOperacao() {
       .then((data) => {
         items = data.items || [];
         render();
+        if (selectedId) {
+          const found = items.find((item) => item.id === selectedId);
+          if (found) openDrawer(found);
+        }
       })
       .finally(() => {
         if (loading) loading.style.display = "none";
@@ -1057,8 +1289,10 @@ function initAulasOperacao() {
 
   const saveBtn = root.querySelector(".js-evolucao-save");
   const saveFinalBtn = root.querySelector(".js-evolucao-save-final");
+  const saveAvaliacaoBtn = root.querySelector(".js-avaliacao-save");
   if (saveBtn) saveBtn.addEventListener("click", () => saveEvolucao(false));
   if (saveFinalBtn) saveFinalBtn.addEventListener("click", () => saveEvolucao(true));
+  if (saveAvaliacaoBtn) saveAvaliacaoBtn.addEventListener("click", saveAvaliacao);
 
   root.querySelectorAll(".js-evolucao-chip").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1068,14 +1302,14 @@ function initAulasOperacao() {
     });
   });
 
-  const whatsappBtn = root.querySelector(".js-whatsapp");
-  if (whatsappBtn) {
-    whatsappBtn.addEventListener("click", () => {
+  root.querySelectorAll(".js-whatsapp").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
       if (!selected) return;
       const phone = formatPhone(selected.aluno.telefone);
       if (phone) window.open(`https://wa.me/${phone}`, "_blank");
     });
-  }
+  });
 
   root.querySelectorAll(".aulas-tab").forEach((btn) => {
     btn.addEventListener("click", () => {

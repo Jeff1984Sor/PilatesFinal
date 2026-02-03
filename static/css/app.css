@@ -1116,6 +1116,13 @@ body {
   gap: 8px;
 }
 
+.aulas-drawer__quick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .aulas-drawer__title {
   display: flex;
   align-items: center;
@@ -1141,6 +1148,24 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: 700;
+}
+
+.aulas-whatsapp {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #25d366;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.aulas-whatsapp__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
 }
 
 .aulas-drawer__actions {
@@ -1191,6 +1216,114 @@ body {
 .aulas-drawer__panel {
   display: grid;
   gap: 12px;
+}
+
+.aulas-drawer__list {
+  display: grid;
+  gap: 10px;
+}
+
+.aulas-note {
+  border: 1px solid #e6ecf2;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 14px rgba(15, 28, 28, 0.08);
+}
+
+.aulas-note__meta {
+  font-size: 11px;
+  color: #6c7a80;
+}
+
+.aulas-note__text {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.aulas-empty {
+  font-size: 12px;
+  color: #9aa6ad;
+}
+
+.aulas-cobranca {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #e6ecf2;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.aulas-cobranca__actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.aulas-card.is-aguardando_chegar {
+  border-color: #f59e0b;
+  background: #fff7ed;
+}
+
+.aulas-card.is-em_aula {
+  border-color: #16a34a;
+  background: #ecfdf5;
+}
+
+.aulas-card.is-finalizada {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.aulas-card.is-faltou {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.aulas-card.is-remarcada {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+}
+
+.aulas-drawer.is-aguardando_chegar .aulas-drawer__header {
+  background: #fff7ed;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.aulas-drawer.is-em_aula .aulas-drawer__header {
+  background: #ecfdf5;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.aulas-drawer.is-finalizada .aulas-drawer__header {
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.aulas-drawer.is-faltou .aulas-drawer__header {
+  background: #fef2f2;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.aulas-drawer.is-remarcada .aulas-drawer__header {
+  background: #f5f3ff;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.js-drawer-action.is-active {
+  background: #0f1c1c;
+  color: #ffffff;
+  border-color: #0f1c1c;
 }
 
 .aulas-chip-row {

@@ -78,6 +78,73 @@ def test_operacao_salvar_evolucao_finaliza(client, django_user_model):
 
 
 @pytest.mark.django_db
+def test_operacao_salvar_avaliacao(client, django_user_model):
+    user = django_user_model.objects.create_user(username="user4", password="pass")
+    client.login(username="user4", password="pass")
+
+    unidade = models.Unidade.objects.create(cdUnidade=4, dsUnidade="Unidade 4", capacidade=5, duracao_aula_minutos=50)
+    perfil = models.PerfilAcesso.objects.create(cdPerfilAcesso=4, dsPerfilAcesso="Padrao")
+    tipo_servico = models.TipoServico.objects.create(cdTipoServico=4, dsTipoServico="Pilates")
+    profissional = models.Profissional.objects.create(cdProfissional=4, profissional="Prof", email="", celular="", cdPerfilAcesso=perfil)
+    aluno = models.Aluno.objects.create(cdAluno=4, dsNome="Aluno 4", dsCPF="456", dsRg="", dsEmail="", cdUnidade=unidade, cdTermoUso=None)
+    aula = models.AulaSessao.objects.create(
+        unidade=unidade,
+        tipoServico=tipo_servico,
+        profissional=profissional,
+        data=timezone.now().date(),
+        horaInicio=timezone.now().time().replace(second=0, microsecond=0),
+        horaFim=(timezone.now() + timezone.timedelta(minutes=50)).time().replace(second=0, microsecond=0),
+        capacidade=5,
+    )
+    reserva = models.Reserva.objects.create(aluno=aluno, aulaSessao=aula, status="RESERVADA")
+
+    url = reverse("aulas_avaliacoes_api", args=[reserva.id])
+    resp = client.post(url, data={"texto": "Boa evolucao", "profissional_id": profissional.id})
+    assert resp.status_code == 200
+    assert models.AvaliacaoAluno.objects.filter(reserva=reserva).count() == 1
+
+
+@pytest.mark.django_db
+def test_operacao_lista_cobranca(client, django_user_model):
+    user = django_user_model.objects.create_user(username="user5", password="pass")
+    client.login(username="user5", password="pass")
+
+    unidade = models.Unidade.objects.create(cdUnidade=5, dsUnidade="Unidade 5", capacidade=5, duracao_aula_minutos=50)
+    perfil = models.PerfilAcesso.objects.create(cdPerfilAcesso=5, dsPerfilAcesso="Padrao")
+    tipo_servico = models.TipoServico.objects.create(cdTipoServico=5, dsTipoServico="Pilates")
+    profissional = models.Profissional.objects.create(cdProfissional=5, profissional="Prof", email="", celular="", cdPerfilAcesso=perfil)
+    aluno = models.Aluno.objects.create(cdAluno=5, dsNome="Aluno 5", dsCPF="567", dsRg="", dsEmail="", cdUnidade=unidade, cdTermoUso=None)
+    plano = models.Plano.objects.create(cdPlano=5, dsPlano="Plano", cdTipoServico=tipo_servico, valor=100, aulas_por_semana=2, duracao_meses=1)
+    contrato = models.Contrato.objects.create(
+        cdContrato=5,
+        cdAluno=aluno,
+        cdPlano=plano,
+        cdUnidade=unidade,
+        cdProfissional=profissional,
+        valor_parcela=100,
+        valor_total=100,
+        dtInicioContrato=timezone.now().date(),
+        dtFimContrato=timezone.now().date(),
+        status="ASSINADO",
+    )
+    aula = models.AulaSessao.objects.create(
+        unidade=unidade,
+        tipoServico=tipo_servico,
+        profissional=profissional,
+        data=timezone.now().date(),
+        horaInicio=timezone.now().time().replace(second=0, microsecond=0),
+        horaFim=(timezone.now() + timezone.timedelta(minutes=50)).time().replace(second=0, microsecond=0),
+        capacidade=5,
+    )
+    reserva = models.Reserva.objects.create(aluno=aluno, aulaSessao=aula, status="RESERVADA")
+    models.ContasReceber.objects.create(contrato=contrato, status="ABERTO", valor=100, dtVencimento=timezone.now().date())
+
+    url = reverse("aulas_cobranca_api", args=[reserva.id])
+    resp = client.get(url)
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["items"]
+@pytest.mark.django_db
 def test_operacao_atualiza_status(client, django_user_model):
     user = django_user_model.objects.create_user(username="user3", password="pass")
     client.login(username="user3", password="pass")

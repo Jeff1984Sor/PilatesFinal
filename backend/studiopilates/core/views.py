@@ -283,6 +283,11 @@ def aluno_detail(request, pk):
         .select_related("profissional", "reserva")
         .order_by("-dtEvolucao")
     )
+    avaliacoes = (
+        models.AvaliacaoAluno.objects.filter(reserva__aluno=aluno)
+        .select_related("profissional", "reserva")
+        .order_by("-dtAvaliacao")
+    )
     contas_receber = _filtrar_contas_receber(
         models.ContasReceber.objects.filter(contrato__cdAluno=aluno).select_related("contrato"),
         request,
@@ -303,6 +308,7 @@ def aluno_detail(request, pk):
         "reserva_forms": reserva_forms,
         "reserva_slots": reserva_slots,
         "evolucoes": evolucoes,
+        "avaliacoes": avaliacoes,
         "contas_receber": contas_receber,
         "filtros_financeiro": _get_filtros_financeiro(request),
         "today": timezone.now().date().strftime("%Y-%m-%d"),
@@ -1919,6 +1925,7 @@ def aulas_operacao_api(request):
                     "nome": reserva.aluno.dsNome,
                     "telefone": reserva.aluno_telefone,
                     "avatar_url": reserva.aluno.foto.url if reserva.aluno.foto else None,
+                    "ficha_url": reverse("alunos_detail", args=[reserva.aluno_id]),
                 },
                 "plano": {"id": reserva.plano_id, "descricao": reserva.plano_descricao},
                 "status_aula": status_calc,
@@ -1955,41 +1962,175 @@ def _parse_json_body(request):
 
 
 @login_required
-@require_POST
 def aula_evolucao_api(request, reserva_id):
-    payload = _parse_json_body(request)
-    texto = (payload.get("texto") or "").strip()
-    profissional_id = payload.get("profissional_id")
-    finalizar = bool(payload.get("finalizar"))
-    if not texto:
-        return JsonResponse({"error": "Texto obrigatorio."}, status=400)
-
     reserva = get_object_or_404(models.Reserva, pk=reserva_id)
-    profissional = None
-    if profissional_id:
-        profissional = models.Profissional.objects.filter(pk=profissional_id).first()
-    if not profissional:
-        profissional = reserva.aulaSessao.profissional if reserva.aulaSessao else None
-    if not profissional:
-        return JsonResponse({"error": "Profissional invalido."}, status=400)
+    if request.method == "POST":
+        payload = _parse_json_body(request)
+        texto = (payload.get("texto") or "").strip()
+        profissional_id = payload.get("profissional_id")
+        finalizar = bool(payload.get("finalizar"))
+        if not texto:
+            return JsonResponse({"error": "Texto obrigatorio."}, status=400)
 
-    evolucao = models.EvolucaoAluno.objects.create(
-        reserva=reserva,
-        profissional=profissional,
-        texto=texto,
-        dtEvolucao=timezone.now(),
+        profissional = None
+        if profissional_id:
+            profissional = models.Profissional.objects.filter(pk=profissional_id).first()
+        if not profissional:
+            profissional = reserva.aulaSessao.profissional if reserva.aulaSessao else None
+        if not profissional:
+            return JsonResponse({"error": "Profissional invalido."}, status=400)
+
+        evolucao = models.EvolucaoAluno.objects.create(
+            reserva=reserva,
+            profissional=profissional,
+            texto=texto,
+            dtEvolucao=timezone.now(),
+        )
+        if finalizar:
+            reserva.status = "CONCLUIDA"
+            reserva.save(update_fields=["status"])
+        return JsonResponse(
+            {
+                "id": evolucao.id,
+                "reserva_id": reserva.id,
+                "texto": evolucao.texto,
+                "dt_evolucao": evolucao.dtEvolucao.isoformat(),
+            }
+        )
+
+    evolucoes = (
+        models.EvolucaoAluno.objects.filter(reserva__aluno=reserva.aluno)
+        .select_related("profissional", "reserva", "reserva__aulaSessao")
+        .order_by("-dtEvolucao")[:20]
     )
-    if finalizar:
-        reserva.status = "CONCLUIDA"
-        reserva.save(update_fields=["status"])
     return JsonResponse(
         {
-            "id": evolucao.id,
-            "reserva_id": reserva.id,
-            "texto": evolucao.texto,
-            "dt_evolucao": evolucao.dtEvolucao.isoformat(),
+            "items": [
+                {
+                    "id": e.id,
+                    "texto": e.texto,
+                    "dt_evolucao": e.dtEvolucao.isoformat(),
+                    "profissional": e.profissional.profissional if e.profissional else None,
+                    "reserva_id": e.reserva_id,
+                    "data": e.reserva.aulaSessao.data.isoformat() if e.reserva and e.reserva.aulaSessao else None,
+                }
+                for e in evolucoes
+            ]
         }
     )
+
+
+@login_required
+def aula_avaliacoes_api(request, reserva_id):
+    reserva = get_object_or_404(models.Reserva, pk=reserva_id)
+    if request.method == "POST":
+        payload = _parse_json_body(request)
+        texto = (payload.get("texto") or "").strip()
+        profissional_id = payload.get("profissional_id")
+        if not texto:
+            return JsonResponse({"error": "Texto obrigatorio."}, status=400)
+
+        profissional = None
+        if profissional_id:
+            profissional = models.Profissional.objects.filter(pk=profissional_id).first()
+        if not profissional:
+            profissional = reserva.aulaSessao.profissional if reserva.aulaSessao else None
+        if not profissional:
+            return JsonResponse({"error": "Profissional invalido."}, status=400)
+
+        avaliacao = models.AvaliacaoAluno.objects.create(
+            reserva=reserva,
+            profissional=profissional,
+            texto=texto,
+            dtAvaliacao=timezone.now(),
+        )
+        return JsonResponse(
+            {
+                "id": avaliacao.id,
+                "reserva_id": reserva.id,
+                "texto": avaliacao.texto,
+                "dt_avaliacao": avaliacao.dtAvaliacao.isoformat(),
+            }
+        )
+
+    avaliacoes = (
+        models.AvaliacaoAluno.objects.filter(reserva__aluno=reserva.aluno)
+        .select_related("profissional", "reserva", "reserva__aulaSessao")
+        .order_by("-dtAvaliacao")[:20]
+    )
+    return JsonResponse(
+        {
+            "items": [
+                {
+                    "id": a.id,
+                    "texto": a.texto,
+                    "dt_avaliacao": a.dtAvaliacao.isoformat(),
+                    "profissional": a.profissional.profissional if a.profissional else None,
+                    "reserva_id": a.reserva_id,
+                    "data": a.reserva.aulaSessao.data.isoformat() if a.reserva and a.reserva.aulaSessao else None,
+                }
+                for a in avaliacoes
+            ]
+        }
+    )
+
+
+@login_required
+def aula_cobranca_api(request, reserva_id):
+    reserva = get_object_or_404(models.Reserva, pk=reserva_id)
+    contas = (
+        models.ContasReceber.objects.filter(contrato__cdAluno=reserva.aluno)
+        .select_related("contrato")
+        .order_by("-dtVencimento", "-id")
+    )
+    items = []
+    for conta in contas:
+        items.append(
+            {
+                "id": conta.id,
+                "competencia": conta.competencia,
+                "dt_vencimento": conta.dtVencimento.isoformat() if conta.dtVencimento else None,
+                "dt_pagamento": conta.dtPagamento.isoformat() if conta.dtPagamento else None,
+                "status": conta.status,
+                "valor": float(conta.valor),
+                "contrato": conta.contrato.cdContrato if conta.contrato else None,
+                "baixar_url": reverse("contas_receber_baixar", args=[conta.id]),
+                "recibo_url": reverse("contas_receber_recibo", args=[conta.id]),
+                "excluir_url": reverse("contas_receber_excluir", args=[conta.id]),
+            }
+        )
+    return JsonResponse({"items": items})
+
+
+@login_required
+def aula_historico_api(request, reserva_id):
+    reserva = get_object_or_404(models.Reserva, pk=reserva_id)
+    reservas = (
+        models.Reserva.objects.filter(aluno=reserva.aluno)
+        .select_related("aulaSessao", "aulaSessao__unidade", "aulaSessao__profissional", "aulaSessao__tipoServico")
+        .order_by("-aulaSessao__data", "-aulaSessao__horaInicio")[:20]
+    )
+    items = []
+    for item in reservas:
+        aula = item.aulaSessao
+        if not aula:
+            continue
+        inicio = timezone.make_aware(datetime.combine(aula.data, aula.horaInicio))
+        fim = timezone.make_aware(datetime.combine(aula.data, aula.horaFim))
+        status_calc = _map_status(item.status, inicio, fim)
+        items.append(
+            {
+                "id": item.id,
+                "data": aula.data.isoformat(),
+                "hora_inicio": aula.horaInicio.strftime("%H:%M"),
+                "hora_fim": aula.horaFim.strftime("%H:%M"),
+                "unidade": aula.unidade.dsUnidade if aula.unidade else None,
+                "profissional": aula.profissional.profissional if aula.profissional else None,
+                "servico": aula.tipoServico.dsTipoServico if aula.tipoServico else None,
+                "status": status_calc,
+            }
+        )
+    return JsonResponse({"items": items})
 
 
 @login_required
