@@ -5,11 +5,13 @@ from app.core.deps import get_db
 from app.modules.contratos.schemas import (
     ContratoCreate,
     ContratoOut,
+    ContratoDetailOut,
     ContratoModeloCreate,
     ContratoModeloUpdate,
     ContratoModeloOut,
+    AgendaGeracaoOut,
 )
-from app.modules.contratos.repository import ContratoRepository, ContratoModeloRepository
+from app.modules.contratos.repository import ContratoModeloRepository
 from app.modules.contratos.service import ContratoService
 from app.modules.termos.service import TERMO_VARIAVEIS
 from app.shared.pagination import Page, PageMeta
@@ -19,13 +21,13 @@ router = APIRouter(prefix="/contratos", tags=["contratos"])
 
 @router.post("", response_model=ContratoOut)
 def create_contrato(payload: ContratoCreate, db: Session = Depends(get_db)):
-    service = ContratoService(ContratoRepository(db))
-    return service.repo.create(payload.model_dump())
+    service = ContratoService(db)
+    return service.create_with_agenda(payload)
 
 
 @router.get("", response_model=Page[ContratoOut])
 def list_contratos(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
-    service = ContratoService(ContratoRepository(db))
+    service = ContratoService(db)
     items, total = service.repo.list(offset=(page - 1) * page_size, limit=page_size)
     return Page(items=items, meta=PageMeta(page=page, page_size=page_size, total=total))
 
@@ -70,3 +72,18 @@ def update_modelo(modelo_id: int, payload: ContratoModeloUpdate, db: Session = D
     if not db_obj:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Modelo not found")
     return repo.update(db_obj, payload.model_dump(exclude_unset=True))
+
+
+@router.get("/{contrato_id}", response_model=ContratoDetailOut)
+def get_contrato(contrato_id: int, db: Session = Depends(get_db)):
+    service = ContratoService(db)
+    contrato, resumo = service.get_detail(contrato_id)
+    data = ContratoOut.model_validate(contrato).model_dump()
+    data["agenda_resumo"] = resumo
+    return data
+
+
+@router.post("/{contrato_id}/gerar-agenda", response_model=AgendaGeracaoOut)
+def gerar_agenda(contrato_id: int, force: bool = Query(False), db: Session = Depends(get_db)):
+    service = ContratoService(db)
+    return service.gerar_agenda(contrato_id, force=force)

@@ -39,6 +39,8 @@ class PlanoCreate(BaseModel):
     tipo_servico_id: int
     preco: float
     quantidade_aulas: int | None = None
+    aulas_por_semana: int | None = None
+    duracao_meses: int | None = None
     ativo: bool = True
 
 
@@ -49,4 +51,6 @@ class PlanoOut(ORMModel):
     tipo_servico_id: int
     preco: float
     quantidade_aulas: int | None
+    aulas_por_semana: int | None
+    duracao_meses: int | None
     ativo: bool

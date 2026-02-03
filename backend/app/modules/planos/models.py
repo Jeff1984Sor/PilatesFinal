@@ -40,6 +40,8 @@ class Plano(Base):
     tipo_servico_id: Mapped[int] = mapped_column(ForeignKey("tipo_servico.id"))
     preco: Mapped[float] = mapped_column(Numeric(10, 2))
     quantidade_aulas: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    aulas_por_semana: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    duracao_meses: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

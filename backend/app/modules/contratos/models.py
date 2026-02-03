@@ -27,6 +27,8 @@ class Contrato(Base):
     fim: Mapped[date | None] = mapped_column(Date, nullable=True)
     status: Mapped[ContratoStatus] = mapped_column(SAEnum(ContratoStatus, native_enum=False), default=ContratoStatus.ativo)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    agenda_gerada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(100), nullable=True, unique=True)
 
 
 class ContratoModelo(Base):

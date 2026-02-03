@@ -39,4 +39,5 @@ def import_all_models() -> None:
     from app.modules.contratos import models as _contratos  # noqa: F401
     from app.modules.financeiro import models as _financeiro  # noqa: F401
     from app.modules.agenda import models as _agenda  # noqa: F401
+    from app.modules.aulas import models as _aulas  # noqa: F401
     from app.modules.integracoes import models as _integracoes  # noqa: F401

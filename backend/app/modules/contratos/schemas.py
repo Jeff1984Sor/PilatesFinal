@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel
 from app.shared.schemas import ORMModel
 
@@ -13,6 +13,7 @@ class ContratoCreate(BaseModel):
     fim: date | None = None
     status: str = "ativo"
     observacoes: str | None = None
+    idempotency_key: str | None = None
 
 
 class ContratoOut(ORMModel):
@@ -26,6 +27,29 @@ class ContratoOut(ORMModel):
     fim: date | None
     status: str
     observacoes: str | None
+    agenda_gerada_em: datetime | None
+    idempotency_key: str | None
+
+
+class AulaResumo(ORMModel):
+    id: int
+    inicio_datetime: datetime
+    fim_datetime: datetime
+    status: str
+
+
+class ContratoAgendaResumo(BaseModel):
+    total_aulas: int
+    proximas_aulas: list[AulaResumo] = []
+
+
+class ContratoDetailOut(ContratoOut):
+    agenda_resumo: ContratoAgendaResumo
+
+
+class AgendaGeracaoOut(BaseModel):
+    total_aulas: int
+    agenda_gerada_em: datetime | None
 
 
 class ContratoModeloCreate(BaseModel):
