@@ -50,12 +50,12 @@
             {% if whatsapp_number %}
               <div class="d-grid gap-2 mt-3">
                 {% with whatsapp_message="Olá" %}
-                  <a
+                  <button
                     class="btn btn-success d-flex align-items-center justify-content-center gap-2 px-3 py-2"
-                    href="https://web.whatsapp.com/send?phone={{ whatsapp_number }}&text={{ whatsapp_message|urlencode }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Abrir WhatsApp Web"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#whatsappQuickModal"
+                    title="Enviar WhatsApp"
                   >
                     <svg
                       width="20"
@@ -75,7 +75,7 @@
                       />
                     </svg>
                     <span class="fw-semibold">Conversar no WhatsApp</span>
-                  </a>
+                  </button>
                 {% endwith %}
               </div>
             {% endif %}
@@ -826,4 +826,28 @@
     </div>
   {% endfor %}
 {% endif %}
+<div class="modal fade" id="whatsappQuickModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enviar WhatsApp</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{% url 'alunos_whatsapp_message' aluno.id %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}?tab=whatsapp" />
+          <div class="mb-3">
+            <label class="form-label">Mensagem</label>
+            <textarea class="form-control" name="mensagem" rows="4" placeholder="Escreva a mensagem para o aluno"></textarea>
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Enviar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

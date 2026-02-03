@@ -40,16 +40,13 @@ class EvolutionClient:
     def send_message(self, to: str, message: str) -> dict:
         if self.endpoint_url:
             url = self.endpoint_url.rstrip("/")
-            if "wasenderapi" in url:
-                if not self.token:
-                    logger.warning("WhatsApp API token is not configured.")
-                    headers = {}
-                else:
-                    headers = {"Authorization": f"Bearer {self.token}"}
-                payload = {"to": to.lstrip("+"), "text": message}
+            if not self.token:
+                logger.warning("WhatsApp API token is not configured.")
+                headers = {}
             else:
-                headers = {"apikey": self.token} if self.token else {}
-                payload = {"number": to, "textMessage": {"text": message}}
+                headers = {"Authorization": f"Bearer {self.token}"}
+            payload = {"to": to.lstrip("+"), "text": message}
+            method = "post"
         else:
             if not self.base_url or not self.token or not self.instance:
                 logger.warning("WhatsApp API configuration is not configured.")
@@ -57,8 +54,9 @@ class EvolutionClient:
             url = f"{self.base_url.rstrip('/')}/message/sendText/{self.instance}"
             headers = {"apikey": self.token}
             payload = {"number": to, "textMessage": {"text": message}}
+            method = "post"
         try:
-            resp = httpx.post(url, json=payload, headers=headers, timeout=15)
+            resp = httpx.request(method, url, json=payload, headers=headers, timeout=15)
             resp.raise_for_status()
             return resp.json()
         except httpx.RequestError as exc:
