@@ -474,17 +474,6 @@ def aluno_avaliacao_delete(request, avaliacao_id):
     avaliacao.delete()
     messages.success(request, "Avaliacao removida.")
     return redirect(f"{reverse('alunos_detail', args=[aluno_id])}?tab=avaliacao")
-service = WhatsappService()
-    telefone = service.get_aluno_phone(aluno)
-    if not telefone:
-        messages.warning(request, "Aluno sem telefone válido cadastrado.")
-        return redirect("alunos_detail", pk=aluno.pk)
-    resp = service.send(aluno, telefone, form.cleaned_data["mensagem"], WhatsappMessageType.MANUAL)
-    if resp.get("error"):
-        messages.warning(request, "Mensagem registrada, mas não foi possível enviar via WhatsApp.")
-    else:
-        messages.success(request, "Mensagem enviada e registrada.")
-    return redirect("alunos_detail", pk=aluno.pk)
 
 
 def _sync_user_for_profissional(profissional, raw_password=None, old_cd=None):
