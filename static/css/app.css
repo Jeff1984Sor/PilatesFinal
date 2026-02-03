@@ -1277,6 +1277,27 @@ body {
   box-shadow: 0 18px 40px rgba(16, 42, 42, 0.2);
 }
 
+.aulas-header .aulas-kicker,
+.aulas-header .aulas-range,
+.aulas-header .aulas-clock,
+.aulas-header .aulas-header__actions,
+.aulas-header .aulas-header__actions .btn,
+.aulas-header .aulas-header__actions .btn-outline-secondary,
+.aulas-header .aulas-header__actions .btn-outline-secondary:hover,
+.aulas-header .aulas-header__actions .btn-outline-secondary:focus,
+.aulas-header .aulas-header__actions .btn-outline-secondary:active,
+.aulas-header .aulas-header__actions .btn-outline-secondary.active {
+  color: #ffffff;
+}
+
+.aulas-header .aulas-header__actions .btn-outline-secondary {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.aulas-header .aulas-header__actions .btn-outline-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
 .aulas-kicker {
   font-size: 12px;
   text-transform: uppercase;
