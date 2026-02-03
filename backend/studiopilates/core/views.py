@@ -10,11 +10,12 @@ from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Sum, Count, OuterRef, Subquery, Exists
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_POST
 
 from . import forms, models, services
 from .signals import ensure_profissional_for_user
@@ -1783,6 +1784,7 @@ def aulas_list(request):
         "columns": columns,
         "form": forms.AulaSessaoForm(),
         "profissionais": models.Profissional.objects.all(),
+        "unidades": models.Unidade.objects.all(),
         "prof_chips": prof_chips[:5],
         "reservas_by_aula": reservas_by_aula,
         "modelos_evolucao": models.ModeloEvolucao.objects.filter(ativo=True).order_by("titulo"),
@@ -1790,6 +1792,224 @@ def aulas_list(request):
         "active_menu": "agenda",
     }
     return render(request, "agenda/aulas_list.html", context)
+
+
+def _parse_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _build_period_range(target: date | None, periodo: str | None) -> tuple[date, date]:
+    base = target or date.today()
+    if periodo == "amanha":
+        start = base + timedelta(days=1)
+        return start, start
+    if periodo == "semana":
+        start = base - timedelta(days=base.weekday())
+        end = start + timedelta(days=6)
+        return start, end
+    return base, base
+
+
+def _map_status(reserva_status: str, inicio: datetime, fim: datetime) -> str:
+    status_map = {
+        "RESERVADA": "aguardando_chegar",
+        "PENDENTE": "aguardando_chegar",
+        "CONCLUIDA": "finalizada",
+        "FALTOU_AVISOU": "faltou",
+        "FALTOU_SEM_AVISAR": "faltou",
+        "CANCELADA": "remarcada",
+    }
+    mapped = status_map.get(reserva_status, "aguardando_chegar")
+    if mapped == "aguardando_chegar":
+        now = timezone.localtime()
+        if inicio <= now <= fim:
+            return "em_aula"
+    return mapped
+
+
+@login_required
+def aulas_operacao_api(request):
+    target = _parse_date(request.GET.get("data", "").strip())
+    periodo = request.GET.get("periodo", "hoje").strip()
+    start_date, end_date = _build_period_range(target, periodo)
+
+    unidade_id = request.GET.get("unidade_id") or None
+    profissional_id = request.GET.get("profissional_id") or None
+    status_filter = request.GET.get("status_aula") or None
+    query = (request.GET.get("q") or "").strip()
+
+    contrato_qs = (
+        models.Contrato.objects.filter(
+            cdAluno=OuterRef("aluno_id"),
+            dtInicioContrato__lte=OuterRef("aulaSessao__data"),
+            dtFimContrato__gte=OuterRef("aulaSessao__data"),
+            status__in=["ASSINADO", "ASSINADO_DIGITALMENTE"],
+        )
+        .order_by("-dtFimContrato", "-id")
+    )
+
+    telefone_qs = models.TelefoneAluno.objects.filter(cdAluno=OuterRef("aluno_id")).order_by("-dtCadastro", "-id")
+    evolucao_qs = models.EvolucaoAluno.objects.filter(reserva_id=OuterRef("pk")).order_by("-dtEvolucao", "-id")
+    cobranca_exists = Exists(
+        models.ContasReceber.objects.filter(
+            contrato__cdAluno=OuterRef("aluno_id"),
+            status="ABERTO",
+        )
+    )
+
+    reservas = (
+        models.Reserva.objects.select_related(
+            "aluno",
+            "aulaSessao",
+            "aulaSessao__unidade",
+            "aulaSessao__profissional",
+            "aulaSessao__tipoServico",
+        )
+        .annotate(
+            plano_id=Subquery(contrato_qs.values("cdPlano_id")[:1]),
+            plano_descricao=Subquery(contrato_qs.values("cdPlano__dsPlano")[:1]),
+            aluno_telefone=Subquery(telefone_qs.values("dsTelefone")[:1]),
+            ultima_evolucao=Subquery(evolucao_qs.values("texto")[:1]),
+            ultima_evolucao_em=Subquery(evolucao_qs.values("dtEvolucao")[:1]),
+            cobranca_pendente=cobranca_exists,
+        )
+        .filter(aulaSessao__data__range=(start_date, end_date))
+    )
+
+    if unidade_id:
+        reservas = reservas.filter(aulaSessao__unidade_id=unidade_id)
+    if profissional_id:
+        reservas = reservas.filter(aulaSessao__profissional_id=profissional_id)
+    if query:
+        reservas = reservas.filter(
+            Q(aluno__dsNome__icontains=query)
+            | Q(aluno__dsCPF__icontains=query)
+            | Q(aluno__telefones__dsTelefone__icontains=query)
+        ).distinct()
+
+    items = []
+    for reserva in reservas.order_by("aulaSessao__data", "aulaSessao__horaInicio", "aluno__dsNome"):
+        inicio = datetime.combine(reserva.aulaSessao.data, reserva.aulaSessao.horaInicio)
+        fim = datetime.combine(reserva.aulaSessao.data, reserva.aulaSessao.horaFim)
+        inicio = timezone.make_aware(inicio)
+        fim = timezone.make_aware(fim)
+        status_calc = _map_status(reserva.status, inicio, fim)
+        if status_filter and status_calc != status_filter:
+            continue
+        items.append(
+            {
+                "id": reserva.id,
+                "aula_sessao_id": reserva.aulaSessao_id,
+                "dt_inicio": inicio.isoformat(),
+                "dt_fim": fim.isoformat(),
+                "unidade_id": reserva.aulaSessao.unidade_id if reserva.aulaSessao else None,
+                "unidade": reserva.aulaSessao.unidade.dsUnidade if reserva.aulaSessao and reserva.aulaSessao.unidade else None,
+                "sala": None,
+                "profissional": {
+                    "id": reserva.aulaSessao.profissional_id if reserva.aulaSessao else None,
+                    "nome": reserva.aulaSessao.profissional.profissional if reserva.aulaSessao and reserva.aulaSessao.profissional else None,
+                },
+                "aluno": {
+                    "id": reserva.aluno_id,
+                    "nome": reserva.aluno.dsNome,
+                    "telefone": reserva.aluno_telefone,
+                    "avatar_url": reserva.aluno.foto.url if reserva.aluno.foto else None,
+                },
+                "plano": {"id": reserva.plano_id, "descricao": reserva.plano_descricao},
+                "status_aula": status_calc,
+                "confirmacao": reserva.status != "PENDENTE",
+                "flags": {
+                    "tem_preliminares": bool(reserva.aluno.termo_aceite_em),
+                    "cobranca_pendente": bool(reserva.cobranca_pendente),
+                    "observacao_importante": False,
+                },
+                "ultima_evolucao": {
+                    "texto": reserva.ultima_evolucao,
+                    "dt_evolucao": reserva.ultima_evolucao_em.isoformat() if reserva.ultima_evolucao_em else None,
+                },
+            }
+        )
+
+    return JsonResponse(
+        {
+            "data_inicio": start_date.isoformat(),
+            "data_fim": end_date.isoformat(),
+            "total": len(items),
+            "items": items,
+        }
+    )
+
+
+def _parse_json_body(request):
+    if request.content_type and "application/json" in request.content_type:
+        try:
+            return json.loads(request.body.decode("utf-8"))
+        except json.JSONDecodeError:
+            return {}
+    return request.POST
+
+
+@login_required
+@require_POST
+def aula_evolucao_api(request, reserva_id):
+    payload = _parse_json_body(request)
+    texto = (payload.get("texto") or "").strip()
+    profissional_id = payload.get("profissional_id")
+    finalizar = bool(payload.get("finalizar"))
+    if not texto:
+        return JsonResponse({"error": "Texto obrigatorio."}, status=400)
+
+    reserva = get_object_or_404(models.Reserva, pk=reserva_id)
+    profissional = None
+    if profissional_id:
+        profissional = models.Profissional.objects.filter(pk=profissional_id).first()
+    if not profissional:
+        profissional = reserva.aulaSessao.profissional if reserva.aulaSessao else None
+    if not profissional:
+        return JsonResponse({"error": "Profissional invalido."}, status=400)
+
+    evolucao = models.EvolucaoAluno.objects.create(
+        reserva=reserva,
+        profissional=profissional,
+        texto=texto,
+        dtEvolucao=timezone.now(),
+    )
+    if finalizar:
+        reserva.status = "CONCLUIDA"
+        reserva.save(update_fields=["status"])
+    return JsonResponse(
+        {
+            "id": evolucao.id,
+            "reserva_id": reserva.id,
+            "texto": evolucao.texto,
+            "dt_evolucao": evolucao.dtEvolucao.isoformat(),
+        }
+    )
+
+
+@login_required
+@require_POST
+def aula_status_api(request, reserva_id):
+    payload = _parse_json_body(request)
+    acao = (payload.get("acao") or "").strip().lower()
+    status_map = {
+        "chegou": "RESERVADA",
+        "iniciar": "RESERVADA",
+        "finalizar": "CONCLUIDA",
+        "faltou": "FALTOU_SEM_AVISAR",
+        "remarcar": "CANCELADA",
+    }
+    if acao not in status_map:
+        return JsonResponse({"error": "Acao invalida."}, status=400)
+    reserva = get_object_or_404(models.Reserva, pk=reserva_id)
+    reserva.status = status_map[acao]
+    reserva.save(update_fields=["status"])
+    return JsonResponse({"reserva_id": reserva.id, "status": reserva.status})
 
 
 def create_view(request, model, form_class, redirect_name):

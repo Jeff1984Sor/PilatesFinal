@@ -46,9 +46,9 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const QUICK_ACTIONS = [
-  { id: "chegou", label: "Chegou", icon: "✅" },
-  { id: "evolucao", label: "Evolução", icon: "✍️" },
-  { id: "whatsapp", label: "WhatsApp", icon: "💬" }
+  { id: "chegou", label: "Chegou", icon: "OK" },
+  { id: "evolucao", label: "Evolucao", icon: "EV" },
+  { id: "whatsapp", label: "WhatsApp", icon: "WA" }
 ];
 
 const STATUS_MAP_FROM_ACTION: Record<string, string> = {
@@ -90,6 +90,8 @@ export default function Page() {
   });
   const [evolucaoText, setEvolucaoText] = useState("");
   const searchRef = useRef<HTMLInputElement | null>(null);
+
+  const filteredItems = useMemo(() => items, [items]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -140,10 +142,6 @@ export default function Page() {
       isMounted = false;
     };
   }, [periodo, selectedDate, filters, search]);
-
-  const filteredItems = useMemo(() => {
-    return items;
-  }, [items]);
 
   const groupedByTime = useMemo(() => {
     const map = new Map<string, AulaOperacao[]>();
@@ -286,7 +284,7 @@ export default function Page() {
             <div className="space-y-3">
               <label className="text-xs font-semibold uppercase tracking-widest text-gray-500">Busca rapida</label>
               <div className="flex items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
-                <span className="text-lg">🔍</span>
+                <span className="text-xs font-semibold text-gray-400">BUSCA</span>
                 <input
                   ref={searchRef}
                   value={search}
@@ -307,13 +305,13 @@ export default function Page() {
               <div className="rounded-2xl border border-black/10 bg-white p-3">
                 <label className="text-xs font-semibold uppercase tracking-widest text-gray-500">Periodo</label>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {["hoje", "amanha", "semana"].map((value) => (
+                  {(["hoje", "amanha", "semana"] as const).map((value) => (
                     <button
                       key={value}
-                      onClick={() => setPeriodo(value as "hoje" | "amanha" | "semana")}
+                      onClick={() => setPeriodo(value)}
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-semibold",
-                        periodo === value ? "bg-ink text-white" : "bg-black/5 text-gray-600"
+                        periodo === value ? "bg-black text-white" : "bg-black/5 text-gray-600"
                       )}
                     >
                       {value === "amanha" ? "Amanha" : value[0].toUpperCase() + value.slice(1)}
@@ -425,7 +423,7 @@ export default function Page() {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="text-xs uppercase tracking-[0.2em] text-gray-400">
-                              {formatTime(item.dt_inicio)} • {item.unidade || "Unidade"}
+                              {formatTime(item.dt_inicio)}  {item.unidade || "Unidade"}
                             </p>
                             <h3 className="text-lg font-semibold">{item.aluno.nome}</h3>
                             <p className="text-xs text-gray-500">{item.plano.descricao || "Plano nao informado"}</p>
@@ -557,7 +555,7 @@ export default function Page() {
                 <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Aluno</p>
                 <h3 className="text-2xl font-display">{selected.aluno.nome}</h3>
                 <p className="text-sm text-gray-500">
-                  {formatTime(selected.dt_inicio)} • {selected.sala || "Sala principal"}
+                  {formatTime(selected.dt_inicio)}  {selected.sala || "Sala principal"}
                 </p>
               </div>
             </div>
@@ -590,9 +588,7 @@ export default function Page() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Preliminares</span>
-              <span className="font-semibold">
-                {selected.flags.tem_preliminares ? "OK" : "Pendente"}
-              </span>
+              <span className="font-semibold">{selected.flags.tem_preliminares ? "OK" : "Pendente"}</span>
             </div>
             {!selected.flags.tem_preliminares && (
               <button className="rounded-xl border border-dashed border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
@@ -603,12 +599,23 @@ export default function Page() {
 
           <div className="mt-6">
             <div className="flex flex-wrap gap-2 text-xs font-semibold">
-              {["evolucao", "avaliacoes", "historico", "cobranca", "acoes"].map((tab) => (
-                <button
-                  key={tab}
-                  className="rounded-full border border-black/10 px-3 py-1 hover:bg-black/5"
-                >
-                  {tab === "evolucao" ? "Evolucao" : tab === "avaliacoes" ? "Avaliacoes" : tab === "historico" ? "Historico" : tab === "cobranca" ? "Cobranca" : "Acoes"}
+              {[
+                "evolucao",
+                "avaliacoes",
+                "historico",
+                "cobranca",
+                "acoes"
+              ].map((tab) => (
+                <button key={tab} className="rounded-full border border-black/10 px-3 py-1 hover:bg-black/5">
+                  {tab === "evolucao"
+                    ? "Evolucao"
+                    : tab === "avaliacoes"
+                    ? "Avaliacoes"
+                    : tab === "historico"
+                    ? "Historico"
+                    : tab === "cobranca"
+                    ? "Cobranca"
+                    : "Acoes"}
                 </button>
               ))}
             </div>
@@ -617,7 +624,7 @@ export default function Page() {
                 {["Dor/limitacao", "Carga/Exercicios", "Observacoes", "Plano da proxima aula"].map((chip) => (
                   <button
                     key={chip}
-                    onClick={() => setEvolucaoText((prev) => `${prev}${prev ? \"\\n\" : \"\"}${chip}: `)}
+                    onClick={() => setEvolucaoText((prev) => `${prev}${prev ? "\n" : ""}${chip}: `)}
                     className="rounded-full bg-black/5 px-3 py-1 text-xs font-semibold text-gray-600"
                   >
                     {chip}

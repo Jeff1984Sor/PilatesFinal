@@ -791,3 +791,348 @@ function updatePhotoPreview(preview, src) {
   preview.src = src;
   preview.classList.add("is-visible");
 }
+
+// Aulas - painel operacional
+function initAulasOperacao() {
+  const root = document.querySelector("[data-operacao-root]");
+  if (!root) return;
+
+  const url = root.dataset.operacaoUrl || "";
+  const evolucaoTemplate = root.dataset.evolucaoUrlTemplate || "";
+  const statusTemplate = root.dataset.statusUrlTemplate || "";
+
+  const searchInput = root.querySelector(".js-operacao-search");
+  const dateInput = root.querySelector(".js-operacao-date");
+  const unidadeSelect = root.querySelector(".js-operacao-unidade");
+  const profissionalSelect = root.querySelector(".js-operacao-profissional");
+  const periodButtons = root.querySelectorAll(".js-period");
+  const statusButtons = root.querySelectorAll(".js-status");
+  const loading = root.querySelector(".js-operacao-loading");
+  const content = root.querySelector(".js-operacao-content");
+
+  const drawer = root.querySelector(".js-aulas-drawer");
+  const drawerClose = root.querySelector(".js-close-drawer");
+  const drawerName = root.querySelector(".js-drawer-name");
+  const drawerMeta = root.querySelector(".js-drawer-meta");
+  const drawerStatus = root.querySelector(".js-drawer-status");
+  const drawerConfirmacao = root.querySelector(".js-drawer-confirmacao");
+  const drawerPreliminares = root.querySelector(".js-drawer-preliminares");
+  const drawerPreliminaresCta = root.querySelector(".js-drawer-preliminares-cta");
+  const drawerCobranca = root.querySelector(".js-drawer-cobranca");
+  const evolucaoText = root.querySelector(".js-evolucao-text");
+
+  let selected = null;
+  let items = [];
+  let debounceTimer = null;
+  let selectedStatus = "";
+  let selectedPeriod = "hoje";
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return "";
+  }
+
+  function setMode(mode) {
+    root.querySelectorAll(".js-mode").forEach((section) => {
+      if (section.classList.contains(`js-mode-${mode}`)) {
+        section.style.display = "block";
+      } else {
+        section.style.display = "none";
+      }
+    });
+    root.querySelectorAll(".js-toggle-mode").forEach((btn) => {
+      if (btn.dataset.mode === mode) {
+        btn.classList.add("btn-dark");
+        btn.classList.remove("btn-light");
+      } else {
+        btn.classList.remove("btn-dark");
+        btn.classList.add("btn-light");
+      }
+    });
+  }
+
+  function statusBadgeClass(status) {
+    if (status === "em_aula") return "aulas-badge is-live";
+    if (status === "finalizada") return "aulas-badge is-done";
+    if (status === "faltou" || status === "remarcada") return "aulas-badge is-miss";
+    return "aulas-badge is-pending";
+  }
+
+  function formatTime(iso) {
+    const date = new Date(iso);
+    return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function formatPhone(raw) {
+    if (!raw) return "";
+    const digits = String(raw).replace(/\D/g, "");
+    return digits.startsWith("55") ? digits : `55${digits}`;
+  }
+
+  function render() {
+    if (!content) return;
+    content.innerHTML = "";
+    if (!items.length) {
+      content.innerHTML = '<div class="agenda-empty">Sem aulas para o filtro.</div>';
+      return;
+    }
+    const grouped = {};
+    items.forEach((item) => {
+      const key = formatTime(item.dt_inicio);
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    });
+    Object.keys(grouped).forEach((time) => {
+      const group = document.createElement("div");
+      group.className = "aulas-time-group";
+      const header = document.createElement("div");
+      header.className = "aulas-time-group__header";
+      header.innerHTML = `
+        <div>
+          <div class="aulas-kicker">Horario</div>
+          <h4 class="mb-0">${time}</h4>
+        </div>
+        <span class="aulas-time-group__badge">${grouped[time].length} aluno(s)</span>
+      `;
+      const cards = document.createElement("div");
+      cards.className = "aulas-cards";
+      grouped[time].forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "aulas-card";
+        const indicators = [];
+        indicators.push(item.confirmacao ? "Confirmado" : "Nao confirmado");
+        if (!item.flags.tem_preliminares) indicators.push("Preliminares pendentes");
+        if (item.flags.cobranca_pendente) indicators.push("Cobranca pendente");
+        card.innerHTML = `
+          <div class="aulas-card__header">
+            <div>
+              <div class="aulas-card__meta">${formatTime(item.dt_inicio)}  ${item.unidade || "Unidade"}</div>
+              <div class="aulas-card__title">${item.aluno.nome}</div>
+              <div class="aulas-card__meta">${item.plano.descricao || "Plano nao informado"}</div>
+            </div>
+            <span class="${statusBadgeClass(item.status_aula)}">${item.status_aula.replace("_", " ")}</span>
+          </div>
+          <div class="aulas-card__meta">Sala: ${item.sala || "Sala principal"}</div>
+          <div class="aulas-card__meta">Profissional: ${item.profissional.nome || "-"}</div>
+          <div class="aulas-indicators">
+            ${indicators.map((label) => `<span class="aulas-indicator">${label}</span>`).join("")}
+          </div>
+          <div class="aulas-quick-actions">
+            <button data-action="chegou">Chegou</button>
+            <button data-action="evolucao">Evolucao</button>
+            <button data-action="whatsapp">WhatsApp</button>
+          </div>
+        `;
+        card.addEventListener("click", () => openDrawer(item));
+        card.querySelectorAll("button[data-action]").forEach((btn) => {
+          btn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const action = btn.dataset.action;
+            if (action === "whatsapp") {
+              const phone = formatPhone(item.aluno.telefone);
+              if (phone) window.open(`https://wa.me/${phone}`, "_blank");
+              return;
+            }
+            if (action === "evolucao") {
+              openDrawer(item);
+              return;
+            }
+            if (action === "chegou") {
+              updateStatus(item, "chegou");
+            }
+          });
+        });
+        cards.appendChild(card);
+      });
+      group.appendChild(header);
+      group.appendChild(cards);
+      content.appendChild(group);
+    });
+  }
+
+  function openDrawer(item) {
+    selected = item;
+    if (!drawer) return;
+    drawer.classList.add("is-open");
+    drawer.setAttribute("aria-hidden", "false");
+    if (drawerName) drawerName.textContent = item.aluno.nome;
+    if (drawerMeta) drawerMeta.textContent = `${formatTime(item.dt_inicio)}  ${item.sala || "Sala principal"}`;
+    if (drawerStatus) drawerStatus.textContent = item.status_aula.replace("_", " ");
+    if (drawerConfirmacao) drawerConfirmacao.textContent = item.confirmacao ? "Confirmado" : "Nao confirmado";
+    if (drawerPreliminares) drawerPreliminares.textContent = item.flags.tem_preliminares ? "OK" : "Pendente";
+    if (drawerPreliminaresCta) {
+      drawerPreliminaresCta.classList.toggle("d-none", item.flags.tem_preliminares);
+    }
+    if (drawerCobranca) {
+      drawerCobranca.textContent = item.flags.cobranca_pendente ? "Ha cobrancas pendentes." : "Sem cobrancas pendentes.";
+    }
+    if (evolucaoText) evolucaoText.value = item.ultima_evolucao?.texto || "";
+  }
+
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.classList.remove("is-open");
+    drawer.setAttribute("aria-hidden", "true");
+    selected = null;
+  }
+
+  function updateStatus(item, action) {
+    const csrf = getCookie("csrftoken");
+    const urlAction = statusTemplate.replace("/0/", `/${item.id}/`);
+    fetch(urlAction, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrf
+      },
+      body: JSON.stringify({ acao: action })
+    }).then(() => loadData());
+  }
+
+  function saveEvolucao(finalizar) {
+    if (!selected || !evolucaoText) return;
+    const text = evolucaoText.value.trim();
+    if (!text) return;
+    const csrf = getCookie("csrftoken");
+    const urlAction = evolucaoTemplate.replace("/0/", `/${selected.id}/`);
+    fetch(urlAction, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrf
+      },
+      body: JSON.stringify({ texto: text, profissional_id: selected.profissional?.id, finalizar: finalizar })
+    }).then(() => loadData());
+  }
+
+  function loadData() {
+    if (!url) return;
+    if (loading) loading.style.display = "grid";
+    if (content) content.innerHTML = "";
+    const params = new URLSearchParams();
+    params.set("data", dateInput?.value || "");
+    params.set("periodo", selectedPeriod);
+    if (unidadeSelect?.value) params.set("unidade_id", unidadeSelect.value);
+    if (profissionalSelect?.value) params.set("profissional_id", profissionalSelect.value);
+    if (selectedStatus) params.set("status_aula", selectedStatus);
+    if (searchInput?.value) params.set("q", searchInput.value);
+    fetch(`${url}?${params.toString()}`)
+      .then((resp) => resp.json())
+      .then((data) => {
+        items = data.items || [];
+        render();
+      })
+      .finally(() => {
+        if (loading) loading.style.display = "none";
+      });
+  }
+
+  periodButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      periodButtons.forEach((b) => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      selectedPeriod = btn.dataset.value || "hoje";
+      loadData();
+    });
+  });
+
+  statusButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const value = btn.dataset.value || "";
+      if (selectedStatus === value) {
+        selectedStatus = "";
+        btn.classList.remove("is-active");
+      } else {
+        statusButtons.forEach((b) => b.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        selectedStatus = value;
+      }
+      loadData();
+    });
+  });
+
+  [dateInput, unidadeSelect, profissionalSelect].forEach((el) => {
+    if (!el) return;
+    el.addEventListener("change", loadData);
+  });
+
+  if (searchInput) {
+    searchInput.addEventListener("input", () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(loadData, 350);
+    });
+  }
+
+  root.querySelectorAll(".js-toggle-mode").forEach((btn) => {
+    btn.addEventListener("click", () => setMode(btn.dataset.mode || "operacao"));
+  });
+
+  if (drawerClose) drawerClose.addEventListener("click", closeDrawer);
+
+  root.querySelectorAll(".js-drawer-action").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!selected) return;
+      updateStatus(selected, btn.dataset.action || "");
+    });
+  });
+
+  const saveBtn = root.querySelector(".js-evolucao-save");
+  const saveFinalBtn = root.querySelector(".js-evolucao-save-final");
+  if (saveBtn) saveBtn.addEventListener("click", () => saveEvolucao(false));
+  if (saveFinalBtn) saveFinalBtn.addEventListener("click", () => saveEvolucao(true));
+
+  root.querySelectorAll(".js-evolucao-chip").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!evolucaoText) return;
+      evolucaoText.value = `${evolucaoText.value}${evolucaoText.value ? "\n" : ""}${btn.textContent}: `;
+      evolucaoText.focus();
+    });
+  });
+
+  const whatsappBtn = root.querySelector(".js-whatsapp");
+  if (whatsappBtn) {
+    whatsappBtn.addEventListener("click", () => {
+      if (!selected) return;
+      const phone = formatPhone(selected.aluno.telefone);
+      if (phone) window.open(`https://wa.me/${phone}`, "_blank");
+    });
+  }
+
+  root.querySelectorAll(".aulas-tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      root.querySelectorAll(".aulas-tab").forEach((tab) => tab.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      const target = btn.dataset.tab;
+      root.querySelectorAll(".aulas-drawer__panel").forEach((panel) => {
+        if (panel.dataset.panel === target) {
+          panel.classList.remove("d-none");
+        } else {
+          panel.classList.add("d-none");
+        }
+      });
+    });
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "/" && searchInput) {
+      event.preventDefault();
+      searchInput.focus();
+    }
+    if (event.key === "Enter" && !selected && items.length > 0) {
+      openDrawer(items[0]);
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+      if (selected) {
+        event.preventDefault();
+        saveEvolucao(false);
+      }
+    }
+  });
+
+  setMode("operacao");
+  loadData();
+}
+
+document.addEventListener("DOMContentLoaded", initAulasOperacao);
