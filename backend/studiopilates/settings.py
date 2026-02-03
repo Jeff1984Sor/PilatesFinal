@@ -99,7 +99,7 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@studiopilates.com
 EVOLUTION_BASE_URL = os.getenv("EVOLUTION_BASE_URL", "")
 EVOLUTION_TOKEN = os.getenv("EVOLUTION_TOKEN", "")
 EVOLUTION_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "")
-WASENDER_API_URL = os.getenv("WASENDER_API_URL", "http://n8npilates.mayacorp.com.br:5678/webhook/flavia")
+WASENDER_API_URL = os.getenv("WASENDER_API_URL", "https://wasenderapi.com/api/send-message")
 WASENDER_API_TOKEN = os.getenv(
     "WASENDER_API_TOKEN",
     "fbf97b1257283090ff5291367285888b9b47c33e62c2110224b37b1cff4e56d5",

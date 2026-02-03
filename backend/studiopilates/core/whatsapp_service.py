@@ -45,7 +45,8 @@ class EvolutionClient:
                 headers = {}
             else:
                 headers = {"Authorization": f"Bearer {self.token}"}
-            payload = {"to": to.lstrip("+"), "text": message}
+            normalized = to if to.startswith("+") else f"+{to}"
+            payload = {"to": normalized, "text": message}
             method = "post"
         else:
             if not self.base_url or not self.token or not self.instance:
