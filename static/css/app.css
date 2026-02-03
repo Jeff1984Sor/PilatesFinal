@@ -1119,6 +1119,28 @@ body {
   margin-top: 12px;
 }
 
+.mayris-profile__body {
+  display: grid;
+  gap: 12px;
+}
+
+.mayris-profile__name {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.mayris-tabs .nav-pills .nav-link {
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.mayris-tabs .nav-pills .nav-link.active {
+  background: var(--marsala);
+  border-color: var(--marsala);
+}
+
 /* Login */
 .mayris-login {
   background: var(--surface);

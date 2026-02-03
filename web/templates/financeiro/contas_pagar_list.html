@@ -1,18 +1,21 @@
 {% extends "base.html" %}
 {% load core_extras %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">{{ title }}</h3>
-  <div class="d-flex gap-2">
-    <a class="btn btn-outline-secondary" href="{% url 'contas_pagar_exportar_excel' %}?{{ request.GET.urlencode }}">Exportar Excel</a>
-    <a class="btn btn-outline-secondary" href="{% url 'contas_pagar_exportar_pdf' %}?{{ request.GET.urlencode }}">Exportar PDF</a>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">Novo</button>
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Financeiro</div>
+      <h2 class="mayris-title">{{ title }}</h2>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'contas_pagar_exportar_excel' %}-{{ request.GET.urlencode }}">Exportar Excel</a>
+      <a class="btn btn-outline-secondary" href="{% url 'contas_pagar_exportar_pdf' %}-{{ request.GET.urlencode }}">Exportar PDF</a>
+      <button class="btn btn-primary mayris-btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">Novo</button>
+    </div>
   </div>
-</div>
 
-<div class="card shadow-sm">
-  <div class="card-body">
-    <form class="row g-2 mb-3" method="get">
+  <div class="mayris-card">
+    <form class="mayris-filter-bar" method="get">
       <div class="col-md-3">
         <label class="form-label">Fornecedor</label>
         <select class="form-select" name="fornecedor">
@@ -64,7 +67,7 @@
     </form>
 
     <div class="table-responsive">
-      <table class="table table-hover">
+      <table class="table table-hover mayris-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -110,14 +113,14 @@
         </tbody>
       </table>
     </div>
-    <nav>
+    <nav class="mayris-pagination">
       <ul class="pagination">
         {% if page.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Anterior</a></li>
+          <li class="page-item"><a class="page-link" href="-page={{ page.previous_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Anterior</a></li>
         {% endif %}
         <li class="page-item active"><span class="page-link">{{ page.number }}</span></li>
         {% if page.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Proxima</a></li>
+          <li class="page-item"><a class="page-link" href="-page={{ page.next_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Proxima</a></li>
         {% endif %}
       </ul>
     </nav>
@@ -265,7 +268,7 @@
           <div class="modal-header">
             <div>
               <h5 class="modal-title">Comprovante</h5>
-              <div class="small text-muted">{{ obj.cdFornecedor }} · {{ obj.dtVencimento|date:"d/m/Y" }}</div>
+              <div class="small text-muted">{{ obj.cdFornecedor }} - {{ obj.dtVencimento|date:"d/m/Y" }}</div>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>

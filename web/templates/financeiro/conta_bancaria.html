@@ -1,54 +1,47 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <div>
-    <h3 class="mb-0">Conta Bancaria</h3>
-    <div class="text-muted small">Concilie entradas e saidas com lancamentos manuais.</div>
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Financeiro</div>
+      <h2 class="mayris-title">Conta Bancaria</h2>
+      <div class="text-muted small">Concilie entradas e saidas com lancamentos manuais.</div>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#createConta">Nova Conta</button>
+      <button class="btn btn-primary mayris-btn-primary" data-bs-toggle="modal" data-bs-target="#createMovimento">Novo Lancamento</button>
+    </div>
   </div>
-  <div class="d-flex gap-2">
-    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#createConta">Nova Conta</button>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createMovimento">Novo Lancamento</button>
-  </div>
-</div>
 
-<div class="row g-3 mb-3">
+  <div class="row g-3 mb-3">
   <div class="col-md-3">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
         <div class="text-muted small">Saldo inicial</div>
         <div class="fs-5 fw-semibold">R$ {{ saldo_inicial }}</div>
-      </div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
         <div class="text-muted small">Entradas</div>
         <div class="fs-5 fw-semibold text-success">R$ {{ total_entrada }}</div>
-      </div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
         <div class="text-muted small">Saidas</div>
         <div class="fs-5 fw-semibold text-danger">R$ {{ total_saida }}</div>
-      </div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
         <div class="text-muted small">Saldo atual</div>
         <div class="fs-5 fw-semibold">{{ saldo_atual }}</div>
-      </div>
     </div>
   </div>
 </div>
 
-<div class="card shadow-sm mb-3">
-  <div class="card-body">
-    <form class="row g-2 align-items-end" method="get">
+  <div class="mayris-card mb-3">
+    <form class="mayris-filter-bar" method="get">
       <div class="col-md-3">
         <label class="form-label">Conta</label>
         <select class="form-select" name="conta">
@@ -78,12 +71,10 @@
       </div>
     </form>
   </div>
-</div>
 
-<div class="card shadow-sm">
-  <div class="card-body">
+  <div class="mayris-card">
     <div class="table-responsive">
-      <table class="table table-hover">
+      <table class="table table-hover mayris-table">
         <thead>
           <tr>
             <th>Data</th>

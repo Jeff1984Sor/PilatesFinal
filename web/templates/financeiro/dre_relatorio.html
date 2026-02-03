@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="mayris-page">
 <div class="dre-report-hero">
   <div>
     <div class="dre-kicker">Relatorio Avancado</div>
@@ -16,7 +17,7 @@
       <input class="form-control" type="date" name="fim" value="{{ fim }}" />
     </div>
     <div class="dre-filter-button">
-      <button class="btn btn-primary w-100" type="submit">Atualizar</button>
+      <button class="btn btn-primary mayris-btn-primary w-100" type="submit">Atualizar</button>
     </div>
   </form>
 </div>
@@ -62,7 +63,6 @@
     <div class="dre-report-row is-highlight">
       <div>Saldo bancario final</div>
       <div>R$ {{ saldo_bancario_final }}</div>
-    </div>
   </div>
   <div class="dre-report-side">
     <div class="dre-summary-card">
@@ -95,16 +95,16 @@
 
 <div class="row g-3 mt-3">
   <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
+      
         <div class="fw-semibold mb-2">Receitas por plano</div>
         <canvas id="chartReceitas" height="220"></canvas>
       </div>
     </div>
   </div>
   <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
+      
         <div class="fw-semibold mb-2">Despesas por categoria</div>
         <canvas id="chartDespesas" height="220"></canvas>
       </div>
@@ -114,8 +114,8 @@
 
 <div class="row g-3 mt-3">
   <div class="col-md-12">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
+      
         <div class="fw-semibold mb-2">Receitas por categoria</div>
         <canvas id="chartReceitasCat" height="220"></canvas>
       </div>
@@ -125,8 +125,8 @@
 
 <div class="row g-3 mt-3">
   <div class="col-md-12">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
+      
         <div class="fw-semibold mb-2">Despesas por subcategoria</div>
         <canvas id="chartDespesasSub" height="220"></canvas>
       </div>
@@ -136,11 +136,11 @@
 
 <div class="row g-3 mt-3">
   <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
+      
         <div class="fw-semibold mb-2">Receitas por plano</div>
         <div class="table-responsive">
-          <table class="table table-sm">
+          <table class="table table-sm mayris-table">
             <thead>
               <tr>
                 <th>Plano</th>
@@ -163,11 +163,11 @@
     </div>
   </div>
   <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
+      
         <div class="fw-semibold mb-2">Receitas por categoria</div>
         <div class="table-responsive">
-          <table class="table table-sm">
+          <table class="table table-sm mayris-table">
             <thead>
               <tr>
                 <th>Categoria</th>
@@ -193,11 +193,11 @@
 
 <div class="row g-3 mt-3">
   <div class="col-md-12">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
+      
         <div class="fw-semibold mb-2">Despesas por categoria</div>
         <div class="table-responsive">
-          <table class="table table-sm">
+          <table class="table table-sm mayris-table">
             <thead>
               <tr>
                 <th>Categoria</th>
@@ -223,11 +223,11 @@
 
 <div class="row g-3 mt-3">
   <div class="col-md-12">
-    <div class="card shadow-sm">
-      <div class="card-body">
+    <div class="mayris-card">
+      
         <div class="fw-semibold mb-2">Despesas por subcategoria</div>
         <div class="table-responsive">
-          <table class="table table-sm">
+          <table class="table table-sm mayris-table">
             <thead>
               <tr>
                 <th>Subcategoria</th>
@@ -330,4 +330,5 @@
     });
   }
 </script>
+</div>
 {% endblock %}

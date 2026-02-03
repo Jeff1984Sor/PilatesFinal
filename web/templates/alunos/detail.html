@@ -4,35 +4,25 @@
 
 {% block content %}
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-
-  <div>
-
-    <div class="text-muted small">Gestao do Aluno</div>
-
-    <h2 class="mb-0">{{ aluno.dsNome }}</h2>
-
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Ficha do aluno</div>
+      <h2 class="mayris-title">{{ aluno.dsNome }}</h2>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="/cadastros/alunos/">Voltar</a>
+      <button class="btn btn-primary mayris-btn-primary" data-bs-toggle="modal" data-bs-target="#editAluno">Editar</button>
+    </div>
   </div>
 
-  <div class="d-flex gap-2">
-
-    <a class="btn btn-outline-secondary" href="/cadastros/alunos/">Voltar</a>
-
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editAluno">Editar</button>
-
-  </div>
-
-</div>
-
-
-
-<div class="row g-3">
+  <div class="row g-3">
 
   <div class="col-lg-3">
 
-    <div class="card shadow-sm">
+    <div class="mayris-card mayris-profile">
 
-      <div class="card-body">
+      <div class="mayris-profile__body">
 
         <div class="d-flex align-items-center gap-3">
 
@@ -62,8 +52,6 @@
 
         </div>
 
-        <hr />
-
         <div class="mb-2"><strong>Email:</strong> {{ aluno.dsEmail|default:"-" }}</div>
 
         <div class="mb-2"><strong>Nascimento:</strong> {{ aluno.dtNascimento|date:"d/m/Y"|default:"-" }}</div>
@@ -76,9 +64,9 @@
 
     </div>
 
-        <div class="card shadow-sm mt-3">
+    <div class="mayris-card mt-3">
 
-          <div class="card-body">
+      <div>
 
             <div class="fw-semibold mb-2">Contato</div>
 
@@ -168,9 +156,9 @@
 
   <div class="col-lg-9">
 
-    <div class="card shadow-sm mb-3">
+    <div class="mayris-card mb-3">
 
-      <div class="card-body">
+      <div>
 
         <div class="fw-semibold mb-2">Endereco</div>
 
@@ -192,9 +180,9 @@
 
     </div>
 
-    <div class="card shadow-sm">
+    <div class="mayris-card mayris-profile">
 
-      <div class="card-body">
+      <div class="mayris-tabs">
 
         <ul class="nav nav-pills mb-3" role="tablist">
 
@@ -2097,6 +2085,8 @@
     </div>
 
   </div>
+
+</div>
 
 </div>
 
