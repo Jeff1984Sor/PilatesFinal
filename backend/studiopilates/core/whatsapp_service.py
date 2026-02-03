@@ -30,9 +30,11 @@ class EvolutionClient:
         base_url: str | None = None,
         instance: str | None = None,
     ):
-        self.endpoint_url = _normalize_endpoint(endpoint_url) if endpoint_url else None
+        effective_endpoint = endpoint_url or settings.WASENDER_API_URL or None
+        effective_token = token or settings.WASENDER_API_TOKEN or None
+        self.endpoint_url = _normalize_endpoint(effective_endpoint) if effective_endpoint else None
         self.base_url = base_url or settings.EVOLUTION_BASE_URL
-        self.token = token or settings.EVOLUTION_TOKEN
+        self.token = effective_token or settings.EVOLUTION_TOKEN
         self.instance = instance or settings.EVOLUTION_INSTANCE
 
     def send_message(self, to: str, message: str) -> dict:
@@ -44,7 +46,7 @@ class EvolutionClient:
                     headers = {}
                 else:
                     headers = {"Authorization": f"Bearer {self.token}"}
-                payload = {"to": to if to.startswith("+") else f"+{to}", "text": message}
+                payload = {"to": to.lstrip("+"), "text": message}
             else:
                 headers = {"apikey": self.token} if self.token else {}
                 payload = {"number": to, "textMessage": {"text": message}}
@@ -69,7 +71,7 @@ class EvolutionClient:
 
 class WhatsappService:
     def __init__(self):
-        self.client = EvolutionClient()
+        self.client = EvolutionClient(endpoint_url=settings.WASENDER_API_URL, token=settings.WASENDER_API_TOKEN)
 
     @staticmethod
     def _get_config_for_unidade(unidade: models.Unidade | None) -> models.WhatsappConfiguracao | None:
@@ -78,6 +80,8 @@ class WhatsappService:
         return models.WhatsappConfiguracao.objects.filter(unidade=unidade).first()
 
     def _get_client_for_unidade(self, unidade: models.Unidade | None) -> EvolutionClient:
+        if settings.WASENDER_API_URL:
+            return self.client
         config = self._get_config_for_unidade(unidade)
         if not config:
             return self.client
