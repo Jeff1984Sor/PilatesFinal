@@ -20,11 +20,6 @@
     </div>
   </div>
 
-  <div class="aulas-toggle">
-    <button class="btn btn-dark js-toggle-mode" data-mode="operacao">Operacao</button>
-    <button class="btn btn-light js-toggle-mode" data-mode="agenda">Agenda</button>
-  </div>
-
   <div class="aulas-toolbar">
     <div class="aulas-search">
       <label class="aulas-label">Busca rapida</label>
@@ -84,56 +79,13 @@
     </div>
   </div>
 
-  <section class="aulas-operacao js-mode js-mode-operacao">
+  <section class="aulas-operacao">
     <div class="aulas-loading js-operacao-loading">
       <div class="skeleton-card"></div>
       <div class="skeleton-card"></div>
       <div class="skeleton-card"></div>
     </div>
     <div class="aulas-operacao__content js-operacao-content"></div>
-  </section>
-
-  <section class="aulas-agenda js-mode js-mode-agenda">
-    <div class="agenda-grid agenda-grid--{{ view_mode }}">
-      {% for day in week_cards %}
-        {% if day.is_placeholder %}
-          <div class="agenda-day agenda-day--placeholder"></div>
-        {% else %}
-          <div class="agenda-day">
-            <div class="agenda-day-header {% if day.is_today %}is-today{% endif %}">
-              <div class="agenda-day-label">{{ day.label }}</div>
-              <div class="agenda-day-number">{{ day.number }}</div>
-            </div>
-            <div class="agenda-day-body">
-              {% if day.aulas %}
-                {% for aula in day.aulas %}
-                  <div class="agenda-event">
-                    <div class="agenda-event-time">{{ aula.horaInicio|time:"H:i" }} - {{ aula.horaFim|time:"H:i" }}</div>
-                    <div class="agenda-event-title">{{ aula.tipoServico }} - {{ aula.unidade }}</div>
-                    <div class="agenda-event-meta">
-                      {{ aula.profissional|default:"Sem profissional" }}
-                    </div>
-                    {% with reservas=reservas_by_aula|get_item:aula.id %}
-                      {% if reservas %}
-                        <div class="agenda-students mt-2">
-                          {% for r in reservas %}
-                            <span class="agenda-student {% if r.status == 'CONCLUIDA' %}agenda-student--ok{% elif r.status == 'FALTOU_AVISOU' %}agenda-student--warn{% elif r.status == 'FALTOU_SEM_AVISAR' %}agenda-student--miss{% endif %}">
-                              {{ r.aluno.dsNome }}
-                            </span>
-                          {% endfor %}
-                        </div>
-                      {% endif %}
-                    {% endwith %}
-                  </div>
-                {% endfor %}
-              {% else %}
-                <div class="agenda-empty">Sem aulas.</div>
-              {% endif %}
-            </div>
-          </div>
-        {% endif %}
-      {% endfor %}
-    </div>
   </section>
 
   <aside class="aulas-drawer js-aulas-drawer" aria-hidden="true">

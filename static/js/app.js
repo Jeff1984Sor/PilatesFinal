@@ -834,24 +834,6 @@ function initAulasOperacao() {
     return "";
   }
 
-  function setMode(mode) {
-    root.querySelectorAll(".js-mode").forEach((section) => {
-      if (section.classList.contains(`js-mode-${mode}`)) {
-        section.style.display = "block";
-      } else {
-        section.style.display = "none";
-      }
-    });
-    root.querySelectorAll(".js-toggle-mode").forEach((btn) => {
-      if (btn.dataset.mode === mode) {
-        btn.classList.add("btn-dark");
-        btn.classList.remove("btn-light");
-      } else {
-        btn.classList.remove("btn-dark");
-        btn.classList.add("btn-light");
-      }
-    });
-  }
 
   function statusBadgeClass(status) {
     if (status === "em_aula") return "aulas-badge is-live";
@@ -884,17 +866,15 @@ function initAulasOperacao() {
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(item);
     });
-    Object.keys(grouped).forEach((time) => {
-      const group = document.createElement("div");
-      group.className = "aulas-time-group";
-      const header = document.createElement("div");
-      header.className = "aulas-time-group__header";
-      header.innerHTML = `
-        <div>
-          <div class="aulas-kicker">Horario</div>
-          <h4 class="mb-0">${time}</h4>
-        </div>
-        <span class="aulas-time-group__badge">${grouped[time].length} aluno(s)</span>
+    const times = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+    times.forEach((time) => {
+      const row = document.createElement("div");
+      row.className = "aulas-time-row";
+      const label = document.createElement("div");
+      label.className = "aulas-time-label";
+      label.innerHTML = `
+        <div class="aulas-time-label__time">${time}</div>
+        <div class="aulas-time-label__count">${grouped[time].length} aluno(s)</div>
       `;
       const cards = document.createElement("div");
       cards.className = "aulas-cards";
@@ -946,9 +926,9 @@ function initAulasOperacao() {
         });
         cards.appendChild(card);
       });
-      group.appendChild(header);
-      group.appendChild(cards);
-      content.appendChild(group);
+      row.appendChild(label);
+      row.appendChild(cards);
+      content.appendChild(row);
     });
   }
 
@@ -1065,9 +1045,6 @@ function initAulasOperacao() {
     });
   }
 
-  root.querySelectorAll(".js-toggle-mode").forEach((btn) => {
-    btn.addEventListener("click", () => setMode(btn.dataset.mode || "operacao"));
-  });
 
   if (drawerClose) drawerClose.addEventListener("click", closeDrawer);
 
@@ -1131,7 +1108,6 @@ function initAulasOperacao() {
     }
   });
 
-  setMode("operacao");
   loadData();
 }
 

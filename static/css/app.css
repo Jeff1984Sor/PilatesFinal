@@ -774,6 +774,17 @@ body {
   }
 }
 
+@media (max-width: 900px) {
+  .aulas-time-row {
+    grid-template-columns: 1fr;
+  }
+  .aulas-time-label {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+
 /* Aulas - novo painel operacional */
 .aulas-shell {
   display: flex;
@@ -824,12 +835,6 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.aulas-toggle {
-  display: flex;
-  gap: 8px;
-  align-items: center;
 }
 
 .aulas-toolbar {
@@ -938,32 +943,44 @@ body {
   gap: 14px;
 }
 
-.aulas-time-group {
+.aulas-time-row {
   background: #ffffff;
   border: 1px solid #e6ecf2;
   border-radius: 18px;
-  padding: 16px;
+  padding: 12px;
   box-shadow: 0 10px 24px rgba(15, 28, 28, 0.08);
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+  align-items: start;
 }
 
-.aulas-time-group__header {
+.aulas-time-label {
+  background: #0f1c1c;
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 10px 8px;
+  text-align: center;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
 }
 
-.aulas-time-group__badge {
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #eef2f6;
+.aulas-time-label__time {
+  font-size: 16px;
+}
+
+.aulas-time-label__count {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
 }
 
 .aulas-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  margin-top: 12px;
 }
 
 .aulas-card {
@@ -974,6 +991,7 @@ body {
   box-shadow: 0 8px 18px rgba(15, 28, 28, 0.08);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  flex: 1 1 240px;
 }
 
 .aulas-card:hover {
