@@ -1,853 +1,2104 @@
 {% extends "base.html" %}
+
 {% load core_extras %}
+
 {% block content %}
+
 <div class="d-flex align-items-center justify-content-between mb-3">
+
   <div>
+
     <div class="text-muted small">Gestao do Aluno</div>
+
     <h2 class="mb-0">{{ aluno.dsNome }}</h2>
+
   </div>
+
   <div class="d-flex gap-2">
+
     <a class="btn btn-outline-secondary" href="/cadastros/alunos/">Voltar</a>
+
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editAluno">Editar</button>
+
   </div>
+
 </div>
+
+
 
 <div class="row g-3">
+
   <div class="col-lg-3">
+
     <div class="card shadow-sm">
+
       <div class="card-body">
+
         <div class="d-flex align-items-center gap-3">
+
           {% if aluno.foto %}
+
             <div class="avatar-lg avatar-photo">
+
               <img src="{{ aluno.foto.url }}" alt="Foto do aluno" />
+
             </div>
+
           {% else %}
+
             <div class="avatar-lg">AL</div>
+
           {% endif %}
+
           <div>
+
             <div class="text-muted small">Aluno</div>
+
             <div class="fw-semibold">{{ aluno.dsNome }}</div>
+
             <div class="text-muted small">CPF: {{ aluno.dsCPF }}</div>
+
           </div>
+
         </div>
+
         <hr />
+
         <div class="mb-2"><strong>Email:</strong> {{ aluno.dsEmail|default:"-" }}</div>
+
         <div class="mb-2"><strong>Nascimento:</strong> {{ aluno.dtNascimento|date:"d/m/Y"|default:"-" }}</div>
+
         <div class="mb-2"><strong>Unidade:</strong> {{ aluno.cdUnidade }}</div>
+
         <div class="mb-2"><strong>Termo:</strong> {{ aluno.cdTermoUso|default:"-" }}</div>
+
       </div>
+
     </div>
+
         <div class="card shadow-sm mt-3">
+
           <div class="card-body">
+
             <div class="fw-semibold mb-2">Contato</div>
+
             {% if telefones %}
+
               {% for tel in telefones %}
+
                 <div class="mb-1">{{ tel }}</div>
+
               {% endfor %}
+
             {% else %}
+
               <div class="text-muted">Sem telefones cadastrados.</div>
+
             {% endif %}
+
             {% if whatsapp_number %}
+
               <div class="d-grid gap-2 mt-3">
-                {% with whatsapp_message="Olá" %}
+
+                {% with whatsapp_message="Ola" %}
+
                   <button
+
                     class="btn btn-success d-flex align-items-center justify-content-center gap-2 px-3 py-2"
+
                     type="button"
+
                     data-bs-toggle="modal"
+
                     data-bs-target="#whatsappQuickModal"
+
                     title="Enviar WhatsApp"
+
                   >
+
                     <svg
+
                       width="20"
+
                       height="20"
+
                       viewBox="0 0 20 20"
+
                       role="presentation"
+
                       aria-hidden="true"
+
                     >
+
                       <circle cx="10" cy="10" r="9" fill="#25d366" />
+
                       <polyline
+
                         points="5,7 7.2,13 9.5,9 11.8,13 14,7"
+
                         stroke="#fff"
+
                         stroke-width="1.5"
+
                         fill="none"
+
                         stroke-linecap="round"
+
                         stroke-linejoin="round"
+
                       />
+
                     </svg>
+
                     <span class="fw-semibold">Conversar no WhatsApp</span>
+
                   </button>
+
                 {% endwith %}
+
               </div>
+
             {% endif %}
+
           </div>
+
         </div>
+
   </div>
+
   <div class="col-lg-9">
+
     <div class="card shadow-sm mb-3">
+
       <div class="card-body">
+
         <div class="fw-semibold mb-2">Endereco</div>
+
         {% if endereco %}
+
           <div>{{ endereco.dsLogradouro }}, {{ endereco.dsNumero }}</div>
+
           <div>{{ endereco.dsBairro }} - {{ endereco.dsCidade }}</div>
+
           <div>CEP: {{ endereco.dsCEP }}</div>
+
         {% else %}
+
           <div class="text-muted">Sem endereco cadastrado.</div>
+
         {% endif %}
+
       </div>
+
     </div>
+
     <div class="card shadow-sm">
+
       <div class="card-body">
+
         <ul class="nav nav-pills mb-3" role="tablist">
+
           <li class="nav-item" role="presentation">
+
             <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-contratos" type="button" role="tab">Contratos</button>
+
           </li>
+
           <li class="nav-item" role="presentation">
+
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-agenda" type="button" role="tab">Aulas</button>
+
           </li>
+
           <li class="nav-item" role="presentation">
+
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-financeiro" type="button" role="tab">Financeiro</button>
+
           </li>
+
           <li class="nav-item" role="presentation">
+
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-whatsapp" type="button" role="tab">WhatsApp</button>
+
           </li>
+
           <li class="nav-item" role="presentation">
+
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-evolucao" type="button" role="tab">Evolucao</button>
+
           </li>
+
           <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-avaliacao" type="button" role="tab">Avaliacoes</button>
+
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-avaliacao" type="button" role="tab">Avalia&ccedil;&otilde;es</button>
+
           </li>
+
         </ul>
+
         <div class="tab-content">
+
           <div class="tab-pane fade show active" id="tab-contratos" role="tabpanel">
+
             <div class="d-flex justify-content-between align-items-center mb-2">
+
               <div class="fw-semibold">Contratos</div>
+
               <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#novoContrato">Novo contrato</button>
+
             </div>
+
             {% if contratos %}
+
               <div class="table-responsive">
+
                 <table class="table table-sm">
+
                   <thead>
+
                     <tr>
+
                       <th>Contrato</th>
+
                       <th>Plano</th>
+
                       <th>Unidade</th>
+
                         <th>Inicio</th>
+
                         <th>Fim</th>
+
                         <th>Status</th>
+
                         <th>StatusAssinatura</th>
+
                         <th>Acoes</th>
+
                     </tr>
+
                   </thead>
+
                   <tbody>
+
                     {% for c in contratos %}
+
                       <tr>
+
                         <td>{{ c.cdContrato }}</td>
+
                         <td>{{ c.cdPlano }}</td>
+
                         <td>{{ c.cdUnidade }}</td>
+
                           <td>{{ c.dtInicioContrato|date:"d/m/Y" }}</td>
+
                           <td>{{ c.dtFimContrato|date:"d/m/Y" }}</td>
+
                           <td>
+
                             {% if c.dtFimContrato and c.dtFimContrato < today_date %}
+
                               Encerrado
+
                             {% else %}
+
                               Ativo
+
                             {% endif %}
+
                           </td>
+
                           <td>{{ c.get_status_display }}</td>
+
                           <td>
+
                           <div class="d-flex flex-wrap gap-2">
+
                             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editContrato-{{ c.id }}">Editar</button>
+
                             <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteContrato-{{ c.id }}">Excluir</button>
+
                             <form method="post" action="{% url 'contrato_enviar_email' c.id %}">
+
                               {% csrf_token %}
+
                               <button class="btn btn-sm btn-outline-secondary" type="submit">Reenviar por email</button>
+
                             </form>
+
+                            <form method="post" action="{% url 'contratos_whatsapp' c.id %}">
+
+                              {% csrf_token %}
+
+                              <input type="hidden" name="next" value="{{ request.path }}?tab=contratos" />
+
+                              <button class="btn btn-sm btn-outline-success" type="submit">Enviar WhatsApp</button>
+
+                            </form>
+
                             {% if c.status != "ASSINADO_DIGITALMENTE" and c.status != "ASSINADO" %}
+
                               <a class="btn btn-sm btn-outline-success" href="{% url 'contrato_assinar_local' c.id %}">Assinar</a>
+
                             {% endif %}
+
                             {% if c.status == "ASSINADO_DIGITALMENTE" or c.status == "ASSINADO" or c.assinatura_imagem %}
+
                               <a class="btn btn-sm btn-outline-info" href="{% url 'contrato_assinatura_detalhe' c.id %}">Ver assinatura</a>
+
                             {% endif %}
+
                           </div>
+
                         </td>
+
                       </tr>
+
                     {% endfor %}
+
                   </tbody>
+
                 </table>
+
               </div>
+
             {% else %}
+
               <div class="text-muted">Sem contratos vinculados.</div>
+
             {% endif %}
+
           </div>
+
           <div class="tab-pane fade" id="tab-agenda" role="tabpanel">
+
             <div class="d-flex justify-content-between align-items-center mb-2">
+
               <div class="fw-semibold">Aulas do aluno</div>
+
             </div>
+
             {% if reservas %}
+
               <div class="table-responsive">
+
                 <table class="table table-sm">
+
                   <thead>
+
                     <tr>
+
                       <th>Data</th>
+
                       <th>Horario</th>
+
                       <th>Servico</th>
+
                       <th>Unidade</th>
+
                       <th>Professor</th>
+
                       <th>Status</th>
+
                       <th>Acoes</th>
+
                     </tr>
+
                   </thead>
+
                   <tbody>
+
                     {% for r in reservas %}
+
                       <tr>
+
                         <td>{{ r.aulaSessao.data|date:"d/m/Y" }}</td>
+
                         <td>{{ r.aulaSessao.horaInicio|time:"H:i" }} - {{ r.aulaSessao.horaFim|time:"H:i" }}</td>
+
                         <td>{{ r.aulaSessao.tipoServico }}</td>
+
                         <td>{{ r.aulaSessao.unidade }}</td>
+
                         <td>{{ r.aulaSessao.profissional|default:"-" }}</td>
+
                         <td>{{ r.status }}</td>
+
                         <td>
+
                           <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editReserva-{{ r.id }}">Editar</button>
+
                           <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteReserva-{{ r.id }}">Excluir</button>
+
                         </td>
+
                       </tr>
+
                     {% endfor %}
+
                   </tbody>
+
                 </table>
+
               </div>
+
             {% else %}
+
               <div class="text-muted">Sem aulas vinculadas.</div>
+
             {% endif %}
+
           </div>
+
           <div class="tab-pane fade" id="tab-financeiro" role="tabpanel">
+
             <div class="d-flex justify-content-between align-items-center mb-2">
+
               <div class="fw-semibold">Faturas do aluno</div>
+
               <div class="d-flex gap-2">
-                <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_excel' aluno.id %}?{{ request.GET.urlencode }}">Exportar Excel</a>
-                <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_pdf' aluno.id %}?{{ request.GET.urlencode }}">Exportar PDF</a>
+
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_excel' aluno.id %}-{{ request.GET.urlencode }}">Exportar Excel</a>
+
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_pdf' aluno.id %}-{{ request.GET.urlencode }}">Exportar PDF</a>
+
               </div>
+
             </div>
+
             <form class="row g-2 mb-3" method="get">
+
               <div class="col-md-3">
+
                 <label class="form-label">Status</label>
+
                 <select class="form-select" name="status">
+
                   <option value="">Todos</option>
+
                   <option value="ABERTO" {% if filtros_financeiro.status == "ABERTO" %}selected{% endif %}>ABERTO</option>
+
                   <option value="PAGO" {% if filtros_financeiro.status == "PAGO" %}selected{% endif %}>PAGO</option>
+
                   <option value="ATRASADO" {% if filtros_financeiro.status == "ATRASADO" %}selected{% endif %}>ATRASADO</option>
+
                   <option value="CANCELADO" {% if filtros_financeiro.status == "CANCELADO" %}selected{% endif %}>CANCELADO</option>
+
                 </select>
+
               </div>
+
               <div class="col-md-3">
+
                 <label class="form-label">Vencimento (de)</label>
+
                 <input class="form-control" type="date" name="inicio" value="{{ filtros_financeiro.inicio }}" />
+
               </div>
+
               <div class="col-md-3">
+
                 <label class="form-label">Vencimento (ate)</label>
+
                 <input class="form-control" type="date" name="fim" value="{{ filtros_financeiro.fim }}" />
+
               </div>
+
               <div class="col-md-3 d-flex align-items-end">
+
                 <button class="btn btn-outline-secondary w-100" type="submit">Filtrar</button>
+
               </div>
+
             </form>
+
             {% if contas_receber %}
+
               <div class="table-responsive">
+
                 <table class="table table-sm">
+
                   <thead>
+
                     <tr>
+
                       <th>Competencia</th>
+
                       <th>Vencimento</th>
+
                       <th>Pagamento</th>
+
                       <th>Contrato</th>
+
                       <th>Status</th>
+
                       <th>Valor</th>
+
                       <th>Acoes</th>
+
                     </tr>
+
                   </thead>
+
                   <tbody>
+
                     {% for f in contas_receber %}
+
                       <tr>
+
                         <td>{{ f.competencia|default:"-" }}</td>
+
                         <td>{{ f.dtVencimento|date:"d/m/Y" }}</td>
+
                         <td>{{ f.dtPagamento|date:"d/m/Y"|default:"-" }}</td>
+
                         <td>{{ f.contrato.cdContrato }}</td>
+
                         <td>{{ f.status }}</td>
+
                         <td>R$ {{ f.valor }}</td>
+
                         <td>
+
                           {% if f.status != "PAGO" %}
+
                             <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#baixarFatura-{{ f.id }}">Dar baixa</button>
+
                           {% endif %}
+
                           <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_recibo' f.id %}">Recibo PDF</a>
+
                           <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFatura-{{ f.id }}">Excluir</button>
+
                         </td>
+
                       </tr>
+
                     {% endfor %}
+
                   </tbody>
+
                 </table>
+
               </div>
+
             {% else %}
+
               <div class="text-muted">Sem faturas para este aluno.</div>
+
             {% endif %}
+
           </div>
+
           <div class="tab-pane fade" id="tab-whatsapp" role="tabpanel">
+
             <div class="d-flex justify-content-between align-items-center mb-3">
+
               <div>
+
                 <div class="fw-semibold">WhatsApp</div>
+
                 <p class="text-muted small">Registre e envie mensagens diretamente para o aluno.</p>
+
               </div>
+
             </div>
+
             <form method="post" action="{% url 'alunos_whatsapp_message' aluno.id %}">
+
               {% csrf_token %}
+
               <input type="hidden" name="next" value="{{ request.path }}?tab=whatsapp" />
+
               <div class="mb-3">
+
                 {{ whatsapp_form.mensagem.label_tag }}
+
                 {{ whatsapp_form.mensagem }}
+
               </div>
+
               <button class="btn btn-sm btn-primary" type="submit">Enviar e registrar</button>
+
             </form>
+
             <div class="mt-4 space-y-3">
+
               {% for msg in whatsapp_messages %}
+
                 <div class="rounded-xl border border-dashed border-black/10 p-3">
+
                   <div class="d-flex justify-content-between">
+
                     <span class="text-xs text-gray-500">{{ msg.enviado_em|date:"d/m/Y H:i" }}</span>
+
                     <span class="badge bg-white border border-black/10 text-dark text-xs">{{ msg.get_tipo_display }}</span>
+
                   </div>
+
                   <p class="mt-2 mb-1">{{ msg.mensagem }}</p>
+
                   <div class="text-xs text-gray-500">
+
                     Telefone: {{ msg.telefone|default:"-" }}
+
                     {% if msg.contrato %}
-                      • Contrato #{{ msg.contrato.cdContrato }}
+
+                       Contrato #{{ msg.contrato.cdContrato }}
+
                     {% endif %}
+
                   </div>
+
                 </div>
+
               {% empty %}
+
                 <p class="text-muted">Nenhuma mensagem enviada ainda.</p>
+
               {% endfor %}
+
             </div>
+
           </div>
+
           <div class="tab-pane fade" id="tab-evolucao" role="tabpanel">
+
             <div class="d-flex justify-content-between align-items-center mb-2">
+
               <div class="fw-semibold">Evolucoes do aluno</div>
+
               <div class="d-flex gap-2">
+
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#novaEvolucao">Nova evolucao</button>
+
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'evolucoes_exportar_excel' aluno.id %}">Exportar Excel</a>
+
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'evolucoes_exportar_pdf' aluno.id %}">Exportar PDF</a>
+
               </div>
+
             </div>
+
             {% if evolucoes %}
+
               <div class="table-responsive">
+
                 <table class="table table-sm">
+
                   <thead>
+
                     <tr>
+
                       <th>Data</th>
+
                       <th>Profissional</th>
+
                       <th>Evolucao</th>
+
+                      <th>Acoes</th>
+
                     </tr>
+
                   </thead>
+
                   <tbody>
+
                     {% for e in evolucoes %}
+
                       <tr>
+
                         <td>{{ e.dtEvolucao|date:"d/m/Y H:i" }}</td>
-                        <td>{{ e.profissional }}</td>
+
+                        <td>{{ e.profissional|default:"-" }}</td>
+
                         <td>{{ e.texto }}</td>
+
+                        <td>
+
+                          <div class="d-flex flex-wrap gap-2">
+
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editarEvolucao-{{ e.id }}">Editar</button>
+
+                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#excluirEvolucao-{{ e.id }}">Excluir</button>
+
+                          </div>
+
+                        </td>
+
                       </tr>
+
                     {% endfor %}
+
                   </tbody>
-                </table>
+
+</table>
+
               </div>
+
             {% else %}
+
               <div class="text-muted">Sem evolucoes registradas.</div>
+
             {% endif %}
-          </div>
-          <div class="tab-pane fade" id="tab-avaliacao" role="tabpanel">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="fw-semibold">Avaliacoes do aluno</div>
-            </div>
-            {% if avaliacoes %}
-              <div class="table-responsive">
-                <table class="table table-sm">
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Profissional</th>
-                      <th>Avaliacao</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for a in avaliacoes %}
-                      <tr>
-                        <td>{{ a.dtAvaliacao|date:"d/m/Y H:i" }}</td>
-                        <td>{{ a.profissional|default:"-" }}</td>
-                        <td>{{ a.texto }}</td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+
+            <div class="modal fade" id="novaEvolucao" tabindex="-1">
+
+              <div class="modal-dialog">
+
+                <div class="modal-content">
+
+                  <div class="modal-header">
+
+                    <h5 class="modal-title">Nova evolucao</h5>
+
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                  </div>
+
+                  <div class="modal-body">
+
+                    <form method="post" action="{% url 'alunos_evolucao_create' aluno.id %}">
+
+                      {% csrf_token %}
+
+                      <div class="mb-3">
+
+                        <label class="form-label">Aula</label>
+
+                        <select class="form-select" name="reserva_id" required>
+
+                          <option value="">Selecione</option>
+
+                          {% for r in reservas %}
+
+                            <option value="{{ r.id }}">{{ r.aulaSessao.data|date:"d/m/Y" }} {{ r.aulaSessao.horaInicio|time:"H:i" }}</option>
+
+                          {% endfor %}
+
+                        </select>
+
+                      </div>
+
+                      <div class="mb-3">
+
+                        <label class="form-label">Profissional</label>
+
+                        <select class="form-select" name="profissional_id" required>
+
+                          <option value="">Selecione</option>
+
+                          {% for p in profissionais %}
+
+                            <option value="{{ p.id }}">{{ p.profissional }}</option>
+
+                          {% endfor %}
+
+                        </select>
+
+                      </div>
+
+                      <div class="mb-3">
+
+                        <label class="form-label">Evolucao</label>
+
+                        <textarea class="form-control" name="texto" rows="4" required></textarea>
+
+                      </div>
+
+                      <div class="d-flex justify-content-end gap-2">
+
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
+                        <button class="btn btn-primary" type="submit">Salvar</button>
+
+                      </div>
+
+                    </form>
+
+                  </div>
+
+                </div>
+
               </div>
-            {% else %}
-              <div class="text-muted">Sem avaliacoes registradas.</div>
-            {% endif %}
+
+            </div>
+
+
+
+            {% for e in evolucoes %}
+
+              <div class="modal fade" id="editarEvolucao-{{ e.id }}" tabindex="-1">
+
+                <div class="modal-dialog">
+
+                  <div class="modal-content">
+
+                    <div class="modal-header">
+
+                      <h5 class="modal-title">Editar evolucao</h5>
+
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                    </div>
+
+                    <div class="modal-body">
+
+                      <form method="post" action="{% url 'alunos_evolucao_update' e.id %}">
+
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+
+                          <label class="form-label">Evolucao</label>
+
+                          <textarea class="form-control" name="texto" rows="4" required>{{ e.texto }}</textarea>
+
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+
+                          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
+                          <button class="btn btn-primary" type="submit">Salvar</button>
+
+                        </div>
+
+                      </form>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              <div class="modal fade" id="excluirEvolucao-{{ e.id }}" tabindex="-1">
+
+                <div class="modal-dialog">
+
+                  <div class="modal-content">
+
+                    <div class="modal-header">
+
+                      <h5 class="modal-title">Excluir evolucao</h5>
+
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                    </div>
+
+                    <div class="modal-body">
+
+                      <p>Confirma excluir esta evolucao-</p>
+
+                      <form method="post" action="{% url 'alunos_evolucao_delete' e.id %}">
+
+                        {% csrf_token %}
+
+                        <div class="d-flex justify-content-end gap-2">
+
+                          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
+                          <button class="btn btn-danger" type="submit">Excluir</button>
+
+                        </div>
+
+                      </form>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            {% endfor %}
+
+
+
           </div>
+
+          <div class="tab-pane fade" id="tab-avaliacao" role="tabpanel">
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+
+              <div class="fw-semibold">Avalia&ccedil;&otilde;es do aluno</div>
+
+              <div class=\"d-flex gap-2\">
+
+                <button class=\"btn btn-sm btn-primary\" data-bs-toggle=\"modal\" data-bs-target=\"#novaAvaliacao\">Nova avaliacao</button>
+
+              </div>
+
+            </div>
+
+            {% if avaliacoes %}
+
+              <div class="table-responsive">
+
+                <table class="table table-sm">
+
+                  <thead>
+
+                    <tr>
+
+                      <th>Data</th>
+
+                      <th>Profissional</th>
+
+                      <th>Avaliacao</th>
+
+                      <th>Acoes</th>
+
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    {% for a in avaliacoes %}
+
+                      <tr>
+
+                        <td>{{ a.dtAvaliacao|date:"d/m/Y H:i" }}</td>
+
+                        <td>{{ a.profissional|default:"-" }}</td>
+
+                        <td>{{ a.texto }}</td>
+
+                        <td>
+
+                          <div class="d-flex flex-wrap gap-2">
+
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editarAvaliacao-{{ a.id }}">Editar</button>
+
+                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#excluirAvaliacao-{{ a.id }}">Excluir</button>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+
+                    {% endfor %}
+
+                  </tbody>
+
+</table>
+
+              </div>
+
+            {% else %}
+
+              <div class="text-muted">Sem avaliacoes registradas.</div>
+
+            {% endif %}
+
+            <div class="modal fade" id="novaAvaliacao" tabindex="-1">
+
+              <div class="modal-dialog">
+
+                <div class="modal-content">
+
+                  <div class="modal-header">
+
+                    <h5 class="modal-title">Nova avaliacao</h5>
+
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                  </div>
+
+                  <div class="modal-body">
+
+                    <form method="post" action="{% url 'alunos_avaliacao_create' aluno.id %}">
+
+                      {% csrf_token %}
+
+                      <div class="mb-3">
+
+                        <label class="form-label">Aula</label>
+
+                        <select class="form-select" name="reserva_id" required>
+
+                          <option value="">Selecione</option>
+
+                          {% for r in reservas %}
+
+                            <option value="{{ r.id }}">{{ r.aulaSessao.data|date:"d/m/Y" }} {{ r.aulaSessao.horaInicio|time:"H:i" }}</option>
+
+                          {% endfor %}
+
+                        </select>
+
+                      </div>
+
+                      <div class="mb-3">
+
+                        <label class="form-label">Profissional</label>
+
+                        <select class="form-select" name="profissional_id" required>
+
+                          <option value="">Selecione</option>
+
+                          {% for p in profissionais %}
+
+                            <option value="{{ p.id }}">{{ p.profissional }}</option>
+
+                          {% endfor %}
+
+                        </select>
+
+                      </div>
+
+                      <div class="mb-3">
+
+                        <label class="form-label">Avaliacao</label>
+
+                        <textarea class="form-control" name="texto" rows="4" required></textarea>
+
+                      </div>
+
+                      <div class="d-flex justify-content-end gap-2">
+
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
+                        <button class="btn btn-primary" type="submit">Salvar</button>
+
+                      </div>
+
+                    </form>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+
+            {% for a in avaliacoes %}
+
+              <div class="modal fade" id="editarAvaliacao-{{ a.id }}" tabindex="-1">
+
+                <div class="modal-dialog">
+
+                  <div class="modal-content">
+
+                    <div class="modal-header">
+
+                      <h5 class="modal-title">Editar avaliacao</h5>
+
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                    </div>
+
+                    <div class="modal-body">
+
+                      <form method="post" action="{% url 'alunos_avaliacao_update' a.id %}">
+
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+
+                          <label class="form-label">Avaliacao</label>
+
+                          <textarea class="form-control" name="texto" rows="4" required>{{ a.texto }}</textarea>
+
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+
+                          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
+                          <button class="btn btn-primary" type="submit">Salvar</button>
+
+                        </div>
+
+                      </form>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              <div class="modal fade" id="excluirAvaliacao-{{ a.id }}" tabindex="-1">
+
+                <div class="modal-dialog">
+
+                  <div class="modal-content">
+
+                    <div class="modal-header">
+
+                      <h5 class="modal-title">Excluir avaliacao</h5>
+
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                    </div>
+
+                    <div class="modal-body">
+
+                      <p>Confirma excluir esta avaliacao-</p>
+
+                      <form method="post" action="{% url 'alunos_avaliacao_delete' a.id %}">
+
+                        {% csrf_token %}
+
+                        <div class="d-flex justify-content-end gap-2">
+
+                          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
+                          <button class="btn btn-danger" type="submit">Excluir</button>
+
+                        </div>
+
+                      </form>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            {% endfor %}
+
+
+
+          </div>
+
         </div>
+
       </div>
+
     </div>
+
   </div>
+
 </div>
+
+
 
 <div class="modal fade" id="editAluno" tabindex="-1">
+
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
+
     <div class="modal-content modal-aluno">
+
       <div class="modal-header">
+
         <div>
+
           <h5 class="modal-title">Editar aluno</h5>
+
           <div class="small text-muted">Atualize os dados e salve.</div>
+
         </div>
+
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
       </div>
+
       <div class="modal-body">
+
         <form class="modal-form" method="post" action="/cadastros/alunos/{{ aluno.id }}/editar/" enctype="multipart/form-data">
+
           {% csrf_token %}
+
           <input type="hidden" name="next" value="{{ request.path }}" />
+
           <div class="row g-3">
+
             <div class="col-md-6">
+
               {{ edit_form.dsNome.label_tag }} {{ edit_form.dsNome }}
+
             </div>
+
             <div class="col-md-3">
+
               {{ edit_form.dsCPF.label_tag }} {{ edit_form.dsCPF }}
+
             </div>
+
             <div class="col-md-3">
+
               {{ edit_form.dsRg.label_tag }} {{ edit_form.dsRg }}
+
             </div>
+
             <div class="col-md-4">
+
               {{ edit_form.dsEmail.label_tag }} {{ edit_form.dsEmail }}
+
             </div>
+
             <div class="col-md-4">
+
               {{ edit_form.dtNascimento.label_tag }} {{ edit_form.dtNascimento }}
+
             </div>
+
             <div class="col-md-4">
+
               {{ edit_form.cdUnidade.label_tag }} {{ edit_form.cdUnidade }}
+
             </div>
+
             <div class="col-md-4">
+
               {{ edit_form.cdTermoUso.label_tag }} {{ edit_form.cdTermoUso }}
+
             </div>
+
             <div class="col-md-4">
+
               <label>Foto</label>
+
               <div class="photo-field js-photo-field">
+
                 {% if aluno.foto %}
+
                   <img class="photo-preview js-photo-preview" src="{{ aluno.foto.url }}" alt="Foto do aluno" />
+
                 {% else %}
+
                   <img class="photo-preview js-photo-preview" alt="Foto do aluno" />
+
                 {% endif %}
+
                 <div class="d-flex flex-wrap gap-2">
+
                   <button type="button" class="btn btn-outline-secondary btn-sm js-photo-start">Capturar foto</button>
+
                   <label class="btn btn-outline-secondary btn-sm mb-0">
+
                     Enviar arquivo
+
                     <input type="file" name="foto" accept="image/*" class="d-none js-photo-input" />
+
                   </label>
+
                 </div>
+
                 <div class="photo-camera js-photo-camera d-none">
+
                   <video class="photo-video js-photo-video" playsinline></video>
+
                   <canvas class="photo-canvas js-photo-canvas d-none"></canvas>
+
                   <div class="d-flex gap-2 mt-2">
+
                     <button type="button" class="btn btn-primary btn-sm js-photo-shot">Tirar foto</button>
+
                     <button type="button" class="btn btn-outline-secondary btn-sm js-photo-stop">Cancelar</button>
+
                   </div>
+
                 </div>
+
               </div>
+
             </div>
+
           </div>
+
           <hr class="my-3" />
+
           <div class="fw-semibold mb-2">Endereco</div>
+
           <div class="row g-3">
+
             <div class="col-md-4">
+
               <label>CEP</label>
+
               <input class="form-control js-cep" name="dsCEP" value="{{ endereco.dsCEP|default:'' }}" />
+
             </div>
+
             <div class="col-md-6">
+
               <label>Logradouro</label>
+
               <input class="form-control js-logradouro" name="dsLogradouro" value="{{ endereco.dsLogradouro|default:'' }}" />
+
             </div>
+
             <div class="col-md-2">
+
               <label>Numero</label>
+
               <input class="form-control js-numero" name="dsNumero" value="{{ endereco.dsNumero|default:'' }}" />
+
             </div>
+
             <div class="col-md-4">
+
               <label>Bairro</label>
+
               <input class="form-control js-bairro" name="dsBairro" value="{{ endereco.dsBairro|default:'' }}" />
+
             </div>
+
             <div class="col-md-4">
+
               <label>Cidade</label>
+
               <input class="form-control js-cidade" name="dsCidade" value="{{ endereco.dsCidade|default:'' }}" />
+
             </div>
+
           </div>
+
           <hr class="my-3" />
+
           <div class="fw-semibold mb-2">Telefones</div>
+
           <div class="js-phones">
+
             {% if telefones %}
+
               {% for tel in telefones %}
+
                 <div class="row g-2 align-items-center mb-2 js-phone-row">
+
                   <div class="col-md-6">
+
                     <input class="form-control js-telefone" name="telefone_{{ forloop.counter }}" value="{{ tel }}" />
+
                   </div>
+
                   <div class="col-md-2">
+
                     <button type="button" class="btn btn-outline-secondary js-add-phone">Adicionar</button>
+
                   </div>
+
                 </div>
+
               {% endfor %}
+
             {% else %}
+
               <div class="row g-2 align-items-center mb-2 js-phone-row">
+
                 <div class="col-md-6">
+
                   <input class="form-control js-telefone" name="telefone_1" placeholder="(00) 00000-0000" />
+
                 </div>
+
                 <div class="col-md-2">
+
                   <button type="button" class="btn btn-outline-secondary js-add-phone">Adicionar</button>
+
                 </div>
+
               </div>
+
             {% endif %}
+
           </div>
+
           <div class="d-flex justify-content-end gap-2 pt-2">
+
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
             <button class="btn btn-primary" type="submit">Salvar</button>
+
           </div>
+
         </form>
+
       </div>
+
     </div>
+
   </div>
+
 </div>
+
+
 
 <div class="modal fade" id="novoContrato" tabindex="-1">
+
   <div class="modal-dialog modal-lg">
+
     <div class="modal-content">
+
       <div class="modal-header">
+
         <div>
+
           <h5 class="modal-title">Novo contrato</h5>
+
           <div class="small text-muted">Aluno predefinido pela ficha.</div>
+
         </div>
+
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
       </div>
+
       <div class="modal-body">
+
         <form class="modal-form" method="post" action="/contratos/criar/">
+
           {% csrf_token %}
+
           <div class="row g-3">
+
             <div class="col-md-6">
+
               <label>Aluno</label>
+
               <input class="form-control" value="{{ aluno.dsNome }}" disabled />
+
               <input type="hidden" name="cdAluno" value="{{ aluno.id }}" />
+
             </div>
+
             <div class="col-md-6">
+
               <label>Plano</label>
+
               <select class="form-select js-plano" name="cdPlano" required>
+
                 <option value="" selected>Selecione</option>
+
                 {% for p in planos %}
+
                   <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}">{{ p.dsPlano }}</option>
+
                 {% endfor %}
+
               </select>
+
             </div>
+
             <div class="col-md-6">
+
               <label>Unidade</label>
+
               <select class="form-select" name="cdUnidade" required>
+
                 {% for u in unidades %}
+
                   <option value="{{ u.id }}">{{ u.dsUnidade }}</option>
+
                 {% endfor %}
+
               </select>
+
             </div>
+
             <div class="col-md-6">
+
               <label>Profissional</label>
+
               <select class="form-select" name="cdProfissional" required>
+
                 {% for p in profissionais %}
+
                   <option value="{{ p.id }}">{{ p.profissional }}</option>
+
                 {% endfor %}
+
               </select>
+
             </div>
+
             <div class="col-md-4">
+
               <label>Inicio do Contrato</label>
+
               <input class="form-control js-contrato-inicio" name="dtInicioContrato" type="date" required />
+
             </div>
+
             <div class="col-md-4">
+
               <label>Fim do Contrato</label>
+
               <input class="form-control js-contrato-fim" name="dtFimContrato" type="date" required />
+
             </div>
+
             <div class="col-md-4">
+
               <label>Valor (parcela)</label>
+
               <input class="form-control js-valor-parcela" name="valor_parcela" type="number" step="0.01" required />
+
             </div>
+
             <div class="col-md-4">
+
               <label>Valor total</label>
+
               <input class="form-control js-valor-total" name="valor_total" type="text" readonly />
+
             </div>
+
           </div>
+
           <div class="d-flex justify-content-end gap-2 pt-3">
+
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
             <button class="btn btn-primary" type="submit">Salvar</button>
+
           </div>
+
         </form>
+
       </div>
+
     </div>
+
   </div>
+
 </div>
 
+
+
 {% if contratos %}
+
   {% for c in contratos %}
+
     <div class="modal fade" id="editContrato-{{ c.id }}" tabindex="-1">
+
       <div class="modal-dialog modal-lg">
+
         <div class="modal-content">
+
           <div class="modal-header">
+
             <div>
+
               <h5 class="modal-title">Editar contrato</h5>
+
               <div class="small text-muted">Atualize os dados e salve.</div>
+
             </div>
+
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
           </div>
+
           <div class="modal-body">
+
             <form class="modal-form" method="post" action="{% url 'contratos_edit' c.id %}">
+
               {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}?tab=contratos" />
+
+              <input type="hidden" name="next" value="{{ request.path }}-tab=contratos" />
+
               <div class="row g-3">
+
                 <div class="col-md-6">
+
                   <label>Aluno</label>
+
                   <input class="form-control" value="{{ aluno.dsNome }}" disabled />
+
                   <input type="hidden" name="cdAluno" value="{{ aluno.id }}" />
+
                 </div>
+
                 <div class="col-md-6">
+
                   <label>Plano</label>
+
                   <select class="form-select js-plano" name="cdPlano" required>
+
                     <option value="">Selecione</option>
+
                     {% for p in planos %}
+
                       <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" {% if c.cdPlano_id == p.id %}selected{% endif %}>
+
                         {{ p.dsPlano }}
+
                       </option>
+
                     {% endfor %}
+
                   </select>
+
                 </div>
+
                 <div class="col-md-6">
+
                   <label>Unidade</label>
+
                   <select class="form-select" name="cdUnidade" required>
+
                     {% for u in unidades %}
+
                       <option value="{{ u.id }}" {% if c.cdUnidade_id == u.id %}selected{% endif %}>{{ u.dsUnidade }}</option>
+
                     {% endfor %}
+
                   </select>
+
                 </div>
+
                 <div class="col-md-6">
+
                   <label>Profissional</label>
+
                   <select class="form-select" name="cdProfissional" required>
+
                     {% for p in profissionais %}
+
                       <option value="{{ p.id }}" {% if c.cdProfissional_id == p.id %}selected{% endif %}>{{ p.profissional }}</option>
+
                     {% endfor %}
+
                   </select>
+
                 </div>
+
                 <div class="col-md-4">
+
                   <label>Inicio do Contrato</label>
+
                   <input class="form-control js-contrato-inicio" name="dtInicioContrato" type="date" value="{{ c.dtInicioContrato|date:'Y-m-d' }}" required />
+
                 </div>
+
                 <div class="col-md-4">
+
                   <label>Fim do Contrato</label>
+
                   <input class="form-control js-contrato-fim" name="dtFimContrato" type="date" value="{{ c.dtFimContrato|date:'Y-m-d' }}" required />
+
                 </div>
+
                 <div class="col-md-4">
+
                   <label>Valor (parcela)</label>
+
                   <input class="form-control js-valor-parcela" name="valor_parcela" type="number" step="0.01" value="{{ c.valor_parcela }}" required />
+
                 </div>
+
                 <div class="col-md-4">
+
                   <label>Valor total</label>
+
                   <input class="form-control js-valor-total" name="valor_total" type="text" value="{{ c.valor_total }}" readonly />
+
                 </div>
+
               </div>
+
               <div class="d-flex justify-content-end gap-2 pt-3">
+
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
                 <button class="btn btn-primary" type="submit">Salvar</button>
+
               </div>
+
             </form>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
+
   {% endfor %}
+
 {% endif %}
+
+
 
 {% if contratos %}
+
   {% for c in contratos %}
+
     <div class="modal fade" id="deleteContrato-{{ c.id }}" tabindex="-1">
+
       <div class="modal-dialog">
+
         <div class="modal-content">
+
           <div class="modal-header">
+
             <h5 class="modal-title">Excluir contrato</h5>
+
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
           </div>
+
           <div class="modal-body">
-            Tem certeza que deseja excluir o contrato {{ c.cdContrato }}?
+
+            Tem certeza que deseja excluir o contrato {{ c.cdContrato }}-
+
           </div>
+
           <div class="modal-footer">
+
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
             <form method="post" action="{% url 'contratos_delete' c.id %}">
+
               {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}?tab=contratos" />
+
+              <input type="hidden" name="next" value="{{ request.path }}-tab=contratos" />
+
               <button class="btn btn-danger" type="submit">Excluir</button>
+
             </form>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
+
   {% endfor %}
+
 {% endif %}
 
+
+
 {% if reservas %}
+
   {% for r in reservas %}
+
     <div class="modal fade" id="editReserva-{{ r.id }}" tabindex="-1" data-reserva-slots="reserva-slots-{{ r.id }}">
+
       <div class="modal-dialog modal-lg">
+
         <div class="modal-content">
+
           <div class="modal-header">
+
             <div>
+
               <h5 class="modal-title">Editar aula</h5>
+
               <div class="small text-muted">Atualize horario ou status.</div>
+
             </div>
+
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
           </div>
+
           <div class="modal-body">
+
             <form class="modal-form" method="post" action="{% url 'reservas_edit' r.id %}">
+
               {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}?tab=agenda" />
+
+              <input type="hidden" name="next" value="{{ request.path }}-tab=agenda" />
+
               <input type="hidden" name="aluno" value="{{ aluno.id }}" />
+
               {% with reserva_form=reserva_forms|get_item:r.id %}
+
                 <div class="row g-3">
+
                   <div class="col-md-6">
+
                     <label>Aluno</label>
+
                     <input class="form-control" value="{{ aluno.dsNome }}" disabled />
+
                   </div>
+
                   <div class="col-md-6">
+
                     <label>Data</label>
+
                     <input
+
                       class="form-control js-reserva-date"
+
                       type="date"
+
                       value="{{ r.aulaSessao.data|date:'Y-m-d' }}"
+
                       min="{{ today }}"
+
                     />
+
                   </div>
+
                   <div class="col-md-6">
+
                     <label>Horario</label>
+
                     <select class="form-select js-reserva-time" disabled>
+
                       <option value="">Selecione uma data</option>
+
                     </select>
+
                     <div class="form-text text-muted js-reserva-empty d-none">Sem horarios disponiveis para esta data.</div>
+
                   </div>
+
                   <div class="d-none">
+
                     {{ reserva_form.aulaSessao }}
+
                   </div>
+
                   <input type="hidden" name="status" value="{{ r.status }}" />
+
                 </div>
+
               {% endwith %}
+
               <div class="d-flex justify-content-end gap-2 pt-3">
+
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
                 <button class="btn btn-primary" type="submit">Salvar</button>
+
               </div>
+
             </form>
+
             {% with slot_data=reserva_slots|get_item:r.id %}
+
               {% with script_id="reserva-slots-"|add:r.id %}
+
                 {{ slot_data|json_script:script_id }}
+
               {% endwith %}
+
             {% endwith %}
+
           </div>
+
         </div>
+
       </div>
+
     </div>
+
   {% endfor %}
+
 {% endif %}
 
+
+
 {% if reservas %}
+
   {% for r in reservas %}
+
     <div class="modal fade" id="deleteReserva-{{ r.id }}" tabindex="-1">
+
       <div class="modal-dialog">
+
         <div class="modal-content">
+
           <div class="modal-header">
+
             <h5 class="modal-title">Excluir aula</h5>
+
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
           </div>
+
           <div class="modal-body">
-            Tem certeza que deseja excluir a aula de {{ r.aulaSessao.data|date:"d/m/Y" }}?
+
+            Tem certeza que deseja excluir a aula de {{ r.aulaSessao.data|date:"d/m/Y" }}-
+
           </div>
+
           <div class="modal-footer">
+
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
             <form method="post" action="{% url 'reservas_delete' r.id %}">
+
               {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}?tab=agenda" />
+
+              <input type="hidden" name="next" value="{{ request.path }}-tab=agenda" />
+
               <button class="btn btn-danger" type="submit">Excluir</button>
+
             </form>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
+
   {% endfor %}
+
 {% endif %}
+
+
 
 {% if contas_receber %}
+
   {% for f in contas_receber %}
+
     <div class="modal fade" id="baixarFatura-{{ f.id }}" tabindex="-1">
+
       <div class="modal-dialog">
+
         <div class="modal-content">
+
           <div class="modal-header">
+
             <h5 class="modal-title">Dar baixa no lancamento</h5>
+
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
           </div>
+
           <div class="modal-body">
+
             <form method="post" action="{% url 'contas_receber_baixar' f.id %}">
+
               {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
+
+              <input type="hidden" name="next" value="{{ request.path }}-tab=financeiro" />
+
               <div class="mb-3">
+
                 <label class="form-label">Data de pagamento</label>
+
                 <input class="form-control" type="date" name="dtPagamento" value="{{ today|default:'' }}" required />
+
               </div>
+
               <div class="d-flex justify-content-end gap-2">
+
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
                 <button class="btn btn-success" type="submit">Confirmar baixa</button>
+
               </div>
+
             </form>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
+
     <div class="modal fade" id="deleteFatura-{{ f.id }}" tabindex="-1">
+
       <div class="modal-dialog">
+
         <div class="modal-content">
+
           <div class="modal-header">
+
             <h5 class="modal-title">Excluir lancamento</h5>
+
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
           </div>
+
           <div class="modal-body">
-            Tem certeza que deseja excluir a fatura {{ f.contrato.cdContrato }} ({{ f.dtVencimento|date:"d/m/Y" }})?
+
+            Tem certeza que deseja excluir a fatura {{ f.contrato.cdContrato }} ({{ f.dtVencimento|date:"d/m/Y" }})-
+
           </div>
+
           <div class="modal-footer">
+
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
             <form method="post" action="{% url 'contas_receber_excluir' f.id %}">
+
               {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
+
+              <input type="hidden" name="next" value="{{ request.path }}-tab=financeiro" />
+
               <button class="btn btn-danger" type="submit">Excluir</button>
+
             </form>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
+
   {% endfor %}
+
 {% endif %}
+
 <div class="modal fade" id="whatsappQuickModal" tabindex="-1">
+
   <div class="modal-dialog">
+
     <div class="modal-content">
+
       <div class="modal-header">
+
         <h5 class="modal-title">Enviar WhatsApp</h5>
+
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
       </div>
+
       <div class="modal-body">
+
         <form method="post" action="{% url 'alunos_whatsapp_message' aluno.id %}">
+
           {% csrf_token %}
+
           <input type="hidden" name="next" value="{{ request.path }}?tab=whatsapp" />
+
           <div class="mb-3">
+
             <label class="form-label">Mensagem</label>
+
             <textarea class="form-control" name="mensagem" rows="4" placeholder="Escreva a mensagem para o aluno"></textarea>
+
           </div>
+
           <div class="d-flex justify-content-end gap-2">
+
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
             <button class="btn btn-primary" type="submit">Enviar</button>
+
           </div>
+
         </form>
+
       </div>
+
     </div>
+
   </div>
+
 </div>
+
 {% endblock %}
+

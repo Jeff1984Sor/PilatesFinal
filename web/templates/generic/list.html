@@ -100,6 +100,12 @@
         <thead>
           <tr>
             <th>ID</th>
+            {% if model_name == 'contasreceber' %}
+              <th>Cliente</th>
+            {% endif %}
+            {% if model_name == 'contrato' %}
+              <th>Cliente</th>
+            {% endif %}
             {% for field in display_fields %}
               <th>{{ field.label|title }}</th>
             {% endfor %}
@@ -110,12 +116,37 @@
           {% for obj in page %}
             <tr>
               <td>{{ obj.id }}</td>
+              {% if model_name == 'contasreceber' %}
+                <td>{{ obj.contrato.cdAluno.dsNome|default:"-" }}</td>
+              {% endif %}
+              {% if model_name == 'contrato' %}
+                <td>{{ obj.cdAluno.dsNome|default:"-" }}</td>
+              {% endif %}
               {% for field in display_fields %}
                 <td>{{ obj|attr:field.name }}</td>
               {% endfor %}
               <td>
                 {% if model_name == 'aluno' %}
                   <a class="btn btn-sm btn-outline-secondary" href="/cadastros/alunos/{{ obj.id }}/ficha/">Ficha</a>
+                {% endif %}
+                {% if model_name == 'contasreceber' and obj.status != 'PAGO' %}
+                  <form method="post" action="{% url 'contas_receber_baixar' obj.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-success" type="submit">Dar baixa</button>
+                  </form>
+                {% endif %}
+                {% if model_name == 'contrato' %}
+                  <form method="post" action="{% url 'contrato_enviar_email' obj.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">Enviar por email</button>
+                  </form>
+                  <form method="post" action="{% url 'contratos_whatsapp' obj.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-success" type="submit">Enviar WhatsApp</button>
+                  </form>
+                  {% if obj.status != "ASSINADO_DIGITALMENTE" and obj.status != "ASSINADO" %}
+                    <a class="btn btn-sm btn-outline-success" href="{% url 'contrato_assinar_local' obj.id %}">Assinar</a>
+                  {% endif %}
                 {% endif %}
                 {% if allow_modal %}
                   <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal-{{ obj.id }}">Editar</button>

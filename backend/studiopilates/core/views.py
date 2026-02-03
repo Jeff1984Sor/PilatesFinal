@@ -14,6 +14,7 @@ from django.db.models import Q, Sum, Count, OuterRef, Subquery, Exists
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 
@@ -23,6 +24,40 @@ from shared.ai.gemini_client import extract_address_from_proof, extract_student_
 from .whatsapp_service import WhatsappService, WhatsappMessageType
 
 logger = logging.getLogger(__name__)
+
+
+def _contrato_assinatura_link(contrato):
+    token = services.gerar_token_contrato(contrato)
+    base_url = settings.SITE_BASE_URL.rstrip("/")
+    return f"{base_url}/contratos/assinar/{token}/"
+
+
+def _mensagem_contrato_whatsapp(contrato, link, is_new=False):
+    aluno = contrato.cdAluno
+    plano = contrato.cdPlano
+    unidade = contrato.cdUnidade
+    prefix = "Seu contrato foi gerado" if not is_new else "Seu contrato foi criado com sucesso"
+    return (
+        f"Oi {aluno.dsNome}! {prefix}. "
+        f"Contrato #{contrato.cdContrato} - Plano {plano} - Unidade {unidade}. "
+        f"Para ler e assinar: {link}"
+    )
+
+
+def _enviar_contrato_whatsapp(request, contrato, is_new=False):
+    service = WhatsappService()
+    telefone = service.get_aluno_phone(contrato.cdAluno)
+    if not telefone:
+        messages.warning(request, "Aluno sem telefone valido para WhatsApp.")
+        return False
+    link = _contrato_assinatura_link(contrato)
+    mensagem = _mensagem_contrato_whatsapp(contrato, link, is_new=is_new)
+    resp = service.send(contrato.cdAluno, telefone, mensagem, WhatsappMessageType.CONTRACT_LINK, contrato=contrato)
+    if resp.get("error"):
+        messages.warning(request, "Nao foi possivel enviar o contrato por WhatsApp.")
+        return False
+    messages.success(request, "Contrato enviado por WhatsApp.")
+    return True
 
 
 def _active_menu(path: str) -> str:
@@ -264,6 +299,17 @@ def dashboard(request):
     return render(request, "dashboard.html", context)
 
 @login_required
+@login_required
+@require_POST
+def contrato_whatsapp(request, pk):
+    contrato = get_object_or_404(models.Contrato, pk=pk)
+    next_url = request.POST.get("next")
+    _enviar_contrato_whatsapp(request, contrato, is_new=False)
+    if next_url:
+        return redirect(next_url)
+    return redirect(f"{reverse('alunos_detail', args=[contrato.cdAluno_id])}?tab=contratos")
+
+
 def aluno_detail(request, pk):
     aluno = get_object_or_404(models.Aluno, pk=pk)
     endereco = aluno.cdEndereco
@@ -330,11 +376,105 @@ def aluno_whatsapp_message(request, pk):
     aluno = get_object_or_404(models.Aluno, pk=pk)
     if request.method != "POST":
         return redirect("alunos_detail", pk=pk)
+    next_url = request.POST.get("next")
     form = forms.WhatsappMessageForm(request.POST)
     if not form.is_valid():
-        messages.error(request, "Informe uma mensagem válida para enviar.")
-        return redirect("alunos_detail", pk=aluno.pk)
+        messages.error(request, "Informe uma mensagem valida para enviar.")
+        return redirect(next_url or "alunos_detail", pk=aluno.pk) if not next_url else redirect(next_url)
     service = WhatsappService()
+    telefone = service.get_aluno_phone(aluno)
+    if not telefone:
+        messages.warning(request, "Aluno sem telefone valido cadastrado.")
+        return redirect(next_url or "alunos_detail", pk=aluno.pk) if not next_url else redirect(next_url)
+    resp = service.send(aluno, telefone, form.cleaned_data["mensagem"], WhatsappMessageType.MANUAL)
+    if resp.get("error"):
+        messages.warning(request, "Mensagem registrada, mas nao foi possivel enviar via WhatsApp.")
+    else:
+        messages.success(request, "Mensagem enviada e registrada.")
+    return redirect(next_url or "alunos_detail", pk=aluno.pk) if not next_url else redirect(next_url)
+
+
+@login_required
+@require_POST
+def aluno_evolucao_create(request, aluno_id):
+    aluno = get_object_or_404(models.Aluno, pk=aluno_id)
+    reserva_id = request.POST.get("reserva_id")
+    profissional_id = request.POST.get("profissional_id")
+    texto = (request.POST.get("texto") or "").strip()
+    if not texto or not reserva_id or not profissional_id:
+        messages.error(request, "Preencha todos os campos da evolucao.")
+        return redirect("alunos_detail", pk=aluno.pk)
+    reserva = get_object_or_404(models.Reserva, pk=reserva_id, aluno=aluno)
+    profissional = get_object_or_404(models.Profissional, pk=profissional_id)
+    models.EvolucaoAluno.objects.create(reserva=reserva, profissional=profissional, texto=texto)
+    messages.success(request, "Evolucao registrada.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=evolucao")
+
+
+@login_required
+@require_POST
+def aluno_evolucao_update(request, evolucao_id):
+    evolucao = get_object_or_404(models.EvolucaoAluno, pk=evolucao_id)
+    texto = (request.POST.get("texto") or "").strip()
+    if not texto:
+        messages.error(request, "Informe o texto da evolucao.")
+        return redirect(f"{reverse('alunos_detail', args=[evolucao.reserva.aluno_id])}?tab=evolucao")
+    evolucao.texto = texto
+    evolucao.save(update_fields=["texto"])
+    messages.success(request, "Evolucao atualizada.")
+    return redirect(f"{reverse('alunos_detail', args=[evolucao.reserva.aluno_id])}?tab=evolucao")
+
+
+@login_required
+@require_POST
+def aluno_evolucao_delete(request, evolucao_id):
+    evolucao = get_object_or_404(models.EvolucaoAluno, pk=evolucao_id)
+    aluno_id = evolucao.reserva.aluno_id
+    evolucao.delete()
+    messages.success(request, "Evolucao removida.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno_id])}?tab=evolucao")
+
+
+@login_required
+@require_POST
+def aluno_avaliacao_create(request, aluno_id):
+    aluno = get_object_or_404(models.Aluno, pk=aluno_id)
+    reserva_id = request.POST.get("reserva_id")
+    profissional_id = request.POST.get("profissional_id")
+    texto = (request.POST.get("texto") or "").strip()
+    if not texto or not reserva_id or not profissional_id:
+        messages.error(request, "Preencha todos os campos da avaliacao.")
+        return redirect("alunos_detail", pk=aluno.pk)
+    reserva = get_object_or_404(models.Reserva, pk=reserva_id, aluno=aluno)
+    profissional = get_object_or_404(models.Profissional, pk=profissional_id)
+    models.AvaliacaoAluno.objects.create(reserva=reserva, profissional=profissional, texto=texto)
+    messages.success(request, "Avaliacao registrada.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=avaliacao")
+
+
+@login_required
+@require_POST
+def aluno_avaliacao_update(request, avaliacao_id):
+    avaliacao = get_object_or_404(models.AvaliacaoAluno, pk=avaliacao_id)
+    texto = (request.POST.get("texto") or "").strip()
+    if not texto:
+        messages.error(request, "Informe o texto da avaliacao.")
+        return redirect(f"{reverse('alunos_detail', args=[avaliacao.reserva.aluno_id])}?tab=avaliacao")
+    avaliacao.texto = texto
+    avaliacao.save(update_fields=["texto"])
+    messages.success(request, "Avaliacao atualizada.")
+    return redirect(f"{reverse('alunos_detail', args=[avaliacao.reserva.aluno_id])}?tab=avaliacao")
+
+
+@login_required
+@require_POST
+def aluno_avaliacao_delete(request, avaliacao_id):
+    avaliacao = get_object_or_404(models.AvaliacaoAluno, pk=avaliacao_id)
+    aluno_id = avaliacao.reserva.aluno_id
+    avaliacao.delete()
+    messages.success(request, "Avaliacao removida.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno_id])}?tab=avaliacao")
+service = WhatsappService()
     telefone = service.get_aluno_phone(aluno)
     if not telefone:
         messages.warning(request, "Aluno sem telefone válido cadastrado.")
@@ -873,6 +1013,10 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
     query = request.GET.get("q", "").strip()
     order = request.GET.get("order", "id")
     qs = model.objects.all()
+    if model is models.ContasReceber:
+        qs = qs.select_related("contrato", "contrato__cdAluno")
+    if model is models.Contrato:
+        qs = qs.select_related("cdAluno", "cdPlano", "cdUnidade")
     if query:
         field_name = model._meta.fields[1].name
         qs = qs.filter(Q(**{f"{field_name}__icontains": query}) | Q(id__icontains=query))
@@ -2198,6 +2342,7 @@ def create_view(request, model, form_class, redirect_name):
                 else:
                     messages.warning(request, "Contrato criado, mas aluno sem email para assinatura.")
                     messages.success(request, "Contrato criado. Agende as aulas.")
+                _enviar_contrato_whatsapp(request, obj, is_new=True)
                 return redirect("contratos_agenda", pk=obj.id)
             obj = form.save()
             if model is models.ContasPagar:
@@ -2796,6 +2941,7 @@ def wizard_step5(request):
         else:
             messages.warning(request, "Contrato criado, mas aluno sem email para assinatura.")
             messages.success(request, "Contrato criado. Agende as aulas.")
+        _enviar_contrato_whatsapp(request, contrato, is_new=True)
         return redirect("contratos_agenda", pk=contrato.id)
     return render(
         request,

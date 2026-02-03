@@ -1,36 +1,86 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row g-3">
-  <div class="col-md-3">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="text-muted">Alunos</h6>
-        <div class="display-6">{{ alunos }}</div>
-      </div>
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Dashboard</div>
+      <h2 class="mayris-title">Visao geral do studio</h2>
+    </div>
+    <div class="mayris-page__actions">
+      <button class="btn btn-outline-secondary">Filtrar periodo</button>
+      <button class="btn btn-primary mayris-btn-primary">Exportar</button>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="text-muted">Contratos</h6>
-        <div class="display-6">{{ contratos }}</div>
-      </div>
+
+  <div class="mayris-kpi-grid">
+    <div class="mayris-card">
+      <div class="mayris-card__label">Alunos ativos</div>
+      <div class="mayris-card__value">{{ alunos }}</div>
+      <div class="mayris-card__trend is-up">+5% no mes</div>
+    </div>
+    <div class="mayris-card">
+      <div class="mayris-card__label">Contratos</div>
+      <div class="mayris-card__value">{{ contratos }}</div>
+      <div class="mayris-card__trend is-up">Estavel</div>
+    </div>
+    <div class="mayris-card">
+      <div class="mayris-card__label">Aulas hoje</div>
+      <div class="mayris-card__value">{{ reservas_hoje }}</div>
+      <div class="mayris-card__trend is-up">Agenda ativa</div>
+    </div>
+    <div class="mayris-card">
+      <div class="mayris-card__label">Receber em aberto</div>
+      <div class="mayris-card__value">{{ receber_aberto }}</div>
+      <div class="mayris-card__trend is-down">Ateno</div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="text-muted">Reservas Hoje</h6>
-        <div class="display-6">{{ reservas_hoje }}</div>
+
+  <div class="mayris-grid-2">
+    <div class="mayris-card mayris-card--chart">
+      <div class="mayris-card__header">
+        <div>
+          <div class="mayris-card__label">Aulas por mes</div>
+          <div class="mayris-card__meta">Ultimos 6 meses</div>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary">Periodo</button>
       </div>
+      <div class="mayris-chart-placeholder">Grafico</div>
+    </div>
+    <div class="mayris-card mayris-card--chart">
+      <div class="mayris-card__header">
+        <div>
+          <div class="mayris-card__label">Aulas por professor</div>
+          <div class="mayris-card__meta">Ranking</div>
+        </div>
+      </div>
+      <div class="mayris-chart-placeholder">Grafico</div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="text-muted">Receber em Aberto</h6>
-        <div class="display-6">{{ receber_aberto }}</div>
-      </div>
+
+  <div class="mayris-grid-3">
+    <div class="mayris-card">
+      <div class="mayris-card__label">Aniversariantes do mes</div>
+      <ul class="mayris-list">
+        <li>Maria Silva - 12/02</li>
+        <li>Joao Lima - 18/02</li>
+        <li>Paula Cruz - 24/02</li>
+      </ul>
+    </div>
+    <div class="mayris-card">
+      <div class="mayris-card__label">Proximas aulas</div>
+      <ul class="mayris-list">
+        <li>07:00 - Pilates Matriz</li>
+        <li>08:40 - Studio Reformer</li>
+        <li>10:20 - Matriz</li>
+      </ul>
+    </div>
+    <div class="mayris-card">
+      <div class="mayris-card__label">Alertas</div>
+      <ul class="mayris-list">
+        <li>3 contratos vencendo</li>
+        <li>2 turmas lotadas</li>
+        <li>1 professor ausente</li>
+      </ul>
     </div>
   </div>
 </div>

@@ -1,0 +1,36 @@
+<aside class="mayris-sidebar">
+  <div class="mayris-logo">
+    <div class="mayris-logo__mark">MP</div>
+    <div>
+      <div class="mayris-logo__name">Mayris Pilates</div>
+      <div class="mayris-logo__tag">Fitness premium</div>
+    </div>
+  </div>
+  <nav class="mayris-nav">
+    <a class="mayris-nav__item {% if active_menu == 'dashboard' %}is-active{% endif %}" href="/">
+      <span class="mayris-nav__dot"></span> Dashboard
+    </a>
+    <a class="mayris-nav__item {% if active_menu == 'agenda' %}is-active{% endif %}" href="/agenda/aulas/">
+      <span class="mayris-nav__dot"></span> Agenda
+    </a>
+    <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/alunos/">
+      <span class="mayris-nav__dot"></span> Alunos
+    </a>
+    <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/profissionais/">
+      <span class="mayris-nav__dot"></span> Profissionais
+    </a>
+    <a class="mayris-nav__item {% if active_menu == 'financeiro' %}is-active{% endif %}" href="/financeiro/contas-receber/">
+      <span class="mayris-nav__dot"></span> Financeiro
+    </a>
+    <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/contratos/">
+      <span class="mayris-nav__dot"></span> Contratos
+    </a>
+    <a class="mayris-nav__item {% if active_menu == 'configuracoes' %}is-active{% endif %}" href="{% url 'email_config' %}">
+      <span class="mayris-nav__dot"></span> Configuracoes
+    </a>
+  </nav>
+  <div class="mayris-sidebar__footer">
+    <a class="mayris-nav__item" href="{% url 'perfil' %}">Perfil</a>
+    <a class="mayris-nav__item" href="{% url 'logout' %}">Sair</a>
+  </div>
+</aside>

@@ -1,17 +1,20 @@
 :root {
-  --brand-900: #102a2a;
+  --brand-900: #0f1c1c;
   --brand-700: #1d4d4d;
   --brand-500: #2d7a7a;
   --brand-300: #7cc6c6;
-  --surface: #f6f7fb;
+  --surface: #f7f7f9;
   --surface-2: #ffffff;
-  --ink: #0f1c1c;
+  --ink: #2b2b2b;
+  --marsala: #7b2c2f;
+  --marsala-200: #e8c9cb;
+  --success: #1fbf74;
+  --border: #e5e7eb;
 }
 
 body {
   font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
-  background: radial-gradient(1200px 600px at 5% -10%, #e6f3f3 0%, var(--surface) 40%) no-repeat,
-              radial-gradient(900px 500px at 95% 0%, #f1f7ff 0%, var(--surface) 45%) no-repeat;
+  background: var(--surface);
   color: var(--ink);
 }
 
@@ -771,6 +774,396 @@ body {
   }
   .agenda-grid--month {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Mayris layout */
+.mayris-body {
+  background: var(--surface);
+}
+
+.mayris-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.mayris-sidebar {
+  width: 240px;
+  background: #141416;
+  color: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.mayris-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.mayris-logo__mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--marsala);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.mayris-logo__name {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.mayris-logo__tag {
+  font-size: 12px;
+  color: #c7c9d1;
+}
+
+.mayris-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mayris-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.mayris-nav__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3f3f46;
+}
+
+.mayris-nav__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mayris-nav__item.is-active {
+  background: rgba(123, 44, 47, 0.2);
+  color: #fff;
+}
+
+.mayris-nav__item.is-active .mayris-nav__dot {
+  background: var(--marsala);
+}
+
+.mayris-sidebar__footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mayris-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.mayris-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 28px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.mayris-topbar__search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(520px, 100%);
+}
+
+.mayris-topbar__label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+}
+
+.mayris-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mayris-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--marsala);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.mayris-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.mayris-content {
+  padding: 24px 28px 40px;
+}
+
+.mayris-breadcrumb {
+  margin-bottom: 16px;
+}
+
+.mayris-alert {
+  border-radius: 12px;
+}
+
+.mayris-btn-primary {
+  background: var(--marsala);
+  border-color: var(--marsala);
+}
+
+.mayris-btn-primary:hover {
+  background: #8a3538;
+  border-color: #8a3538;
+}
+
+.mayris-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.mayris-kicker {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #6b7280;
+}
+
+.mayris-title {
+  font-weight: 700;
+  margin: 6px 0 0;
+}
+
+.mayris-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.mayris-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.mayris-card__label {
+  font-size: 13px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mayris-card__value {
+  font-size: 28px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.mayris-card__trend {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.mayris-card__trend.is-up {
+  color: var(--success);
+}
+
+.mayris-card__trend.is-down {
+  color: #dc2626;
+}
+
+.mayris-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.mayris-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.mayris-card--chart {
+  min-height: 240px;
+}
+
+.mayris-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.mayris-card__meta {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.mayris-chart-placeholder {
+  height: 180px;
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.mayris-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+
+/* Login */
+.mayris-login {
+  background: var(--surface);
+  font-family: "Manrope", sans-serif;
+}
+
+.mayris-login__split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+.mayris-login__left {
+  background: linear-gradient(145deg, #5c1f22 0%, #7b2c2f 55%, #a23a3e 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px;
+  position: relative;
+}
+
+.mayris-login__brand {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.mayris-login__tag {
+  margin-top: 12px;
+  font-size: 16px;
+  max-width: 320px;
+}
+
+.mayris-login__glow {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  bottom: 40px;
+  right: 80px;
+  filter: blur(20px);
+}
+
+.mayris-login__right {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.mayris-login__card {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 18px;
+  padding: 30px;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.12);
+}
+
+.mayris-login__title {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.mayris-login__subtitle {
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+.mayris-login__form {
+  display: grid;
+  gap: 12px;
+}
+
+.mayris-field span {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mayris-login__link {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--marsala);
+  text-decoration: none;
+}
+
+@media (max-width: 1100px) {
+  .mayris-login__split {
+    grid-template-columns: 1fr;
+  }
+  .mayris-login__left {
+    min-height: 280px;
+  }
+  .mayris-sidebar {
+    display: none;
+  }
+  .mayris-topbar {
+    padding: 14px 16px;
   }
 }
 
