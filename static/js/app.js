@@ -830,6 +830,12 @@ function initAulasOperacao() {
   const avaliacaoList = root.querySelector(".js-avaliacao-list");
   const cobrancaList = root.querySelector(".js-cobranca-list");
   const historicoList = root.querySelector(".js-historico-list");
+  const remarcarTemplate = root.dataset.remarcarUrlTemplate || "";
+  const remarcarModalEl = document.getElementById("remarcarModal");
+  const remarcarDate = remarcarModalEl?.querySelector(".js-remarcar-date");
+  const remarcarTime = remarcarModalEl?.querySelector(".js-remarcar-time");
+  const remarcarProf = remarcarModalEl?.querySelector(".js-remarcar-profissional");
+  const remarcarSave = remarcarModalEl?.querySelector(".js-remarcar-save");
 
   let selected = null;
   let selectedId = null;
@@ -1092,15 +1098,28 @@ function initAulasOperacao() {
     if (!text) return;
     const csrf = getCookie("csrftoken");
     const urlAction = avaliacaoTemplate.replace("/0/", `/${selected.id}/`);
+    const editId = avaliacaoText.dataset.editId || "";
     fetch(urlAction, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-CSRFToken": csrf
       },
-      body: JSON.stringify({ texto: text, profissional_id: selected.profissional?.id })
-    }).then(() => {
+      body: JSON.stringify({
+        texto: text,
+        profissional_id: selected.profissional?.id,
+        acao: editId ? "update" : "create",
+        avaliacao_id: editId ? parseInt(editId, 10) : null,
+      })
+    }).then(async (resp) => {
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        alert(data.error || "Nao foi possivel salvar a avaliacao.");
+        return;
+      }
       avaliacaoText.value = "";
+      avaliacaoText.dataset.editId = "";
+      if (saveAvaliacaoBtn) saveAvaliacaoBtn.textContent = "Salvar avaliacao";
       loadAvaliacoes();
     });
   }
@@ -1126,6 +1145,10 @@ function initAulasOperacao() {
             <div class="aulas-note">
               <div class="aulas-note__meta">${item.dt_avaliacao ? new Date(item.dt_avaliacao).toLocaleString("pt-BR") : ""} ${item.profissional ? "- " + item.profissional : ""}</div>
               <div class="aulas-note__text">${item.texto}</div>
+              <div class="aulas-quick-actions">
+                <button class="btn btn-sm btn-outline-secondary js-avaliacao-edit" data-id="${item.id}">Editar</button>
+                <button class="btn btn-sm btn-outline-danger js-avaliacao-delete" data-id="${item.id}">Excluir</button>
+              </div>
             </div>
           `;
         }
@@ -1142,6 +1165,35 @@ function initAulasOperacao() {
         return "";
       })
       .join("");
+    if (type === "avaliacao") {
+      container.querySelectorAll(".js-avaliacao-edit").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const note = btn.closest(".aulas-note");
+          const textEl = note?.querySelector(".aulas-note__text");
+          if (!avaliacaoText || !textEl) return;
+          avaliacaoText.value = textEl.textContent.trim();
+          avaliacaoText.dataset.editId = btn.dataset.id || "";
+          if (saveAvaliacaoBtn) saveAvaliacaoBtn.textContent = "Atualizar avaliacao";
+          avaliacaoText.focus();
+        });
+      });
+      container.querySelectorAll(".js-avaliacao-delete").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (!selected) return;
+          if (!confirm("Excluir avaliacao?")) return;
+          const csrf = getCookie("csrftoken");
+          const urlAction = avaliacaoTemplate.replace("/0/", `/${selected.id}/`);
+          fetch(urlAction, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrf
+            },
+            body: JSON.stringify({ acao: "delete", avaliacao_id: parseInt(btn.dataset.id || "0", 10) })
+          }).then(() => loadAvaliacoes());
+        });
+      });
+    }
   }
 
   function renderCobranca(container, items) {
@@ -1205,6 +1257,48 @@ function initAulasOperacao() {
     fetch(urlAction)
       .then((resp) => resp.json())
       .then((data) => renderCobranca(cobrancaList, data.items || []));
+  }
+
+  function openRemarcarModal() {
+    if (!selected || !remarcarModalEl || !remarcarDate || !remarcarTime) return;
+    const start = new Date(selected.dt_inicio);
+    const dateValue = start.toISOString().slice(0, 10);
+    const timeValue = start.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    remarcarDate.value = dateValue;
+    remarcarTime.value = timeValue;
+    if (remarcarProf) remarcarProf.value = "";
+    const modal = bootstrap.Modal.getOrCreateInstance(remarcarModalEl);
+    modal.show();
+  }
+
+  function saveRemarcar() {
+    if (!selected || !remarcarTemplate || !remarcarDate || !remarcarTime) return;
+    const data = remarcarDate.value;
+    const hora = remarcarTime.value;
+    if (!data || !hora) {
+      alert("Informe data e hora.");
+      return;
+    }
+    const profissionalId = remarcarProf?.value || "";
+    const csrf = getCookie("csrftoken");
+    const urlAction = remarcarTemplate.replace("/0/", `/${selected.id}/`);
+    fetch(urlAction, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrf
+      },
+      body: JSON.stringify({ data: data, hora_inicio: hora, profissional_id: profissionalId || null })
+    }).then(async (resp) => {
+      if (!resp.ok) {
+        const payload = await resp.json().catch(() => ({}));
+        alert(payload.error || "Nao foi possivel remarcar.");
+        return;
+      }
+      const modal = bootstrap.Modal.getInstance(remarcarModalEl);
+      if (modal) modal.hide();
+      loadData();
+    });
   }
 
   function loadHistorico() {
@@ -1283,6 +1377,10 @@ function initAulasOperacao() {
   root.querySelectorAll(".js-drawer-action").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (!selected) return;
+      if (btn.dataset.action === "remarcar") {
+        openRemarcarModal();
+        return;
+      }
       updateStatus(selected, btn.dataset.action || "");
     });
   });
@@ -1293,6 +1391,7 @@ function initAulasOperacao() {
   if (saveBtn) saveBtn.addEventListener("click", () => saveEvolucao(false));
   if (saveFinalBtn) saveFinalBtn.addEventListener("click", () => saveEvolucao(true));
   if (saveAvaliacaoBtn) saveAvaliacaoBtn.addEventListener("click", saveAvaliacao);
+  if (remarcarSave) remarcarSave.addEventListener("click", saveRemarcar);
 
   root.querySelectorAll(".js-evolucao-chip").forEach((btn) => {
     btn.addEventListener("click", () => {

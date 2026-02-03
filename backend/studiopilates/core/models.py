@@ -376,6 +376,42 @@ class AvaliacaoAluno(models.Model):
         return f"Avaliacao {self.reserva_id}"
 
 
+class TotalpassWebhookEvent(models.Model):
+    event_id = models.CharField(max_length=100, blank=True)
+    slot_id = models.CharField(max_length=100, blank=True)
+    user_document = models.CharField(max_length=20, blank=True)
+    status = models.CharField(max_length=30, blank=True)
+    payload = models.JSONField()
+    received_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    error = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-received_at"]
+
+    def __str__(self):
+        return f"Totalpass {self.event_id or self.slot_id or self.id}"
+
+
+class TotalpassConfiguracao(models.Model):
+    unidade = models.OneToOneField(Unidade, on_delete=models.CASCADE, related_name="totalpass_configuracao")
+    ativo = models.BooleanField(default=True)
+    partner_api_key = models.CharField(max_length=200, blank=True)
+    place_api_key = models.CharField(max_length=200, blank=True)
+    place_id = models.CharField(max_length=120, blank=True)
+    webhook_token = models.CharField(max_length=200, blank=True)
+    criar_aluno_automatico = models.BooleanField(default=True)
+    somente_dia = models.BooleanField(default=True)
+    dtCadastro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Configuracao TotalPass"
+        verbose_name_plural = "Configuracoes TotalPass"
+
+    def __str__(self):
+        return f"TotalPass {self.unidade}"
+
+
 class ContasReceber(models.Model):
     STATUS_CHOICES = [
         ("ABERTO", "ABERTO"),

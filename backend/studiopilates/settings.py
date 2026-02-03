@@ -106,3 +106,6 @@ WASENDER_API_TOKEN = os.getenv(
 )
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://localhost:8000")
 WHATSAPP_SCHEDULER_ENABLED = os.getenv("WHATSAPP_SCHEDULER_ENABLED", "True") == "True"
+TOTALPASS_WEBHOOK_TOKEN = os.getenv("TOTALPASS_WEBHOOK_TOKEN", "")
+TOTALPASS_UNIDADE_ID = os.getenv("TOTALPASS_UNIDADE_ID", "")
+TOTALPASS_BOOKING_BASE_URL = os.getenv("TOTALPASS_BOOKING_BASE_URL", "https://booking-api.totalpass.com")

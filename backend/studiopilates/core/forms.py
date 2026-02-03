@@ -83,6 +83,12 @@ class BaseAutoCdForm(forms.ModelForm):
             "senha": "Senha",
             "use_tls": "Usar TLS",
             "remetente": "Email Remetente",
+            "partner_api_key": "Partner API Key",
+            "place_api_key": "Place API Key",
+            "place_id": "Place ID",
+            "webhook_token": "Webhook Token",
+            "criar_aluno_automatico": "Cadastrar aluno automaticamente",
+            "somente_dia": "Sincronizar apenas hoje",
         }
         for name, field in self.fields.items():
             is_fk = isinstance(field, forms.ModelChoiceField)
@@ -315,6 +321,31 @@ class WhatsappConfiguracaoForm(BaseAutoCdForm):
             "horario_aviso_renovacao",
             "template_aviso_renovacao",
             "variaveis_template",
+        ]
+
+
+class TotalpassConfiguracaoForm(BaseAutoCdForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        api_fields = ["partner_api_key", "place_api_key", "webhook_token"]
+        for name in api_fields:
+            field = self.fields.get(name)
+            if field:
+                field.widget = forms.PasswordInput(render_value=True, attrs={"class": "form-control"})
+        place_id = self.fields.get("place_id")
+        if place_id:
+            place_id.widget.attrs["placeholder"] = "ID do place no TotalPass"
+
+    class Meta:
+        model = models.TotalpassConfiguracao
+        fields = [
+            "ativo",
+            "partner_api_key",
+            "place_api_key",
+            "place_id",
+            "webhook_token",
+            "criar_aluno_automatico",
+            "somente_dia",
         ]
 
 

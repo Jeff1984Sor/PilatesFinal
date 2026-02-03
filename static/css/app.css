@@ -1277,6 +1277,16 @@ body {
   box-shadow: 0 18px 40px rgba(16, 42, 42, 0.2);
 }
 
+.aulas-header,
+.aulas-header h1,
+.aulas-header h2,
+.aulas-header h3,
+.aulas-header p,
+.aulas-header small,
+.aulas-header span {
+  color: #ffffff;
+}
+
 .aulas-header .aulas-kicker,
 .aulas-header .aulas-range,
 .aulas-header .aulas-clock,

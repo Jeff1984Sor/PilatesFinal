@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3 class="mb-2">Configuracao TotalPass</h3>
+    <p class="text-muted mb-4">Informe as credenciais e regras para integrar os agendamentos do TotalPass.</p>
+    <form method="get" class="mb-4">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-4">
+          <label class="form-label" for="unidade-select">Unidade</label>
+          <select name="unidade" id="unidade-select" class="form-select" onchange="this.form.submit()">
+            {% for item in unidades %}
+              <option value="{{ item.id }}" {% if item.id == unidade.id %}selected{% endif %}>{{ item.dsUnidade }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.partner_api_key.id_for_label }}">{{ form.partner_api_key.label }}</label>
+          {{ form.partner_api_key }}
+          <small class="text-muted d-block mt-1">Chave Partner API para autenticar no TotalPass.</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.place_api_key.id_for_label }}">{{ form.place_api_key.label }}</label>
+          {{ form.place_api_key }}
+          <small class="text-muted d-block mt-1">Chave Place API do local.</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.place_id.id_for_label }}">{{ form.place_id.label }}</label>
+          {{ form.place_id }}
+          <small class="text-muted d-block mt-1">Use o ID do place informado no payload do TotalPass.</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.webhook_token.id_for_label }}">{{ form.webhook_token.label }}</label>
+          {{ form.webhook_token }}
+          <small class="text-muted d-block mt-1">Token enviado no header X-Totalpass-Token.</small>
+        </div>
+      </div>
+
+      <hr class="my-4" />
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="form-check">
+            {{ form.ativo }}
+            <label class="form-check-label" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-check">
+            {{ form.criar_aluno_automatico }}
+            <label class="form-check-label" for="{{ form.criar_aluno_automatico.id_for_label }}">{{ form.criar_aluno_automatico.label }}</label>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-check">
+            {{ form.somente_dia }}
+            <label class="form-check-label" for="{{ form.somente_dia.id_for_label }}">{{ form.somente_dia.label }}</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <p class="text-muted mb-2">Webhook:</p>
+        <code>{{ request.scheme }}://{{ request.get_host }}{% url 'totalpass_webhook' %}</code>
+      </div>
+
+      <div class="d-flex align-items-center gap-2 mt-4">
+        <button class="btn btn-primary" type="submit">Salvar</button>
+        <span class="text-muted small">Aplica para a unidade selecionada.</span>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

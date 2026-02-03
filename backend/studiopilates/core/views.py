@@ -17,8 +17,9 @@ from django.utils import timezone
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 
-from . import forms, models, services
+from . import forms, models, services, totalpass_service
 from .signals import ensure_profissional_for_user
 from shared.ai.gemini_client import extract_address_from_proof, extract_student_from_document
 from .whatsapp_service import WhatsappService, WhatsappMessageType
@@ -2098,6 +2099,229 @@ def _parse_json_body(request):
     return request.POST
 
 
+def _normalize_cpf(value):
+    digits = re.sub(r"\D", "", value or "")
+    if len(digits) != 11:
+        return digits, ""
+    masked = f"{digits[:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9:]}"
+    return digits, masked
+
+
+def _parse_totalpass_datetime(payload):
+    slot = payload.get("slot") or {}
+    date_raw = slot.get("date") or slot.get("start_at") or slot.get("startAt") or ""
+    time_raw = slot.get("start_time") or slot.get("startTime") or slot.get("time") or ""
+
+    if not date_raw:
+        return None, "Data nao informada no payload."
+
+    try:
+        if "T" in date_raw:
+            base = datetime.fromisoformat(date_raw.replace("Z", "+00:00"))
+        else:
+            base = datetime.strptime(date_raw, "%Y-%m-%d")
+    except ValueError:
+        return None, "Data invalida no payload."
+
+    if time_raw:
+        try:
+            time_value = datetime.strptime(time_raw, "%H:%M").time()
+            base = datetime.combine(base.date(), time_value)
+        except ValueError:
+            return None, "Hora invalida no payload."
+    elif base.time() == datetime.min.time():
+        return None, "Horario nao informado no payload."
+
+    if timezone.is_naive(base):
+        base = timezone.make_aware(base)
+    return base, ""
+
+
+def _get_totalpass_config(payload):
+    place_id = ""
+    place = payload.get("place") or {}
+    for key in ["place", "id", "place_id", "uuid"]:
+        if place.get(key):
+            place_id = place.get(key)
+            break
+    if place_id:
+        cfg = models.TotalpassConfiguracao.objects.filter(place_id=place_id).select_related("unidade").first()
+        if cfg:
+            return cfg
+    unidade_id = getattr(settings, "TOTALPASS_UNIDADE_ID", "") or ""
+    if unidade_id:
+        return models.TotalpassConfiguracao.objects.filter(unidade_id=unidade_id).select_related("unidade").first()
+    return models.TotalpassConfiguracao.objects.select_related("unidade").first()
+
+
+def _resolve_totalpass_unidade(payload):
+    cfg = _get_totalpass_config(payload)
+    if cfg and cfg.unidade_id:
+        return cfg.unidade
+    unidade_id = getattr(settings, "TOTALPASS_UNIDADE_ID", "") or ""
+    if unidade_id:
+        return models.Unidade.objects.filter(pk=unidade_id).first()
+    return models.Unidade.objects.filter(dsUnidade__iexact="Matriz").first() or models.Unidade.objects.filter(dsUnidade__icontains="Matriz").first()
+
+
+def _resolve_totalpass_tipo_servico(title):
+    if not title:
+        return None
+    return (
+        models.TipoServico.objects.filter(dsTipoServico__iexact=title).first()
+        or models.TipoServico.objects.filter(dsTipoServico__icontains=title).first()
+    )
+
+
+def _build_totalpass_payload_from_slot(slot):
+    if not isinstance(slot, dict):
+        return {}
+    if slot.get("event") or slot.get("user"):
+        if slot.get("slot"):
+            return slot
+        payload = dict(slot)
+        payload["slot"] = slot.get("slot") or {}
+        return payload
+    event_title = slot.get("event_title") or slot.get("eventTitle") or slot.get("title") or ""
+    user_name = slot.get("user_name") or slot.get("userName") or ""
+    user_email = slot.get("user_email") or slot.get("userEmail") or ""
+    user_doc = slot.get("document_number") or slot.get("documentNumber") or slot.get("userDocument") or ""
+    user_phone = slot.get("phone") or slot.get("userPhone") or ""
+    place_id = slot.get("place_id") or slot.get("placeId") or ""
+    return {
+        "event": {"id": slot.get("event_id") or slot.get("eventId") or "", "title": event_title},
+        "place": {"place": place_id},
+        "user": {
+            "name": user_name,
+            "email": user_email,
+            "phone": user_phone,
+            "document_number": user_doc,
+            "document_type": "cpf",
+        },
+        "slot": {
+            "id": slot.get("slot_id") or slot.get("id") or "",
+            "status": slot.get("status") or slot.get("slot_status") or "",
+            "date": slot.get("date") or slot.get("start_at") or slot.get("startAt") or "",
+            "start_time": slot.get("start_time") or slot.get("startTime") or slot.get("time") or "",
+        },
+    }
+
+
+def _process_totalpass_payload(payload, cfg, event_obj=None):
+    event_id = (payload.get("event") or {}).get("id") or ""
+    slot_id = (payload.get("slot") or {}).get("id") or ""
+    user_document = (payload.get("user") or {}).get("document_number") or ""
+    slot_status = (payload.get("slot") or {}).get("status") or ""
+
+    if not event_obj:
+        event_obj = models.TotalpassWebhookEvent.objects.create(
+            event_id=event_id,
+            slot_id=slot_id,
+            user_document=user_document,
+            status=slot_status,
+            payload=payload or {},
+        )
+    else:
+        event_obj.event_id = event_id
+        event_obj.slot_id = slot_id
+        event_obj.user_document = user_document
+        event_obj.status = slot_status
+        event_obj.payload = payload or {}
+        event_obj.save(update_fields=["event_id", "slot_id", "user_document", "status", "payload"])
+
+    dt_inicio, err = _parse_totalpass_datetime(payload)
+    if err:
+        event_obj.error = err
+        event_obj.save(update_fields=["error"])
+        return None, err
+
+    if cfg and cfg.somente_dia:
+        if dt_inicio.date() != timezone.localdate():
+            event_obj.error = "Fora do dia atual."
+            event_obj.save(update_fields=["error"])
+            return None, "Fora do dia atual."
+
+    unidade = cfg.unidade if cfg and cfg.unidade_id else _resolve_totalpass_unidade(payload)
+    if not unidade:
+        event_obj.error = "Unidade Matriz nao encontrada."
+        event_obj.save(update_fields=["error"])
+        return None, event_obj.error
+
+    tipo_servico = _resolve_totalpass_tipo_servico((payload.get("event") or {}).get("title"))
+    if not tipo_servico:
+        event_obj.error = "Tipo de servico nao encontrado."
+        event_obj.save(update_fields=["error"])
+        return None, event_obj.error
+
+    cpf_digits, cpf_mask = _normalize_cpf(user_document)
+    aluno = (
+        models.Aluno.objects.filter(dsCPF=cpf_mask).first()
+        or models.Aluno.objects.filter(dsCPF=cpf_digits).first()
+    )
+    if not aluno and cfg and cfg.criar_aluno_automatico is False:
+        event_obj.error = "Aluno nao encontrado pelo CPF."
+        event_obj.save(update_fields=["error"])
+        return None, event_obj.error
+    if not aluno:
+        nome = (payload.get("user") or {}).get("name") or "Aluno TotalPass"
+        email = (payload.get("user") or {}).get("email") or ""
+        telefone = (payload.get("user") or {}).get("phone") or ""
+        max_cd = models.Aluno.objects.order_by("-cdAluno").values_list("cdAluno", flat=True).first() or 0
+        aluno = models.Aluno.objects.create(
+            cdAluno=max_cd + 1,
+            dsNome=nome,
+            dsCPF=cpf_mask or cpf_digits,
+            dsEmail=email,
+            cdUnidade=unidade,
+        )
+        if telefone:
+            max_tel = models.TelefoneAluno.objects.order_by("-cdTelefone").values_list("cdTelefone", flat=True).first() or 0
+            models.TelefoneAluno.objects.create(cdTelefone=max_tel + 1, cdAluno=aluno, dsTelefone=telefone)
+
+    duracao_min = unidade.duracao_aula_minutos or 50
+    hora_fim = (dt_inicio + timedelta(minutes=duracao_min)).time()
+
+    aula, _ = models.AulaSessao.objects.get_or_create(
+        unidade=unidade,
+        tipoServico=tipo_servico,
+        profissional=None,
+        data=dt_inicio.date(),
+        horaInicio=dt_inicio.time().replace(second=0, microsecond=0),
+        horaFim=hora_fim,
+        defaults={"capacidade": unidade.capacidade},
+    )
+
+    status_lower = str(slot_status).lower()
+    if status_lower in ["canceled", "cancelled", "inactive"]:
+        reserva = models.Reserva.objects.filter(aluno=aluno, aulaSessao=aula).first()
+        if reserva:
+            reserva.status = "CANCELADA"
+            reserva.save(update_fields=["status"])
+        event_obj.processed_at = timezone.now()
+        event_obj.save(update_fields=["processed_at"])
+        return reserva, ""
+
+    capacidade = aula.capacidade_efetiva()
+    total = models.Reserva.objects.filter(aulaSessao=aula, status="RESERVADA").count()
+    if capacidade and total >= capacidade:
+        event_obj.error = "Capacidade excedida."
+        event_obj.save(update_fields=["error"])
+        return None, event_obj.error
+
+    reserva, created = models.Reserva.objects.get_or_create(
+        aluno=aluno,
+        aulaSessao=aula,
+        defaults={"status": "RESERVADA"},
+    )
+    if not created and reserva.status != "RESERVADA":
+        reserva.status = "RESERVADA"
+        reserva.save(update_fields=["status"])
+
+    event_obj.processed_at = timezone.now()
+    event_obj.save(update_fields=["processed_at"])
+    return reserva, ""
+
+
 @login_required
 def aula_evolucao_api(request, reserva_id):
     reserva = get_object_or_404(models.Reserva, pk=reserva_id)
@@ -2164,6 +2388,36 @@ def aula_avaliacoes_api(request, reserva_id):
         payload = _parse_json_body(request)
         texto = (payload.get("texto") or "").strip()
         profissional_id = payload.get("profissional_id")
+        acao = (payload.get("acao") or "create").lower()
+        avaliacao_id = payload.get("avaliacao_id")
+
+        if acao in ["update", "delete"]:
+            avaliacao = (
+                models.AvaliacaoAluno.objects.filter(
+                    pk=avaliacao_id,
+                    reserva__aluno=reserva.aluno,
+                )
+                .select_related("profissional")
+                .first()
+            )
+            if not avaliacao:
+                return JsonResponse({"error": "Avaliacao nao encontrada."}, status=404)
+            if acao == "delete":
+                avaliacao.delete()
+                return JsonResponse({"ok": True})
+            if not texto:
+                return JsonResponse({"error": "Texto obrigatorio."}, status=400)
+            avaliacao.texto = texto
+            avaliacao.save(update_fields=["texto"])
+            return JsonResponse(
+                {
+                    "id": avaliacao.id,
+                    "reserva_id": avaliacao.reserva_id,
+                    "texto": avaliacao.texto,
+                    "dt_avaliacao": avaliacao.dtAvaliacao.isoformat(),
+                    "profissional": avaliacao.profissional.profissional if avaliacao.profissional else None,
+                }
+            )
         if not texto:
             return JsonResponse({"error": "Texto obrigatorio."}, status=400)
 
@@ -2288,6 +2542,102 @@ def aula_status_api(request, reserva_id):
     reserva.status = status_map[acao]
     reserva.save(update_fields=["status"])
     return JsonResponse({"reserva_id": reserva.id, "status": reserva.status})
+
+
+@login_required
+def aula_remarcar_api(request, reserva_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Metodo invalido."}, status=405)
+    payload = _parse_json_body(request)
+    data_str = (payload.get("data") or "").strip()
+    hora_str = (payload.get("hora_inicio") or "").strip()
+    profissional_id = payload.get("profissional_id")
+    if not data_str or not hora_str:
+        return JsonResponse({"error": "Informe data e hora."}, status=400)
+    try:
+        nova_data = datetime.strptime(data_str, "%Y-%m-%d").date()
+        nova_hora_inicio = datetime.strptime(hora_str, "%H:%M").time()
+    except ValueError:
+        return JsonResponse({"error": "Data ou hora invalida."}, status=400)
+
+    reserva = get_object_or_404(models.Reserva.objects.select_related("aulaSessao", "aulaSessao__unidade", "aulaSessao__tipoServico", "aulaSessao__profissional"), pk=reserva_id)
+    aula = reserva.aulaSessao
+    if not aula:
+        return JsonResponse({"error": "Aula nao encontrada."}, status=404)
+    profissional = aula.profissional
+    if profissional_id:
+        profissional = models.Profissional.objects.filter(pk=profissional_id).first()
+        if not profissional:
+            return JsonResponse({"error": "Profissional invalido."}, status=400)
+
+    duracao_min = aula.unidade.duracao_aula_minutos if aula.unidade else 50
+    if aula.horaFim and aula.horaInicio:
+        base_inicio = datetime.combine(date.today(), aula.horaInicio)
+        base_fim = datetime.combine(date.today(), aula.horaFim)
+        diff_min = int((base_fim - base_inicio).total_seconds() / 60)
+        if diff_min > 0:
+            duracao_min = diff_min
+    hora_fim = (datetime.combine(nova_data, nova_hora_inicio) + timedelta(minutes=duracao_min)).time()
+
+    nova_sessao, _ = models.AulaSessao.objects.get_or_create(
+        unidade=aula.unidade,
+        tipoServico=aula.tipoServico,
+        profissional=profissional,
+        data=nova_data,
+        horaInicio=nova_hora_inicio,
+        horaFim=hora_fim,
+        defaults={"capacidade": aula.capacidade},
+    )
+
+    capacidade = nova_sessao.capacidade_efetiva()
+    total = (
+        models.Reserva.objects.filter(aulaSessao=nova_sessao, status="RESERVADA")
+        .exclude(pk=reserva.pk)
+        .count()
+    )
+    if capacidade and total >= capacidade:
+        return JsonResponse({"error": "Sem capacidade para este horario."}, status=400)
+
+    antiga_sessao = reserva.aulaSessao
+    reserva.aulaSessao = nova_sessao
+    reserva.status = "RESERVADA"
+    reserva.save(update_fields=["aulaSessao", "status"])
+
+    if antiga_sessao and not models.Reserva.objects.filter(aulaSessao=antiga_sessao).exists():
+        antiga_sessao.delete()
+
+    inicio_dt = timezone.make_aware(datetime.combine(nova_data, nova_sessao.horaInicio))
+    fim_dt = timezone.make_aware(datetime.combine(nova_data, nova_sessao.horaFim))
+      return JsonResponse(
+          {
+              "ok": True,
+              "reserva_id": reserva.id,
+              "dt_inicio": inicio_dt.isoformat(),
+              "dt_fim": fim_dt.isoformat(),
+          }
+      )
+
+
+@csrf_exempt
+@require_POST
+def totalpass_webhook(request):
+    payload = _parse_json_body(request)
+    cfg = _get_totalpass_config(payload)
+    token = ""
+    if cfg and cfg.webhook_token:
+        token = cfg.webhook_token
+    if not token:
+        token = getattr(settings, "TOTALPASS_WEBHOOK_TOKEN", "") or ""
+    if token:
+        header_token = request.headers.get("X-Totalpass-Token") or request.headers.get("x-totalpass-token") or ""
+        if header_token != token:
+            return JsonResponse({"error": "Token invalido."}, status=403)
+    if cfg and cfg.ativo is False:
+        return JsonResponse({"ok": True, "warning": "Integracao desativada."}, status=202)
+    reserva, err = _process_totalpass_payload(payload, cfg)
+    if err:
+        return JsonResponse({"error": err}, status=400)
+    return JsonResponse({"ok": True, "reserva_id": reserva.id if reserva else None})
 
 
 def create_view(request, model, form_class, redirect_name):
@@ -3231,15 +3581,50 @@ def whatsapp_config_view(request):
         messages.error(request, "Corrija os erros antes de salvar.")
     else:
         form = forms.WhatsappConfiguracaoForm(instance=configuracao)
+      return render(
+          request,
+          "configuracoes/whatsapp.html",
+          {
+              "form": form,
+              "unidades": unidades,
+              "unidade": unidade,
+              "title": "Configuracao de WhatsApp",
+              "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
+              "active_menu": "configuracoes",
+          },
+      )
+
+
+def totalpass_config_view(request):
+    unidades = models.Unidade.objects.order_by("cdUnidade").all()
+    if not unidades:
+        messages.warning(request, "Cadastre ao menos uma unidade antes de configurar o TotalPass.")
+        return redirect("dashboard")
+    unidade_id = request.GET.get("unidade")
+    unidade = unidades.filter(pk=unidade_id).first() if unidade_id else unidades.first()
+    if not unidade:
+        unidade = unidades.first()
+    configuracao = models.TotalpassConfiguracao.objects.filter(unidade=unidade).first()
+    if request.method == "POST":
+        form = forms.TotalpassConfiguracaoForm(request.POST, instance=configuracao)
+        if form.is_valid():
+            cfg = form.save(commit=False)
+            cfg.unidade = unidade
+            cfg.save()
+            messages.success(request, "Configuracoes do TotalPass salvas.")
+            return redirect(f"{reverse('totalpass_config')}?unidade={unidade.id}")
+        messages.error(request, "Corrija os erros antes de salvar.")
+    else:
+        form = forms.TotalpassConfiguracaoForm(instance=configuracao)
     return render(
         request,
-        "configuracoes/whatsapp.html",
+        "configuracoes/totalpass.html",
         {
             "form": form,
             "unidades": unidades,
             "unidade": unidade,
-            "title": "Configuracao de WhatsApp",
-            "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
+            "title": "Configuracao TotalPass",
+            "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("TotalPass", "#")],
             "active_menu": "configuracoes",
         },
     )

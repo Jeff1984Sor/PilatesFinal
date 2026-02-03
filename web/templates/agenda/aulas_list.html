@@ -2,7 +2,7 @@
 {% load core_extras %}
 {% now "Y-m-d" as today_str %}
 {% block content %}
-<div class="aulas-shell" data-operacao-root data-operacao-url="{% url 'aulas_operacao_api' %}" data-evolucao-url-template="{% url 'aulas_evolucao_api' 0 %}" data-avaliacao-url-template="{% url 'aulas_avaliacoes_api' 0 %}" data-cobranca-url-template="{% url 'aulas_cobranca_api' 0 %}" data-historico-url-template="{% url 'aulas_historico_api' 0 %}" data-status-url-template="{% url 'aulas_status_api' 0 %}">
+<div class="aulas-shell" data-operacao-root data-operacao-url="{% url 'aulas_operacao_api' %}" data-evolucao-url-template="{% url 'aulas_evolucao_api' 0 %}" data-avaliacao-url-template="{% url 'aulas_avaliacoes_api' 0 %}" data-cobranca-url-template="{% url 'aulas_cobranca_api' 0 %}" data-historico-url-template="{% url 'aulas_historico_api' 0 %}" data-status-url-template="{% url 'aulas_status_api' 0 %}" data-remarcar-url-template="{% url 'aulas_remarcar_api' 0 %}">
   <div class="aulas-header">
     <div>
       <div class="aulas-kicker">Voce esta em: Gestao das Aulas</div>
@@ -129,7 +129,6 @@
     <div class="aulas-drawer__tabs">
       <button class="aulas-tab is-active" data-tab="evolucao">Evolucao</button>
       <button class="aulas-tab" data-tab="avaliacoes">Avalia&ccedil;&otilde;es</button>
-      <button class="aulas-tab" data-tab="historico">Historico</button>
       <button class="aulas-tab" data-tab="cobranca">Cobranca</button>
     </div>
 
@@ -156,15 +155,49 @@
       <div class="aulas-drawer__list js-avaliacao-list"></div>
     </div>
 
-    <div class="aulas-drawer__panel d-none" data-panel="historico">
-      <div class="aulas-drawer__list js-historico-list"></div>
-    </div>
-
     <div class="aulas-drawer__panel d-none" data-panel="cobranca">
+      <div class="aulas-label">Recebimentos</div>
       <p class="text-muted js-drawer-cobranca">Sem cobrancas pendentes.</p>
       <div class="aulas-drawer__list js-cobranca-list"></div>
     </div>
   </aside>
+</div>
+
+<div class="modal fade" id="remarcarModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Remarcar aula</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-form">
+          <p>
+            <label>Data</label>
+            <input type="date" class="form-control js-remarcar-date" />
+          </p>
+          <p>
+            <label>Hora inicio</label>
+            <input type="time" class="form-control js-remarcar-time" />
+          </p>
+          <p>
+            <label>Profissional</label>
+            <select class="form-select js-remarcar-profissional">
+              <option value="">Manter profissional atual</option>
+              {% for prof in profissionais %}
+                <option value="{{ prof.id }}">{{ prof.profissional }}</option>
+              {% endfor %}
+            </select>
+          </p>
+          <p class="text-muted small">A duracao segue o padrao da unidade.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary js-remarcar-save">Salvar</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="modal fade" id="createModal" tabindex="-1">
