@@ -334,7 +334,7 @@ def dashboard(request):
         .annotate(total=Count("id"))
         .order_by("month")
     )
-    aulas_por_mes_map = {item["month"].date(): item["total"] for item in aulas_por_mes_raw if item["month"]}
+    aulas_por_mes_map = {item["month"]: item["total"] for item in aulas_por_mes_raw if item["month"]}
     aulas_por_mes = []
     for i in range(0, 6):
         month_start = _shift_month(start_month, i)
