@@ -862,9 +862,41 @@ body {
   color: #fff;
 }
 
-.mayris-nav__item.is-active .mayris-nav__dot {
-  background: var(--marsala);
-}
+  .mayris-nav__item.is-active .mayris-nav__dot {
+    background: var(--marsala);
+  }
+
+  .mayris-accordion {
+    display: block;
+  }
+
+  .mayris-accordion summary {
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .mayris-accordion summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mayris-accordion__items {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mayris-accordion__items .mayris-nav__item {
+    padding: 8px 12px 8px 28px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 10px;
+    background: transparent;
+  }
+
+  .mayris-accordion__items .mayris-nav__item:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
 
 .mayris-sidebar__footer {
   margin-top: auto;
