@@ -11,6 +11,20 @@ class AulaAmanhaOut(BaseModel):
     professora: str | None = None
 
 
+class AulaProfessorAmanhaOut(BaseModel):
+    profissional_id: int | None = None
+    professor: str | None = None
+    professor_telefone: str | None = None
+    reserva_id: int
+    aluno_id: int
+    aluno_nome: str
+    aluno_telefone: str | None = None
+    data: date
+    hora_inicio: time
+    hora_fim: time
+    unidade: str | None = None
+
+
 class AulaOperacaoAlunoOut(BaseModel):
     id: int
     nome: str

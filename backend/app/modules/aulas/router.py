@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_db
 from app.modules.aulas.schemas import (
     AulaAmanhaOut,
+    AulaProfessorAmanhaOut,
     AulaOperacaoListOut,
     AulaOperacaoOut,
     AulaOperacaoAlunoOut,
@@ -76,6 +77,54 @@ def aulas_amanha(
     params = {"target_date": target_date}
     if status:
         params["status"] = status
+    rows = db.execute(sql, params).mappings().all()
+    return [dict(row) for row in rows]
+
+
+@router.get("/amanha-professores", response_model=list[AulaProfessorAmanhaOut])
+def aulas_amanha_professores(
+    profissional_id: int | None = Query(None),
+    status: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    target_date = date.today() + timedelta(days=1)
+    sql = text(
+        """
+        SELECT r.id as reserva_id,
+               r.aluno_id as aluno_id,
+               al."dsNome" as aluno_nome,
+               (
+                   SELECT t."dsTelefone"
+                   FROM core_telefonealuno t
+                   WHERE t."cdAluno_id" = r.aluno_id
+                   ORDER BY t."dtCadastro" DESC, t.id DESC
+                   LIMIT 1
+               ) as aluno_telefone,
+               a.data,
+               a."horaInicio" as hora_inicio,
+               a."horaFim" as hora_fim,
+               u."dsUnidade" as unidade,
+               pr.id as profissional_id,
+               pr.profissional as professor,
+               pr.celular as professor_telefone
+        FROM core_reserva r
+        JOIN core_aulasessao a ON a.id = r."aulaSessao_id"
+        JOIN core_aluno al ON al.id = r.aluno_id
+        LEFT JOIN core_unidade u ON u.id = a.unidade_id
+        LEFT JOIN core_profissional pr ON pr.id = a.profissional_id
+        WHERE a.data = :target_date
+        """
+        + (" AND r.status = :status" if status else "")
+        + (" AND a.profissional_id = :profissional_id" if profissional_id else "")
+        + """
+        ORDER BY pr.profissional ASC NULLS LAST, a."horaInicio" ASC, r.id ASC
+        """
+    )
+    params = {"target_date": target_date}
+    if status:
+        params["status"] = status
+    if profissional_id:
+        params["profissional_id"] = profissional_id
     rows = db.execute(sql, params).mappings().all()
     return [dict(row) for row in rows]
 
