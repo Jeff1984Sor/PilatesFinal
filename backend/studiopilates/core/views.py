@@ -2608,7 +2608,7 @@ def aula_remarcar_api(request, reserva_id):
 
     inicio_dt = timezone.make_aware(datetime.combine(nova_data, nova_sessao.horaInicio))
     fim_dt = timezone.make_aware(datetime.combine(nova_data, nova_sessao.horaFim))
-      return JsonResponse(
+    return JsonResponse(
           {
               "ok": True,
               "reserva_id": reserva.id,
@@ -3581,7 +3581,7 @@ def whatsapp_config_view(request):
         messages.error(request, "Corrija os erros antes de salvar.")
     else:
         form = forms.WhatsappConfiguracaoForm(instance=configuracao)
-      return render(
+    return render(
           request,
           "configuracoes/whatsapp.html",
           {

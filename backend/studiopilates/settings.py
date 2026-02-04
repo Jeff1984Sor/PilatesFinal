@@ -77,6 +77,7 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR.parent / "static"]
+STATIC_ROOT = BASE_DIR.parent / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR.parent / "media"
 
