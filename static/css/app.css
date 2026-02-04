@@ -1560,6 +1560,19 @@ body {
   gap: 14px;
 }
 
+.aulas-date-block {
+  margin-top: 10px;
+}
+
+.aulas-date-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(49, 20, 22, 0.7);
+  margin: 6px 2px 4px;
+}
+
 .aulas-time-row {
   background: #ffffff;
   border: 1px solid #e6ecf2;

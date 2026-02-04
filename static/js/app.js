@@ -901,6 +901,19 @@ function initAulasOperacao() {
     return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   }
 
+  function formatDayLabel(iso) {
+    const date = new Date(iso);
+    return date.toLocaleDateString("pt-BR", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit"
+    });
+  }
+
+  function isoDateKey(iso) {
+    return new Date(iso).toISOString().slice(0, 10);
+  }
+
   function formatPhone(raw) {
     if (!raw) return "";
     const digits = String(raw).replace(/\D/g, "");
@@ -914,76 +927,101 @@ function initAulasOperacao() {
       content.innerHTML = '<div class="agenda-empty">Sem aulas para o filtro.</div>';
       return;
     }
-    const grouped = {};
-    items.forEach((item) => {
-      const key = formatTime(item.dt_inicio);
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(item);
-    });
-    const times = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
-    times.forEach((time) => {
-      const row = document.createElement("div");
-      row.className = "aulas-time-row";
-      const label = document.createElement("div");
-      label.className = "aulas-time-label";
-      label.innerHTML = `
-        <div class="aulas-time-label__time">${time}</div>
-        <div class="aulas-time-label__count">${grouped[time].length} aluno(s)</div>
-      `;
-      const cards = document.createElement("div");
-      cards.className = "aulas-cards";
-      grouped[time].forEach((item) => {
-        const card = document.createElement("div");
-        card.className = `aulas-card ${statusThemeClass(item.status_aula)}`;
-        const indicators = [];
-        indicators.push(item.confirmacao ? "Confirmado" : "Nao confirmado");
-        if (!item.flags.tem_preliminares) indicators.push("Preliminares pendentes");
-        if (item.flags.cobranca_pendente) indicators.push("Cobranca pendente");
-        card.innerHTML = `
-          <div class="aulas-card__header">
-            <div>
-              <div class="aulas-card__meta">${formatTime(item.dt_inicio)}  ${item.unidade || "Unidade"}</div>
-              <div class="aulas-card__title">${item.aluno.nome}</div>
-              <div class="aulas-card__meta">${item.plano.descricao || "Plano nao informado"}</div>
-            </div>
-            <span class="${statusBadgeClass(item.status_aula)}">${item.status_aula.replace("_", " ")}</span>
-          </div>
-          <div class="aulas-card__meta">Sala: ${item.sala || "Sala principal"}</div>
-          <div class="aulas-card__meta">Profissional: ${item.profissional.nome || "-"}</div>
-          <div class="aulas-indicators">
-            ${indicators.map((label) => `<span class="aulas-indicator">${label}</span>`).join("")}
-          </div>
-          <div class="aulas-quick-actions">
-            <button data-action="chegou">Chegou</button>
-            <button data-action="evolucao">Evolucao</button>
-            <button data-action="whatsapp">WhatsApp</button>
-          </div>
-        `;
-        card.addEventListener("click", () => openDrawer(item));
-        card.querySelectorAll("button[data-action]").forEach((btn) => {
-          btn.addEventListener("click", (event) => {
-            event.stopPropagation();
-            const action = btn.dataset.action;
-            if (action === "whatsapp") {
-              const phone = formatPhone(item.aluno.telefone);
-              if (phone) window.open(`https://wa.me/${phone}`, "_blank");
-              return;
-            }
-            if (action === "evolucao") {
-              openDrawer(item);
-              return;
-            }
-            if (action === "chegou") {
-              updateStatus(item, "chegou");
-            }
-          });
-        });
-        cards.appendChild(card);
+    const renderRows = (list) => {
+      const grouped = {};
+      list.forEach((item) => {
+        const key = formatTime(item.dt_inicio);
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(item);
       });
-      row.appendChild(label);
-      row.appendChild(cards);
-      content.appendChild(row);
-    });
+      const times = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+      times.forEach((time) => {
+        const row = document.createElement("div");
+        row.className = "aulas-time-row";
+        const label = document.createElement("div");
+        label.className = "aulas-time-label";
+        label.innerHTML = `
+          <div class="aulas-time-label__time">${time}</div>
+          <div class="aulas-time-label__count">${grouped[time].length} aluno(s)</div>
+        `;
+        const cards = document.createElement("div");
+        cards.className = "aulas-cards";
+        grouped[time].forEach((item) => {
+          const card = document.createElement("div");
+          card.className = `aulas-card ${statusThemeClass(item.status_aula)}`;
+          const indicators = [];
+          indicators.push(item.confirmacao ? "Confirmado" : "Nao confirmado");
+          if (!item.flags.tem_preliminares) indicators.push("Preliminares pendentes");
+          if (item.flags.cobranca_pendente) indicators.push("Cobranca pendente");
+          card.innerHTML = `
+            <div class="aulas-card__header">
+              <div>
+                <div class="aulas-card__meta">${formatTime(item.dt_inicio)}  ${item.unidade || "Unidade"}</div>
+                <div class="aulas-card__title">${item.aluno.nome}</div>
+                <div class="aulas-card__meta">${item.plano.descricao || "Plano nao informado"}</div>
+              </div>
+              <span class="${statusBadgeClass(item.status_aula)}">${item.status_aula.replace("_", " ")}</span>
+            </div>
+            <div class="aulas-card__meta">Sala: ${item.sala || "Sala principal"}</div>
+            <div class="aulas-card__meta">Profissional: ${item.profissional.nome || "-"}</div>
+            <div class="aulas-indicators">
+              ${indicators.map((label) => `<span class="aulas-indicator">${label}</span>`).join("")}
+            </div>
+            <div class="aulas-quick-actions">
+              <button data-action="chegou">Chegou</button>
+              <button data-action="evolucao">Evolucao</button>
+              <button data-action="whatsapp">WhatsApp</button>
+            </div>
+          `;
+          card.addEventListener("click", () => openDrawer(item));
+          card.querySelectorAll("button[data-action]").forEach((btn) => {
+            btn.addEventListener("click", (event) => {
+              event.stopPropagation();
+              const action = btn.dataset.action;
+              if (action === "whatsapp") {
+                const phone = formatPhone(item.aluno.telefone);
+                if (phone) window.open(`https://wa.me/${phone}`, "_blank");
+                return;
+              }
+              if (action === "evolucao") {
+                openDrawer(item);
+                return;
+              }
+              if (action === "chegou") {
+                updateStatus(item, "chegou");
+              }
+            });
+          });
+          cards.appendChild(card);
+        });
+        row.appendChild(label);
+        row.appendChild(cards);
+        content.appendChild(row);
+      });
+    };
+
+    if (selectedPeriod === "semana") {
+      const byDate = {};
+      items.forEach((item) => {
+        const key = isoDateKey(item.dt_inicio);
+        if (!byDate[key]) byDate[key] = [];
+        byDate[key].push(item);
+      });
+      const dates = Object.keys(byDate).sort((a, b) => a.localeCompare(b));
+      dates.forEach((key) => {
+        const section = document.createElement("div");
+        section.className = "aulas-date-block";
+        const title = document.createElement("div");
+        title.className = "aulas-date-title";
+        title.textContent = formatDayLabel(byDate[key][0].dt_inicio);
+        section.appendChild(title);
+        content.appendChild(section);
+        renderRows(byDate[key]);
+      });
+      return;
+    }
+
+    renderRows(items);
   }
 
   function openDrawer(item) {
