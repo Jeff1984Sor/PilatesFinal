@@ -550,7 +550,9 @@ def aluno_avaliacao_delete(request, avaliacao_id):
 
 def _sync_user_for_profissional(profissional, raw_password=None, old_cd=None):
     User = get_user_model()
-    base_username = slugify(profissional.profissional) or f"user-{profissional.id}"
+    base_username = (profissional.email or "").strip().lower()
+    if not base_username:
+        base_username = slugify(profissional.profissional) or f"user-{profissional.id}"
     username = base_username
     counter = 1
     while User.objects.filter(username=username).exclude(pk=getattr(profissional.user, "pk", None)).exists():
@@ -561,8 +563,10 @@ def _sync_user_for_profissional(profissional, raw_password=None, old_cd=None):
         user = profissional.user
         user.username = username
         user.first_name = profissional.profissional
+        if profissional.email:
+            user.email = profissional.email
     else:
-        user = User(username=username, first_name=profissional.profissional)
+        user = User(username=username, first_name=profissional.profissional, email=(profissional.email or ""))
 
     if raw_password:
         user.set_password(raw_password)

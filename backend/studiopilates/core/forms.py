@@ -142,11 +142,32 @@ class EnderecoAlunoForm(BaseAutoCdForm):
 
 
 class ProfissionalForm(BaseAutoCdForm):
-    password = forms.CharField(required=False, widget=forms.PasswordInput)
+    password = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput,
+        label="Senha",
+        help_text="Defina a senha de acesso (obrigatoria no cadastro).",
+    )
+    password_confirm = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput,
+        label="Confirmar senha",
+    )
 
     class Meta:
         model = models.Profissional
         fields = ["cdProfissional", "profissional", "email", "celular", "cdPerfilAcesso", "dtNascimento", "crefito"]
+
+    def clean(self):
+        cleaned = super().clean()
+        password = (cleaned.get("password") or "").strip()
+        password_confirm = (cleaned.get("password_confirm") or "").strip()
+        if self.instance.pk is None and not password:
+            self.add_error("password", "Informe a senha para criar o usuario.")
+        if password or password_confirm:
+            if password != password_confirm:
+                self.add_error("password_confirm", "As senhas nao conferem.")
+        return cleaned
 
 
 class UnidadeForm(BaseAutoCdForm):
