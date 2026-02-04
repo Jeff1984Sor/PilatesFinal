@@ -22,7 +22,9 @@
       <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Cadastros</button>
       <div class="mayris-topmenu__panel">
         <a href="/cadastros/unidades/">Unidades</a>
+        {% if not is_professor %}
         <a href="/cadastros/planos/">Planos</a>
+        {% endif %}
         <a href="/cadastros/tipos-servico/">Tipos de Servico</a>
         <a href="/cadastros/termos/">Modelos de Termo</a>
         <a href="/cadastros/perfis-acesso/">Perfis de Acesso</a>
@@ -32,6 +34,7 @@
       </div>
     </div>
 
+    {% if not is_professor %}
     <div class="mayris-topmenu__dropdown">
       <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Contratos</button>
       <div class="mayris-topmenu__panel">
@@ -39,6 +42,7 @@
         <a href="/contratos/modelos/">Modelos de Contrato</a>
       </div>
     </div>
+    {% endif %}
 
     <div class="mayris-topmenu__dropdown">
       <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Evolucao</button>

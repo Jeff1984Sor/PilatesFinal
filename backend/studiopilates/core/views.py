@@ -455,6 +455,7 @@ def aluno_detail(request, pk):
         "breadcrumbs": [("Home", reverse("dashboard")), ("Alunos", reverse("alunos_list")), ("Ficha", "#")],
         "active_menu": "cadastros",
         "can_view_contratos": not is_professor,
+        "can_view_financeiro": not is_professor,
     }
     return render(request, "alunos/detail.html", context)
 

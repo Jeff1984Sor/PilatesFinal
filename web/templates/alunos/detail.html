@@ -195,11 +195,11 @@
             <button class="nav-link {% if not can_view_contratos %}active{% endif %}" data-bs-toggle="pill" data-bs-target="#tab-agenda" type="button" role="tab">Aulas</button>
           </li>
 
+          {% if can_view_financeiro %}
           <li class="nav-item" role="presentation">
-
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-financeiro" type="button" role="tab">Financeiro</button>
-
           </li>
+          {% endif %}
 
           <li class="nav-item" role="presentation">
 
@@ -437,6 +437,7 @@
 
           </div>
 
+          {% if can_view_financeiro %}
           <div class="tab-pane fade" id="tab-financeiro" role="tabpanel">
 
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -576,6 +577,7 @@
             {% endif %}
 
           </div>
+          {% endif %}
 
           <div class="tab-pane fade" id="tab-whatsapp" role="tabpanel">
 
@@ -1415,6 +1417,7 @@
 
 
 
+{% if can_view_contratos %}
 <div class="modal fade" id="novoContrato" tabindex="-1">
 
   <div class="modal-dialog modal-lg">
@@ -1553,11 +1556,11 @@
 
   </div>
 
-</div>
+{% endif %}
 
 
 
-{% if contratos %}
+{% if contratos and can_view_contratos %}
 
   {% for c in contratos %}
 
@@ -1713,7 +1716,7 @@
 
 
 
-{% if contratos %}
+{% if contratos and can_view_contratos %}
 
   {% for c in contratos %}
 
