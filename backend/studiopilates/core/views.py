@@ -60,6 +60,20 @@ def _shift_month(value, months):
     return value.replace(year=year, month=month, day=1)
 
 
+def _get_profissional_for_user(user):
+    if not user or not user.is_authenticated:
+        return None
+    return models.Profissional.objects.select_related("cdPerfilAcesso").filter(user=user).first()
+
+
+def _is_professor_user(user):
+    profissional = _get_profissional_for_user(user)
+    if not profissional or not profissional.cdPerfilAcesso_id:
+        return False
+    perfil = (profissional.cdPerfilAcesso.dsPerfilAcesso or "").strip().lower()
+    return perfil == "professor"
+
+
 def _enviar_contrato_whatsapp(request, contrato, is_new=False):
     service = WhatsappService()
     telefone = service.get_aluno_phone(contrato.cdAluno)
@@ -383,6 +397,7 @@ def contrato_whatsapp(request, pk):
 
 
 def aluno_detail(request, pk):
+    is_professor = _is_professor_user(request.user)
     aluno = get_object_or_404(models.Aluno, pk=pk)
     endereco = aluno.cdEndereco
     telefones = list(aluno.telefones.values_list("dsTelefone", flat=True))
@@ -439,6 +454,7 @@ def aluno_detail(request, pk):
         "edit_form": forms.AlunoForm(instance=aluno),
         "breadcrumbs": [("Home", reverse("dashboard")), ("Alunos", reverse("alunos_list")), ("Ficha", "#")],
         "active_menu": "cadastros",
+        "can_view_contratos": not is_professor,
     }
     return render(request, "alunos/detail.html", context)
 
@@ -1075,6 +1091,9 @@ def atualizar_bloqueio_agenda(request, pk):
 
 
 def list_view(request, model, form_class, title, allow_modal=True, extra_context=None):
+    if model in (models.Plano, models.Contrato) and _is_professor_user(request.user):
+        messages.error(request, "Sem permissao para acessar esta area.")
+        return redirect("dashboard")
     query = request.GET.get("q", "").strip()
     order = request.GET.get("order", "id")
     qs = model.objects.all()
@@ -2711,6 +2730,9 @@ def totalpass_webhook(request):
 
 
 def create_view(request, model, form_class, redirect_name):
+    if model in (models.Plano, models.Contrato) and _is_professor_user(request.user):
+        messages.error(request, "Sem permissao para acessar esta area.")
+        return redirect("dashboard")
     if request.method == "POST":
         data = request.POST.copy()
         data = _inject_cd_value(model, data)
@@ -2802,6 +2824,9 @@ def create_view(request, model, form_class, redirect_name):
 
 
 def edit_view(request, model, form_class, redirect_name, pk):
+    if model in (models.Plano, models.Contrato) and _is_professor_user(request.user):
+        messages.error(request, "Sem permissao para acessar esta area.")
+        return redirect("dashboard")
     obj = get_object_or_404(model, pk=pk)
     if request.method == "POST":
         next_url = request.POST.get("next", "").strip()
@@ -2845,6 +2870,9 @@ def edit_view(request, model, form_class, redirect_name, pk):
 
 
 def delete_view(request, model, redirect_name, pk):
+    if model in (models.Plano, models.Contrato) and _is_professor_user(request.user):
+        messages.error(request, "Sem permissao para acessar esta area.")
+        return redirect("dashboard")
     obj = get_object_or_404(model, pk=pk)
     delete_context = {}
     if model is models.Contrato:

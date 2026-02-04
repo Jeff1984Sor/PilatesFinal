@@ -185,17 +185,14 @@
       <div class="mayris-tabs">
 
         <ul class="nav nav-pills mb-3" role="tablist">
-
+          {% if can_view_contratos %}
           <li class="nav-item" role="presentation">
-
             <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-contratos" type="button" role="tab">Contratos</button>
-
           </li>
+          {% endif %}
 
           <li class="nav-item" role="presentation">
-
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-agenda" type="button" role="tab">Aulas</button>
-
+            <button class="nav-link {% if not can_view_contratos %}active{% endif %}" data-bs-toggle="pill" data-bs-target="#tab-agenda" type="button" role="tab">Aulas</button>
           </li>
 
           <li class="nav-item" role="presentation">
@@ -226,6 +223,7 @@
 
         <div class="tab-content">
 
+          {% if can_view_contratos %}
           <div class="tab-pane fade show active" id="tab-contratos" role="tabpanel">
 
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -357,8 +355,9 @@
             {% endif %}
 
           </div>
+          {% endif %}
 
-          <div class="tab-pane fade" id="tab-agenda" role="tabpanel">
+          <div class="tab-pane fade {% if not can_view_contratos %}show active{% endif %}" id="tab-agenda" role="tabpanel">
 
             <div class="d-flex justify-content-between align-items-center mb-2">
 
