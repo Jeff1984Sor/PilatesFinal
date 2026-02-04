@@ -91,6 +91,7 @@
 
     function closeAll() {
       dropdowns.forEach((item) => item.classList.remove("is-open"));
+      triggers.forEach((btn) => btn.classList.remove("is-active"));
     }
 
     document.addEventListener("click", (event) => {
@@ -115,6 +116,7 @@
         closeAll();
         if (!isOpen) {
           wrapper.classList.add("is-open");
+          btn.classList.add("is-active");
         }
       });
     });

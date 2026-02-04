@@ -924,6 +924,11 @@ body {
   color: #3d2b2d;
 }
 
+.mayris-topmenu__trigger.is-active {
+  background: rgba(107, 35, 38, 0.16);
+  color: #2a1b1d;
+}
+
 .mayris-topmenu__link.is-active {
   background: rgba(107, 35, 38, 0.16);
   color: #2a1b1d;
