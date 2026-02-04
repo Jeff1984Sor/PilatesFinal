@@ -964,6 +964,15 @@ body {
   display: block;
 }
 
+.mayris-topmenu__dropdown:focus-within .mayris-topmenu__panel {
+  display: block;
+}
+
+.mayris-topmenu__trigger:focus {
+  outline: 2px solid rgba(107, 35, 38, 0.28);
+  outline-offset: 2px;
+}
+
 .mayris-topmenu__profile {
   display: flex;
   align-items: center;
