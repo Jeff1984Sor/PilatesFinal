@@ -31,7 +31,7 @@
     <div class="mayris-card">
       <div class="mayris-card__label">Receber em aberto</div>
       <div class="mayris-card__value">{{ receber_aberto }}</div>
-      <div class="mayris-card__trend is-down">Ateno</div>
+      <div class="mayris-card__trend is-down">Atencao</div>
     </div>
   </div>
 
@@ -44,7 +44,13 @@
         </div>
         <button class="btn btn-sm btn-outline-secondary">Periodo</button>
       </div>
-      <div class="mayris-chart-placeholder">Grafico</div>
+      <ul class="mayris-list">
+        {% for item in aulas_por_mes %}
+          <li>{{ item.label }}: {{ item.total }}</li>
+        {% empty %}
+          <li class="text-muted">Sem dados disponiveis.</li>
+        {% endfor %}
+      </ul>
     </div>
     <div class="mayris-card mayris-card--chart">
       <div class="mayris-card__header">
@@ -53,7 +59,13 @@
           <div class="mayris-card__meta">Ranking</div>
         </div>
       </div>
-      <div class="mayris-chart-placeholder">Grafico</div>
+      <ul class="mayris-list">
+        {% for item in aulas_por_professor %}
+          <li>{{ item.aulaSessao__profissional__profissional }}: {{ item.total }}</li>
+        {% empty %}
+          <li class="text-muted">Sem dados disponiveis.</li>
+        {% endfor %}
+      </ul>
     </div>
   </div>
 
@@ -61,19 +73,36 @@
     <div class="mayris-card">
       <div class="mayris-card__label">Aniversariantes do mes</div>
       <ul class="mayris-list">
-        <li class="text-muted">Sem dados disponiveis.</li>
+        {% for aluno in aniversariantes_mes %}
+          <li>{{ aluno.dsNome }} - {{ aluno.dtNascimento|date:"d/m" }}</li>
+        {% empty %}
+          <li class="text-muted">Sem dados disponiveis.</li>
+        {% endfor %}
       </ul>
     </div>
     <div class="mayris-card">
       <div class="mayris-card__label">Proximas aulas</div>
       <ul class="mayris-list">
-        <li class="text-muted">Sem dados disponiveis.</li>
+        {% for reserva in proximas_aulas %}
+          <li>
+            {{ reserva.aulaSessao.data|date:"d/m" }}
+            {{ reserva.aulaSessao.horaInicio|time:"H:i" }} -
+            {{ reserva.aluno.dsNome }}
+            {% if reserva.aulaSessao.profissional %} ({{ reserva.aulaSessao.profissional.profissional }}){% endif %}
+          </li>
+        {% empty %}
+          <li class="text-muted">Sem dados disponiveis.</li>
+        {% endfor %}
       </ul>
     </div>
     <div class="mayris-card">
       <div class="mayris-card__label">Alertas</div>
       <ul class="mayris-list">
-        <li class="text-muted">Sem dados disponiveis.</li>
+        {% for alerta in alertas %}
+          <li>{{ alerta }}</li>
+        {% empty %}
+          <li class="text-muted">Sem dados disponiveis.</li>
+        {% endfor %}
       </ul>
     </div>
   </div>

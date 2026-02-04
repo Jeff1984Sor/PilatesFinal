@@ -11,6 +11,7 @@ from django.utils.text import slugify
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum, Count, OuterRef, Subquery, Exists
+from django.db.models.functions import TruncMonth
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -47,6 +48,13 @@ def _mensagem_contrato_whatsapp(contrato, link, is_new=False):
         f"Para ler e assinar, acesse:\\n{link}\\n\\n"
         "Qualquer duvida, estamos a disposicao."
     )
+
+
+def _shift_month(value, months):
+    offset = (value.month - 1) + months
+    year = value.year + (offset // 12)
+    month = (offset % 12) + 1
+    return value.replace(year=year, month=month, day=1)
 
 
 def _enviar_contrato_whatsapp(request, contrato, is_new=False):
@@ -293,11 +301,67 @@ def perfil_view(request):
 
 @login_required
 def dashboard(request):
+    today = timezone.localdate()
+    start_month = _shift_month(today.replace(day=1), -5)
+    aniversariantes_mes = (
+        models.Aluno.objects.filter(dtNascimento__month=today.month)
+        .exclude(dtNascimento__isnull=True)
+        .order_by("dtNascimento__day", "dsNome")[:8]
+    )
+    proximas_aulas = (
+        models.Reserva.objects.select_related("aluno", "aulaSessao", "aulaSessao__profissional", "aulaSessao__unidade")
+        .filter(aulaSessao__data__gte=today, status__in=["RESERVADA", "PENDENTE"])
+        .order_by("aulaSessao__data", "aulaSessao__horaInicio")[:8]
+    )
+    contas_atrasadas = models.ContasReceber.objects.filter(
+        status__in=["ABERTO", "ATRASADO"],
+        dtVencimento__lt=today,
+    ).count()
+    contratos_vencendo = models.Contrato.objects.filter(
+        dtFimContrato__gte=today,
+        dtFimContrato__lte=today + timedelta(days=7),
+    ).count()
+    alertas = []
+    if contas_atrasadas:
+        alertas.append(f"{contas_atrasadas} faturas em atraso")
+    if contratos_vencendo:
+        alertas.append(f"{contratos_vencendo} contratos vencendo em 7 dias")
+
+    aulas_por_mes_raw = (
+        models.Reserva.objects.filter(aulaSessao__data__gte=start_month)
+        .annotate(month=TruncMonth("aulaSessao__data"))
+        .values("month")
+        .annotate(total=Count("id"))
+        .order_by("month")
+    )
+    aulas_por_mes_map = {item["month"].date(): item["total"] for item in aulas_por_mes_raw if item["month"]}
+    aulas_por_mes = []
+    for i in range(0, 6):
+        month_start = _shift_month(start_month, i)
+        total = aulas_por_mes_map.get(month_start, 0)
+        aulas_por_mes.append(
+            {
+                "label": f"{calendar.month_abbr[month_start.month]}/{str(month_start.year)[-2:]}",
+                "total": total,
+            }
+        )
+
+    aulas_por_professor = (
+        models.Reserva.objects.filter(aulaSessao__data__gte=start_month, aulaSessao__profissional__isnull=False)
+        .values("aulaSessao__profissional__profissional")
+        .annotate(total=Count("id"))
+        .order_by("-total")[:6]
+    )
     context = {
         "alunos": models.Aluno.objects.count(),
         "contratos": models.Contrato.objects.count(),
-        "reservas_hoje": models.Reserva.objects.filter(aulaSessao__data=date.today()).count(),
-        "receber_aberto": models.ContasReceber.objects.filter(status="ABERTO").count(),
+        "reservas_hoje": models.Reserva.objects.filter(aulaSessao__data=today).exclude(status="CANCELADA").count(),
+        "receber_aberto": models.ContasReceber.objects.filter(status__in=["ABERTO", "ATRASADO"]).count(),
+        "aniversariantes_mes": aniversariantes_mes,
+        "proximas_aulas": proximas_aulas,
+        "alertas": alertas,
+        "aulas_por_mes": aulas_por_mes,
+        "aulas_por_professor": aulas_por_professor,
         "breadcrumbs": [("Home", "#")],
         "active_menu": "dashboard",
     }
