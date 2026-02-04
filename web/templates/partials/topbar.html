@@ -5,6 +5,9 @@
   </div>
   <div class="mayris-topbar__actions">
     <button class="btn mayris-icon-btn" type="button" aria-label="Notificacoes">!</button>
-    <div class="mayris-avatar">MP</div>
+    <div class="mayris-user">
+      <span class="mayris-user__name">{% firstof user.get_full_name user.username "Usuario" %}</span>
+      <div class="mayris-avatar">{{ user.get_full_name|default:user.username|default:"U"|slice:":1"|upper }}</div>
+    </div>
   </div>
 </header>

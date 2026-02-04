@@ -1021,6 +1021,19 @@ body {
   gap: 10px;
 }
 
+.mayris-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #4b3a3d;
+}
+
+.mayris-user__name {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .mayris-avatar {
   width: 36px;
   height: 36px;
