@@ -1405,6 +1405,11 @@ body {
 .aulas-header .aulas-header__actions .btn-outline-secondary:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+.aulas-header .text-muted,
+.aulas-header p.text-muted {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
 .aulas-kicker {
   font-size: 12px;
   text-transform: uppercase;
@@ -1713,6 +1718,19 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.aulas-close {
+  align-self: flex-end;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .aulas-drawer__quick {
