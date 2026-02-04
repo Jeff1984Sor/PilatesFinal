@@ -71,7 +71,7 @@ def _is_professor_user(user):
     if not profissional or not profissional.cdPerfilAcesso_id:
         return False
     perfil = (profissional.cdPerfilAcesso.dsPerfilAcesso or "").strip().lower()
-    return perfil == "professor"
+    return "professor" in perfil
 
 
 def _enviar_contrato_whatsapp(request, contrato, is_new=False):
