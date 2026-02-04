@@ -7,7 +7,9 @@
     </div>
   </div>
   <nav class="mayris-topmenu__links">
+    {% if not is_professor %}
     <a class="mayris-topmenu__link {% if active_menu == 'dashboard' %}is-active{% endif %}" href="/">Dashboard</a>
+    {% endif %}
     <a class="mayris-topmenu__link {% if active_menu == 'agenda' %}is-active{% endif %}" href="/agenda/aulas/">Agenda</a>
 
     {% if not is_professor %}
