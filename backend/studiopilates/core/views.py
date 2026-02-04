@@ -1987,14 +1987,14 @@ def aulas_operacao_api(request):
     status_filter = request.GET.get("status_aula") or None
     query = (request.GET.get("q") or "").strip()
 
-      contrato_qs = (
-          models.Contrato.objects.filter(
-              cdAluno=OuterRef("aluno_id"),
-              dtInicioContrato__lte=OuterRef("aulaSessao__data"),
-              dtFimContrato__gte=OuterRef("aulaSessao__data"),
-          )
-          .order_by("-dtFimContrato", "-id")
-      )
+    contrato_qs = (
+        models.Contrato.objects.filter(
+            cdAluno=OuterRef("aluno_id"),
+            dtInicioContrato__lte=OuterRef("aulaSessao__data"),
+            dtFimContrato__gte=OuterRef("aulaSessao__data"),
+        )
+        .order_by("-dtFimContrato", "-id")
+    )
 
     telefone_qs = models.TelefoneAluno.objects.filter(cdAluno=OuterRef("aluno_id")).order_by("-dtCadastro", "-id")
     evolucao_qs = models.EvolucaoAluno.objects.filter(reserva_id=OuterRef("pk")).order_by("-dtEvolucao", "-id")
