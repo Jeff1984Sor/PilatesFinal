@@ -965,14 +965,6 @@ body {
   background: rgba(107, 35, 38, 0.08);
 }
 
-.mayris-topmenu__dropdown:hover .mayris-topmenu__panel {
-  display: block;
-}
-
-.mayris-topmenu__dropdown:focus-within .mayris-topmenu__panel {
-  display: block;
-}
-
 .mayris-topmenu__dropdown.is-open .mayris-topmenu__panel {
   display: block;
 }

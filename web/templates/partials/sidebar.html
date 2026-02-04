@@ -104,6 +104,13 @@
       dropdown.addEventListener("click", (event) => {
         event.stopPropagation();
       });
+      dropdown.addEventListener("mouseenter", () => {
+        const trigger = dropdown.querySelector(".js-topmenu-trigger");
+        if (!trigger) return;
+        closeAll();
+        dropdown.classList.add("is-open");
+        trigger.classList.add("is-active");
+      });
     });
 
     triggers.forEach((btn) => {
