@@ -28,9 +28,11 @@ from .whatsapp_service import WhatsappService, WhatsappMessageType
 logger = logging.getLogger(__name__)
 
 
-def _contrato_assinatura_link(contrato):
+def _contrato_assinatura_link(contrato, request=None):
     token = services.gerar_token_contrato(contrato)
-    base_url = settings.SITE_BASE_URL.rstrip("/")
+    base_url = (settings.SITE_BASE_URL or "").rstrip("/")
+    if request and (not base_url or "localhost" in base_url):
+        base_url = request.build_absolute_uri("/").rstrip("/")
     return f"{base_url}/contratos/assinar/{token}/"
 
 
@@ -40,12 +42,13 @@ def _mensagem_contrato_whatsapp(contrato, link, is_new=False):
     unidade = contrato.cdUnidade
     prefix = "Seu contrato foi criado com sucesso" if is_new else "Seu contrato foi gerado"
     return (
-        f"Oi {aluno.dsNome}, tudo bem?\\n"
+        f"Oi {aluno.dsNome}!\\n"
         f"{prefix} no Mayris Pilates.\\n\\n"
         f"Contrato: #{contrato.cdContrato}\\n"
         f"Plano: {plano}\\n"
         f"Unidade: {unidade}\\n\\n"
-        f"Para ler e assinar, acesse:\\n{link}\\n\\n"
+        "Para ler e assinar, clique no link abaixo:\\n"
+        f"{link}\\n\\n"
         "Qualquer duvida, estamos a disposicao."
     )
 
@@ -63,7 +66,7 @@ def _enviar_contrato_whatsapp(request, contrato, is_new=False):
     if not telefone:
         messages.warning(request, "Aluno sem telefone valido para WhatsApp.")
         return False
-    link = _contrato_assinatura_link(contrato)
+    link = _contrato_assinatura_link(contrato, request=request)
     mensagem = _mensagem_contrato_whatsapp(contrato, link, is_new=is_new)
     resp = service.send(contrato.cdAluno, telefone, mensagem, WhatsappMessageType.CONTRACT_LINK, contrato=contrato)
     if resp.get("error"):
