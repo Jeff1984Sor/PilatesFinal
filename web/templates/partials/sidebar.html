@@ -11,7 +11,7 @@
     <a class="mayris-topmenu__link {% if active_menu == 'agenda' %}is-active{% endif %}" href="/agenda/aulas/">Agenda</a>
 
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger">Pessoas</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Pessoas</button>
       <div class="mayris-topmenu__panel">
         <a href="/cadastros/alunos/">Alunos</a>
         <a href="/cadastros/profissionais/">Profissionais</a>
@@ -19,7 +19,7 @@
     </div>
 
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger">Cadastros</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Cadastros</button>
       <div class="mayris-topmenu__panel">
         <a href="/cadastros/unidades/">Unidades</a>
         <a href="/cadastros/planos/">Planos</a>
@@ -33,7 +33,7 @@
     </div>
 
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger">Contratos</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Contratos</button>
       <div class="mayris-topmenu__panel">
         <a href="/contratos/">Contratos</a>
         <a href="/contratos/modelos/">Modelos de Contrato</a>
@@ -41,14 +41,14 @@
     </div>
 
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger">Evolucao</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Evolucao</button>
       <div class="mayris-topmenu__panel">
         <a href="/evolucoes/modelos/">Modelos de Evolucao</a>
       </div>
     </div>
 
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger">Financeiro</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Financeiro</button>
       <div class="mayris-topmenu__panel">
         <a href="/financeiro/contas-receber/">Contas a Receber</a>
         <a href="/financeiro/contas-pagar/">Contas a Pagar</a>
@@ -58,7 +58,7 @@
     </div>
 
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger">Configuracoes</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Configuracoes</button>
       <div class="mayris-topmenu__panel">
         <a href="{% url 'email_config' %}">Email</a>
         <a href="{% url 'whatsapp_config' %}">WhatsApp</a>
@@ -71,3 +71,34 @@
     <a class="mayris-topmenu__link" href="{% url 'logout' %}">Sair</a>
   </div>
 </aside>
+
+<script>
+  (function () {
+    const triggers = document.querySelectorAll(".js-topmenu-trigger");
+    const dropdowns = document.querySelectorAll(".mayris-topmenu__dropdown");
+
+    function closeAll() {
+      dropdowns.forEach((item) => item.classList.remove("is-open"));
+    }
+
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".mayris-topmenu__dropdown")) {
+        closeAll();
+      }
+    });
+
+    triggers.forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const wrapper = btn.closest(".mayris-topmenu__dropdown");
+        if (!wrapper) return;
+        const isOpen = wrapper.classList.contains("is-open");
+        closeAll();
+        if (!isOpen) {
+          wrapper.classList.add("is-open");
+        }
+      });
+    });
+  })();
+</script>
