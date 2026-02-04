@@ -10,6 +10,7 @@
     <a class="mayris-topmenu__link {% if active_menu == 'dashboard' %}is-active{% endif %}" href="/">Dashboard</a>
     <a class="mayris-topmenu__link {% if active_menu == 'agenda' %}is-active{% endif %}" href="/agenda/aulas/">Agenda</a>
 
+    {% if not is_professor %}
     <div class="mayris-topmenu__dropdown">
       <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Pessoas</button>
       <div class="mayris-topmenu__panel">
@@ -17,6 +18,7 @@
         <a href="/cadastros/profissionais/">Profissionais</a>
       </div>
     </div>
+    {% endif %}
 
     {% if not is_professor %}
     <div class="mayris-topmenu__dropdown">
