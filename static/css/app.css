@@ -1611,6 +1611,11 @@ body {
   font-size: 16px;
 }
 
+.aulas-time-label__date {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
 .aulas-time-label__count {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.75);

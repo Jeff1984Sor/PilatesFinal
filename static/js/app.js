@@ -927,7 +927,7 @@ function initAulasOperacao() {
       content.innerHTML = '<div class="agenda-empty">Sem aulas para o filtro.</div>';
       return;
     }
-    const renderRows = (list) => {
+    const renderRows = (list, dateLabel = "") => {
       const grouped = {};
       list.forEach((item) => {
         const key = formatTime(item.dt_inicio);
@@ -942,6 +942,7 @@ function initAulasOperacao() {
         label.className = "aulas-time-label";
         label.innerHTML = `
           <div class="aulas-time-label__time">${time}</div>
+          ${dateLabel ? `<div class="aulas-time-label__date">${dateLabel}</div>` : ""}
           <div class="aulas-time-label__count">${grouped[time].length} aluno(s)</div>
         `;
         const cards = document.createElement("div");
@@ -1016,12 +1017,14 @@ function initAulasOperacao() {
         title.textContent = formatDayLabel(byDate[key][0].dt_inicio);
         section.appendChild(title);
         content.appendChild(section);
-        renderRows(byDate[key]);
+        renderRows(byDate[key], formatDayLabel(byDate[key][0].dt_inicio));
       });
       return;
     }
 
-    renderRows(items);
+    if (items.length) {
+      renderRows(items, formatDayLabel(items[0].dt_inicio));
+    }
   }
 
   function openDrawer(item) {
