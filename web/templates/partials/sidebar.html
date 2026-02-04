@@ -18,6 +18,7 @@
       </div>
     </div>
 
+    {% if not is_professor %}
     <div class="mayris-topmenu__dropdown">
       <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Cadastros</button>
       <div class="mayris-topmenu__panel">
@@ -33,6 +34,7 @@
         <a href="/cadastros/fornecedores/">Fornecedores</a>
       </div>
     </div>
+    {% endif %}
 
     {% if not is_professor %}
     <div class="mayris-topmenu__dropdown">
@@ -44,6 +46,7 @@
     </div>
     {% endif %}
 
+    {% if not is_professor %}
     <div class="mayris-topmenu__dropdown">
       <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Evolucao</button>
       <div class="mayris-topmenu__panel">
@@ -69,6 +72,7 @@
         <a href="{% url 'totalpass_config' %}">TotalPass</a>
       </div>
     </div>
+    {% endif %}
   </nav>
   <div class="mayris-topmenu__profile">
     <a class="mayris-topmenu__link" href="{% url 'perfil' %}">Perfil</a>
