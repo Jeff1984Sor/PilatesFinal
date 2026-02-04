@@ -14,7 +14,7 @@
 
     {% if not is_professor %}
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Pessoas</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger {% if active_menu == 'pessoas' %}is-active{% endif %}" type="button">Pessoas</button>
       <div class="mayris-topmenu__panel">
         <a href="/cadastros/alunos/">Alunos</a>
         <a href="/cadastros/profissionais/">Profissionais</a>
@@ -24,7 +24,7 @@
 
     {% if not is_professor %}
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Cadastros</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger {% if active_menu == 'cadastros' %}is-active{% endif %}" type="button">Cadastros</button>
       <div class="mayris-topmenu__panel">
         <a href="/cadastros/unidades/">Unidades</a>
         {% if not is_professor %}
@@ -42,7 +42,7 @@
 
     {% if not is_professor %}
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Contratos</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger {% if active_menu == 'contratos' %}is-active{% endif %}" type="button">Contratos</button>
       <div class="mayris-topmenu__panel">
         <a href="/contratos/">Contratos</a>
         <a href="/contratos/modelos/">Modelos de Contrato</a>
@@ -52,14 +52,14 @@
 
     {% if not is_professor %}
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Evolucao</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger {% if active_menu == 'evolucao' %}is-active{% endif %}" type="button">Evolucao</button>
       <div class="mayris-topmenu__panel">
         <a href="/evolucoes/modelos/">Modelos de Evolucao</a>
       </div>
     </div>
 
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Financeiro</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger {% if active_menu == 'financeiro' %}is-active{% endif %}" type="button">Financeiro</button>
       <div class="mayris-topmenu__panel">
         <a href="/financeiro/contas-receber/">Contas a Receber</a>
         <a href="/financeiro/contas-pagar/">Contas a Pagar</a>
@@ -69,7 +69,7 @@
     </div>
 
     <div class="mayris-topmenu__dropdown">
-      <button class="mayris-topmenu__trigger js-topmenu-trigger" type="button">Configuracoes</button>
+      <button class="mayris-topmenu__trigger js-topmenu-trigger {% if active_menu == 'configuracoes' %}is-active{% endif %}" type="button">Configuracoes</button>
       <div class="mayris-topmenu__panel">
         <a href="{% url 'email_config' %}">Email</a>
         <a href="{% url 'whatsapp_config' %}">WhatsApp</a>

@@ -91,14 +91,18 @@ def _enviar_contrato_whatsapp(request, contrato, is_new=False):
 
 
 def _active_menu(path: str) -> str:
+    if path.startswith("/cadastros/alunos") or path.startswith("/cadastros/profissionais"):
+        return "pessoas"
     if path.startswith("/agenda"):
         return "agenda"
     if path.startswith("/financeiro"):
         return "financeiro"
     if path.startswith("/configuracoes"):
         return "configuracoes"
+    if path.startswith("/evolucoes"):
+        return "evolucao"
     if path.startswith("/contratos") or path.startswith("/wizard"):
-        return "cadastros"
+        return "contratos"
     if path.startswith("/cadastros"):
         return "cadastros"
     return "dashboard"
