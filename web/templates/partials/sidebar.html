@@ -1,88 +1,72 @@
-<aside class="mayris-sidebar">
-  <div class="mayris-logo">
+<aside class="mayris-sidebar mayris-topmenu">
+  <div class="mayris-topmenu__brand">
     <div class="mayris-logo__mark">MP</div>
     <div>
       <div class="mayris-logo__name">Mayris Pilates</div>
       <div class="mayris-logo__tag">Fitness premium</div>
     </div>
   </div>
-  <nav class="mayris-nav">
-    <a class="mayris-nav__item {% if active_menu == 'dashboard' %}is-active{% endif %}" href="/">
-      <span class="mayris-nav__dot"></span> Dashboard
-    </a>
-    <a class="mayris-nav__item {% if active_menu == 'agenda' %}is-active{% endif %}" href="/agenda/aulas/">
-      <span class="mayris-nav__dot"></span> Agenda
-    </a>
+  <nav class="mayris-topmenu__links">
+    <a class="mayris-topmenu__link {% if active_menu == 'dashboard' %}is-active{% endif %}" href="/">Dashboard</a>
+    <a class="mayris-topmenu__link {% if active_menu == 'agenda' %}is-active{% endif %}" href="/agenda/aulas/">Agenda</a>
 
-    <details class="mayris-accordion" open>
-      <summary class="mayris-nav__item">
-        <span class="mayris-nav__dot"></span> Pessoas
-      </summary>
-      <div class="mayris-accordion__items">
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/alunos/">Alunos</a>
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/profissionais/">Profissionais</a>
+    <div class="mayris-topmenu__dropdown">
+      <button class="mayris-topmenu__trigger">Pessoas</button>
+      <div class="mayris-topmenu__panel">
+        <a href="/cadastros/alunos/">Alunos</a>
+        <a href="/cadastros/profissionais/">Profissionais</a>
       </div>
-    </details>
+    </div>
 
-    <details class="mayris-accordion">
-      <summary class="mayris-nav__item">
-        <span class="mayris-nav__dot"></span> Cadastros
-      </summary>
-      <div class="mayris-accordion__items">
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/unidades/">Unidades</a>
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/planos/">Planos</a>
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/tipos-servico/">Tipos de Servico</a>
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/termos/">Modelos de Termo</a>
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/categorias/">Categorias</a>
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/subcategorias/">Subcategorias</a>
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/cadastros/fornecedores/">Fornecedores</a>
+    <div class="mayris-topmenu__dropdown">
+      <button class="mayris-topmenu__trigger">Cadastros</button>
+      <div class="mayris-topmenu__panel">
+        <a href="/cadastros/unidades/">Unidades</a>
+        <a href="/cadastros/planos/">Planos</a>
+        <a href="/cadastros/tipos-servico/">Tipos de Servico</a>
+        <a href="/cadastros/termos/">Modelos de Termo</a>
+        <a href="/cadastros/categorias/">Categorias</a>
+        <a href="/cadastros/subcategorias/">Subcategorias</a>
+        <a href="/cadastros/fornecedores/">Fornecedores</a>
       </div>
-    </details>
+    </div>
 
-    <details class="mayris-accordion">
-      <summary class="mayris-nav__item">
-        <span class="mayris-nav__dot"></span> Contratos
-      </summary>
-      <div class="mayris-accordion__items">
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/contratos/">Contratos</a>
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/contratos/modelos/">Modelos de Contrato</a>
+    <div class="mayris-topmenu__dropdown">
+      <button class="mayris-topmenu__trigger">Contratos</button>
+      <div class="mayris-topmenu__panel">
+        <a href="/contratos/">Contratos</a>
+        <a href="/contratos/modelos/">Modelos de Contrato</a>
       </div>
-    </details>
+    </div>
 
-    <details class="mayris-accordion">
-      <summary class="mayris-nav__item">
-        <span class="mayris-nav__dot"></span> Evolucao
-      </summary>
-      <div class="mayris-accordion__items">
-        <a class="mayris-nav__item {% if active_menu == 'cadastros' %}is-active{% endif %}" href="/evolucoes/modelos/">Modelos de Evolucao</a>
+    <div class="mayris-topmenu__dropdown">
+      <button class="mayris-topmenu__trigger">Evolucao</button>
+      <div class="mayris-topmenu__panel">
+        <a href="/evolucoes/modelos/">Modelos de Evolucao</a>
       </div>
-    </details>
+    </div>
 
-    <details class="mayris-accordion">
-      <summary class="mayris-nav__item">
-        <span class="mayris-nav__dot"></span> Financeiro
-      </summary>
-      <div class="mayris-accordion__items">
-        <a class="mayris-nav__item {% if active_menu == 'financeiro' %}is-active{% endif %}" href="/financeiro/contas-receber/">Contas a Receber</a>
-        <a class="mayris-nav__item {% if active_menu == 'financeiro' %}is-active{% endif %}" href="/financeiro/contas-pagar/">Contas a Pagar</a>
-        <a class="mayris-nav__item {% if active_menu == 'financeiro' %}is-active{% endif %}" href="/financeiro/conta-bancaria/">Conta Bancaria</a>
-        <a class="mayris-nav__item {% if active_menu == 'financeiro' %}is-active{% endif %}" href="/financeiro/dre/">DRE</a>
+    <div class="mayris-topmenu__dropdown">
+      <button class="mayris-topmenu__trigger">Financeiro</button>
+      <div class="mayris-topmenu__panel">
+        <a href="/financeiro/contas-receber/">Contas a Receber</a>
+        <a href="/financeiro/contas-pagar/">Contas a Pagar</a>
+        <a href="/financeiro/conta-bancaria/">Conta Bancaria</a>
+        <a href="/financeiro/dre/">DRE</a>
       </div>
-    </details>
+    </div>
 
-    <details class="mayris-accordion">
-      <summary class="mayris-nav__item">
-        <span class="mayris-nav__dot"></span> Configuracoes
-      </summary>
-      <div class="mayris-accordion__items">
-        <a class="mayris-nav__item {% if active_menu == 'configuracoes' %}is-active{% endif %}" href="{% url 'email_config' %}">Email</a>
-        <a class="mayris-nav__item {% if active_menu == 'configuracoes' %}is-active{% endif %}" href="{% url 'whatsapp_config' %}">WhatsApp</a>
-        <a class="mayris-nav__item {% if active_menu == 'configuracoes' %}is-active{% endif %}" href="{% url 'totalpass_config' %}">TotalPass</a>
+    <div class="mayris-topmenu__dropdown">
+      <button class="mayris-topmenu__trigger">Configuracoes</button>
+      <div class="mayris-topmenu__panel">
+        <a href="{% url 'email_config' %}">Email</a>
+        <a href="{% url 'whatsapp_config' %}">WhatsApp</a>
+        <a href="{% url 'totalpass_config' %}">TotalPass</a>
       </div>
-    </details>
+    </div>
   </nav>
-  <div class="mayris-sidebar__footer">
-    <a class="mayris-nav__item" href="{% url 'perfil' %}">Perfil</a>
-    <a class="mayris-nav__item" href="{% url 'logout' %}">Sair</a>
+  <div class="mayris-topmenu__profile">
+    <a class="mayris-topmenu__link" href="{% url 'perfil' %}">Perfil</a>
+    <a class="mayris-topmenu__link" href="{% url 'logout' %}">Sair</a>
   </div>
 </aside>

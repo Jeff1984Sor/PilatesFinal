@@ -784,19 +784,22 @@ body {
 
 .mayris-layout {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
 .mayris-sidebar {
-  width: 240px;
-  background: linear-gradient(180deg, #6b2326 0%, #7b2c2f 45%, #8f3539 100%);
-  color: #ffffff;
+  width: 100%;
+  background: #ffffff;
+  color: var(--ink);
   display: flex;
-  flex-direction: column;
-  padding: 24px 18px;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  height: 100vh;
+  z-index: 20;
 }
 
 .mayris-logo {
@@ -807,15 +810,16 @@ body {
 }
 
 .mayris-logo__mark {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   background: var(--marsala);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  font-size: 13px;
 }
 
 .mayris-logo__name {
@@ -828,43 +832,14 @@ body {
   color: rgba(255, 255, 255, 0.75);
 }
 
-.mayris-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.mayris-nav,
+.mayris-nav__item,
+.mayris-nav__dot,
+.mayris-nav__section,
+.mayris-accordion,
+.mayris-accordion__items {
+  display: none;
 }
-
-.mayris-nav__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.mayris-nav__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
-}
-
-.mayris-nav__item:hover {
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.mayris-nav__item.is-active {
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
-}
-
-  .mayris-nav__item.is-active .mayris-nav__dot {
-    background: var(--marsala);
-  }
 
   .mayris-accordion {
     display: block;
@@ -909,10 +884,90 @@ body {
   }
 
 .mayris-sidebar__footer {
-  margin-top: auto;
+  display: none;
+}
+
+.mayris-topmenu {
+  background: #ffffff;
+}
+
+.mayris-topmenu__brand {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.mayris-topmenu__links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.mayris-topmenu__link,
+.mayris-topmenu__trigger {
+  border: 0;
+  background: transparent;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a4b4f;
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.mayris-topmenu__link:hover,
+.mayris-topmenu__trigger:hover {
+  background: rgba(107, 35, 38, 0.08);
+  color: #3d2b2d;
+}
+
+.mayris-topmenu__link.is-active {
+  background: rgba(107, 35, 38, 0.16);
+  color: #2a1b1d;
+}
+
+.mayris-topmenu__dropdown {
+  position: relative;
+}
+
+.mayris-topmenu__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 210px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(18, 18, 18, 0.12);
+  padding: 8px;
+  display: none;
+  z-index: 30;
+}
+
+.mayris-topmenu__panel a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #4b3a3d;
+  text-decoration: none;
+}
+
+.mayris-topmenu__panel a:hover {
+  background: rgba(107, 35, 38, 0.08);
+}
+
+.mayris-topmenu__dropdown:hover .mayris-topmenu__panel {
+  display: block;
+}
+
+.mayris-topmenu__profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .mayris-main {
