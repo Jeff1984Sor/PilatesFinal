@@ -57,6 +57,7 @@ class BaseAutoCdForm(forms.ModelForm):
             "duracao_meses": "Duracao (Meses)",
             "duracao": "Duracao",
             "duracao_aula_minutos": "Duracao da Aula (Min)",
+            "is_avulso": "Aula avulsa",
             "conteudo_html": "Conteudo HTML",
             "ativo": "Ativo",
             "valor_parcela": "Valor (Parcela)",
@@ -214,6 +215,7 @@ class PlanoForm(BaseAutoCdForm):
             "valor",
             "aulas_por_semana",
             "duracao_meses",
+            "is_avulso",
             "modeloContrato",
         ]
 

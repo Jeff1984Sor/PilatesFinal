@@ -193,6 +193,7 @@ class Plano(models.Model):
     valor = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     aulas_por_semana = models.IntegerField(default=1)
     duracao_meses = models.IntegerField(default=1)
+    is_avulso = models.BooleanField(default=False)
     modeloContrato = models.ForeignKey("ModeloContrato", on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):

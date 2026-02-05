@@ -2796,6 +2796,8 @@ def create_view(request, model, form_class, redirect_name):
                 valor_total = cleaned.get("valor_total") or 0
                 if not valor_total and cleaned.get("cdPlano"):
                     valor_total = float(valor_parcela) * float(cleaned["cdPlano"].duracao_meses or 1)
+                plano = cleaned.get("cdPlano")
+                is_avulso = bool(getattr(plano, "is_avulso", False))
                 contrato_data = {
                     "cdContrato": cleaned["cdContrato"],
                     "cdAluno": cleaned["cdAluno"],
@@ -2806,6 +2808,7 @@ def create_view(request, model, form_class, redirect_name):
                     "valor_total": valor_total,
                     "dtInicioContrato": cleaned["dtInicioContrato"],
                     "dtFimContrato": cleaned["dtFimContrato"],
+                    "modo_pagamento": cleaned.get("modo_pagamento"),
                 }
                 valor = float(valor_parcela or 0)
                 obj = services.criar_contrato_e_contas(contrato_data, valor)
@@ -2815,6 +2818,9 @@ def create_view(request, model, form_class, redirect_name):
                     messages.warning(request, "Contrato criado, mas aluno sem email para assinatura.")
                     messages.success(request, "Contrato criado. Agende as aulas.")
                 _enviar_contrato_whatsapp(request, obj, is_new=True)
+                if is_avulso:
+                    messages.info(request, "Contrato avulso criado. Sem agenda automatica.")
+                    return redirect("alunos_detail", pk=obj.cdAluno_id)
                 return redirect("contratos_agenda", pk=obj.id)
             obj = form.save()
             if model is models.ContasPagar:
