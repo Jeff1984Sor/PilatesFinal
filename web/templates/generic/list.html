@@ -126,7 +126,13 @@
                 <td>{{ obj.cdAluno.dsNome|default:"-" }}</td>
               {% endif %}
               {% for field in display_fields %}
-                <td>{{ obj|attr:field.name }}</td>
+                {% if model_name == 'modelocontrato' and field.name == 'conteudo_html' %}
+                  <td>{{ obj|attr:field.name|striptags }}</td>
+                {% elif model_name == 'termouso' and field.name == 'dsTermoUso' %}
+                  <td>{{ obj|attr:field.name|striptags }}</td>
+                {% else %}
+                  <td>{{ obj|attr:field.name }}</td>
+                {% endif %}
               {% endfor %}
               <td class="mayris-actions">
                 {% if model_name == 'aluno' %}
@@ -414,6 +420,14 @@
                     <div class="col-md-4">
                       {{ form.dtNascimento.label_tag }}
                       {{ form.dtNascimento }}
+                    </div>
+                    <div class="col-md-4">
+                      {{ form.estado_civil.label_tag }}
+                      {{ form.estado_civil }}
+                    </div>
+                    <div class="col-md-4">
+                      {{ form.cdProfissao.label_tag }}
+                      {{ form.cdProfissao }}
                     </div>
                     <div class="col-md-4">
                       {{ form.cdUnidade.label_tag }}
@@ -773,6 +787,14 @@
                         <div class="col-md-4">
                           {{ edit_form.dtNascimento.label_tag }}
                           {{ edit_form.dtNascimento }}
+                        </div>
+                        <div class="col-md-4">
+                          {{ edit_form.estado_civil.label_tag }}
+                          {{ edit_form.estado_civil }}
+                        </div>
+                        <div class="col-md-4">
+                          {{ edit_form.cdProfissao.label_tag }}
+                          {{ edit_form.cdProfissao }}
                         </div>
                         <div class="col-md-4">
                           {{ edit_form.cdUnidade.label_tag }}

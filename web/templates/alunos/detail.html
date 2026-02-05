@@ -56,6 +56,10 @@
 
         <div class="mb-2"><strong>Nascimento:</strong> {{ aluno.dtNascimento|date:"d/m/Y"|default:"-" }}</div>
 
+        <div class="mb-2"><strong>Estado civil:</strong> {{ aluno.get_estado_civil_display|default:"-" }}</div>
+
+        <div class="mb-2"><strong>Profissao:</strong> {{ aluno.cdProfissao|default:"-" }}</div>
+
         <div class="mb-2"><strong>Unidade:</strong> {{ aluno.cdUnidade }}</div>
 
         <div class="mb-2"><strong>Termo:</strong> {{ aluno.cdTermoUso|default:"-" }}</div>
@@ -1236,6 +1240,14 @@
             </div>
 
             <div class="col-md-4">
+              {{ edit_form.estado_civil.label_tag }} {{ edit_form.estado_civil }}
+            </div>
+
+            <div class="col-md-4">
+              {{ edit_form.cdProfissao.label_tag }} {{ edit_form.cdProfissao }}
+            </div>
+
+            <div class="col-md-4">
 
               {{ edit_form.cdUnidade.label_tag }} {{ edit_form.cdUnidade }}
 
@@ -1505,6 +1517,16 @@
               </select>
 
             </div>
+            <div class="col-md-6">
+              <label>Modo de pagamento</label>
+              <select class="form-select" name="modo_pagamento">
+                <option value="">Selecione</option>
+                <option value="DINHEIRO">Dinheiro</option>
+                <option value="PIX">Pix</option>
+                <option value="CREDITO">Cartao de credito</option>
+                <option value="DEBITO">Cartao de debito</option>
+              </select>
+            </div>
 
             <div class="col-md-4">
 
@@ -1656,6 +1678,16 @@
 
                   </select>
 
+                </div>
+                <div class="col-md-6">
+                  <label>Modo de pagamento</label>
+                  <select class="form-select" name="modo_pagamento">
+                    <option value="">Selecione</option>
+                    <option value="DINHEIRO" {% if c.modo_pagamento == "DINHEIRO" %}selected{% endif %}>Dinheiro</option>
+                    <option value="PIX" {% if c.modo_pagamento == "PIX" %}selected{% endif %}>Pix</option>
+                    <option value="CREDITO" {% if c.modo_pagamento == "CREDITO" %}selected{% endif %}>Cartao de credito</option>
+                    <option value="DEBITO" {% if c.modo_pagamento == "DEBITO" %}selected{% endif %}>Cartao de debito</option>
+                  </select>
                 </div>
 
                 <div class="col-md-4">

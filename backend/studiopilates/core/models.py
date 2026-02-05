@@ -14,6 +14,14 @@ class PerfilAcesso(models.Model):
         return self.dsPerfilAcesso
 
 
+class Profissao(models.Model):
+    cdProfissao = models.IntegerField(unique=True, db_index=True)
+    dsProfissao = models.CharField(max_length=120)
+
+    def __str__(self):
+        return self.dsProfissao
+
+
 class Profissional(models.Model):
     cdProfissional = models.IntegerField(unique=True, db_index=True)
     profissional = models.CharField(max_length=150)
@@ -49,6 +57,16 @@ class TermoUso(models.Model):
 
 
 class Aluno(models.Model):
+    ESTADO_CIVIL_CHOICES = [
+        ("SOLTEIRO", "Solteiro(a)"),
+        ("CASADO", "Casado(a)"),
+        ("DIVORCIADO", "Divorciado(a)"),
+        ("VIUVO", "Viuvo(a)"),
+        ("SEPARADO", "Separado(a)"),
+        ("UNIAO_ESTAVEL", "Uniao estavel"),
+        ("OUTRO", "Outro"),
+    ]
+
     cdAluno = models.IntegerField(unique=True, db_index=True)
     dsNome = models.CharField(max_length=150)
     dsCPF = models.CharField(max_length=14, unique=True)
@@ -56,6 +74,8 @@ class Aluno(models.Model):
     dsEmail = models.EmailField(blank=True)
     foto = models.ImageField(upload_to="alunos", null=True, blank=True)
     dtNascimento = models.DateField(null=True, blank=True)
+    estado_civil = models.CharField(max_length=20, choices=ESTADO_CIVIL_CHOICES, blank=True)
+    cdProfissao = models.ForeignKey(Profissao, on_delete=models.SET_NULL, null=True, blank=True)
     cdEndereco = models.OneToOneField("EnderecoAluno", on_delete=models.SET_NULL, null=True, blank=True)
     cdUnidade = models.ForeignKey(Unidade, on_delete=models.PROTECT)
     cdTermoUso = models.ForeignKey(TermoUso, on_delete=models.SET_NULL, null=True, blank=True)
@@ -213,12 +233,19 @@ class Contrato(models.Model):
         ("ASSINADO", "Contrato assinado"),
         ("ASSINADO_DIGITALMENTE", "Assinado digitalmente"),
     ]
+    PAGAMENTO_CHOICES = [
+        ("DINHEIRO", "Dinheiro"),
+        ("PIX", "Pix"),
+        ("CREDITO", "Cartao de credito"),
+        ("DEBITO", "Cartao de debito"),
+    ]
 
     cdContrato = models.IntegerField(unique=True, db_index=True)
     cdAluno = models.ForeignKey(Aluno, on_delete=models.PROTECT)
     cdPlano = models.ForeignKey(Plano, on_delete=models.PROTECT)
     cdUnidade = models.ForeignKey(Unidade, on_delete=models.PROTECT)
     cdProfissional = models.ForeignKey(Profissional, on_delete=models.PROTECT)
+    modo_pagamento = models.CharField(max_length=20, choices=PAGAMENTO_CHOICES, blank=True)
     valor_parcela = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     valor_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     dtCadastro = models.DateTimeField(auto_now_add=True)

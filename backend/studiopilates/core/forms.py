@@ -18,6 +18,7 @@ class BaseAutoCdForm(forms.ModelForm):
             "dsCategoria": "Categoria",
             "tipo": "Tipo",
             "dsSubcategoria": "Subcategoria",
+            "dsProfissao": "Profissao",
             "dsCPF": "CPF",
             "dsRg": "RG",
             "dsEmail": "Email",
@@ -32,6 +33,8 @@ class BaseAutoCdForm(forms.ModelForm):
             "celular": "Celular",
             "crefito": "Crefito",
             "dtNascimento": "Data de Nascimento",
+            "estado_civil": "Estado civil",
+            "cdProfissao": "Profissao",
             "dtInicioContrato": "Inicio do Contrato",
             "dtFimContrato": "Fim do Contrato",
             "cdUnidade": "Unidade",
@@ -57,6 +60,7 @@ class BaseAutoCdForm(forms.ModelForm):
             "ativo": "Ativo",
             "valor_parcela": "Valor (Parcela)",
             "valor_total": "Valor Total",
+            "modo_pagamento": "Modo de Pagamento",
             "diaSemana": "Dia da Semana",
             "horaInicio": "Hora Inicio",
             "horaFim": "Hora Fim",
@@ -106,6 +110,8 @@ class BaseAutoCdForm(forms.ModelForm):
                 field.widget.attrs.setdefault("class", "form-select")
             else:
                 field.widget.attrs.setdefault("class", "form-control")
+            if name == "estado_civil":
+                field.widget.attrs["class"] = "form-select"
             if name == "dsCPF":
                 field.widget.attrs["class"] = "form-control js-cpf"
                 field.widget.attrs["placeholder"] = "000.000.000-00"
@@ -132,7 +138,19 @@ class BaseAutoCdForm(forms.ModelForm):
 class AlunoForm(BaseAutoCdForm):
     class Meta:
         model = models.Aluno
-        fields = ["cdAluno", "dsNome", "dsCPF", "dsRg", "dsEmail", "foto", "dtNascimento", "cdUnidade", "cdTermoUso"]
+        fields = [
+            "cdAluno",
+            "dsNome",
+            "dsCPF",
+            "dsRg",
+            "dsEmail",
+            "foto",
+            "dtNascimento",
+            "estado_civil",
+            "cdProfissao",
+            "cdUnidade",
+            "cdTermoUso",
+        ]
 
 
 class EnderecoAlunoForm(BaseAutoCdForm):
@@ -220,6 +238,7 @@ class ContratoForm(BaseAutoCdForm):
             "cdPlano",
             "cdUnidade",
             "cdProfissional",
+            "modo_pagamento",
             "valor_parcela",
             "valor_total",
             "dtInicioContrato",
@@ -291,6 +310,12 @@ class PerfilAcessoForm(BaseAutoCdForm):
     class Meta:
         model = models.PerfilAcesso
         fields = ["cdPerfilAcesso", "dsPerfilAcesso"]
+
+
+class ProfissaoForm(BaseAutoCdForm):
+    class Meta:
+        model = models.Profissao
+        fields = ["cdProfissao", "dsProfissao"]
 
 
 class ModeloContratoForm(BaseAutoCdForm):

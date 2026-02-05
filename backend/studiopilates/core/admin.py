@@ -2,6 +2,7 @@ from django.contrib import admin
 from . import models
 
 admin.site.register(models.PerfilAcesso)
+admin.site.register(models.Profissao)
 admin.site.register(models.Profissional)
 admin.site.register(models.Unidade)
 admin.site.register(models.TermoUso)

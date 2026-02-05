@@ -80,11 +80,14 @@ def render_contrato_html(contrato):
     plano = contrato.cdPlano
     profissional = contrato.cdProfissional
     unidade = contrato.cdUnidade
+    hoje = timezone.localdate()
     substitutions = {
         "{ALUNO_NOME}": aluno.dsNome,
         "{ALUNO_CPF}": aluno.dsCPF,
         "{ALUNO_RG}": aluno.dsRg or "",
         "{ALUNO_NASCIMENTO}": aluno.dtNascimento.strftime("%d/%m/%Y") if aluno.dtNascimento else "",
+        "{ALUNO_ESTADO_CIVIL}": aluno.get_estado_civil_display() if aluno.estado_civil else "",
+        "{ALUNO_PROFISSAO}": str(aluno.cdProfissao) if aluno.cdProfissao else "",
         "{ALUNO_EMAIL}": aluno.dsEmail or "",
         "{ALUNO_TELEFONE}": ", ".join(aluno.telefones.values_list("dsTelefone", flat=True)),
         "{ALUNO_ENDERECO}": f"{endereco.dsLogradouro}, {endereco.dsNumero} - {endereco.dsBairro} - {endereco.dsCidade} ({endereco.dsCEP})"
@@ -102,11 +105,14 @@ def render_contrato_html(contrato):
         "{PLANO_NOME}": str(plano),
         "{PLANO_AULAS_SEMANA}": str(plano.aulas_por_semana or ""),
         "{PLANO_DURACAO_MESES}": str(plano.duracao_meses or ""),
+        "{TIPO_SERVICO}": str(plano.cdTipoServico) if plano and plano.cdTipoServico else "",
         "{CONTRATO_NUMERO}": str(contrato.cdContrato),
         "{CONTRATO_INICIO}": contrato.dtInicioContrato.strftime("%d/%m/%Y"),
         "{CONTRATO_FIM}": contrato.dtFimContrato.strftime("%d/%m/%Y"),
+        "{CONTRATO_MODO_PAGAMENTO}": contrato.get_modo_pagamento_display() if contrato.modo_pagamento else "",
         "{CONTRATO_VALOR_PARCELA}": _currency(contrato.valor_parcela),
         "{CONTRATO_VALOR_TOTAL}": _currency(contrato.valor_total),
+        "{DATA_HOJE}": hoje.strftime("%d/%m/%Y"),
     }
     template = plano.modeloContrato.conteudo_html if plano and plano.modeloContrato else ""
     if not template:
