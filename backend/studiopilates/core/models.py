@@ -189,6 +189,7 @@ class Plano(models.Model):
     dsPlano = models.CharField(max_length=120)
     cdTipoServico = models.ForeignKey(TipoServico, on_delete=models.PROTECT)
     categoria_receita = models.ForeignKey("Categoria", on_delete=models.PROTECT, null=True, blank=True)
+    subcategoria_receita = models.ForeignKey("Subcategoria", on_delete=models.PROTECT, null=True, blank=True)
     valor = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     aulas_por_semana = models.IntegerField(default=1)
     duracao_meses = models.IntegerField(default=1)

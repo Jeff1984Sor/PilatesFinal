@@ -44,6 +44,14 @@
         </div>
       {% endfor %}
     {% endif %}
+    {% if receitas_por_subcategoria %}
+      {% for item in receitas_por_subcategoria %}
+        <div class="dre-report-row">
+          <div>{{ item.contrato__cdPlano__subcategoria_receita__dsSubcategoria|default:"Sem subcategoria" }}</div>
+          <div>R$ {{ item.total }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}
     <div class="dre-report-row is-section">
       <div>Despesas do periodo (-)</div>
       <div>R$ {{ despesas_operacionais }}</div>
@@ -127,6 +135,17 @@
   <div class="col-md-12">
     <div class="mayris-card">
       
+        <div class="fw-semibold mb-2">Receitas por subcategoria</div>
+        <canvas id="chartReceitasSub" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-3">
+  <div class="col-md-12">
+    <div class="mayris-card">
+      
         <div class="fw-semibold mb-2">Despesas por subcategoria</div>
         <canvas id="chartDespesasSub" height="220"></canvas>
       </div>
@@ -178,6 +197,36 @@
               {% for item in receitas_por_categoria %}
                 <tr>
                   <td>{{ item.contrato__cdPlano__categoria_receita__dsCategoria|default:"Sem categoria" }}</td>
+                  <td>R$ {{ item.total }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="2" class="text-muted">Sem receitas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-3">
+  <div class="col-md-12">
+    <div class="mayris-card">
+      
+        <div class="fw-semibold mb-2">Receitas por subcategoria</div>
+        <div class="table-responsive">
+          <table class="table table-sm mayris-table">
+            <thead>
+              <tr>
+                <th>Subcategoria</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in receitas_por_subcategoria %}
+                <tr>
+                  <td>{{ item.contrato__cdPlano__subcategoria_receita__dsSubcategoria|default:"Sem subcategoria" }}</td>
                   <td>R$ {{ item.total }}</td>
                 </tr>
               {% empty %}
@@ -259,6 +308,8 @@
   const despesasValues = {{ chart_despesas_values|safe }};
   const receitasCatLabels = {{ chart_receitas_cat_labels|safe }};
   const receitasCatValues = {{ chart_receitas_cat_values|safe }};
+  const receitasSubLabels = {{ chart_receitas_sub_labels|safe }};
+  const receitasSubValues = {{ chart_receitas_sub_values|safe }};
   const despesasSubLabels = {{ chart_despesas_sub_labels|safe }};
   const despesasSubValues = {{ chart_despesas_sub_values|safe }};
 
@@ -303,6 +354,24 @@
           label: "Receitas por categoria",
           data: receitasCatValues,
           backgroundColor: "#0ea5e9",
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+      }
+    });
+  }
+
+  if (receitasSubLabels.length) {
+    new Chart(document.getElementById("chartReceitasSub"), {
+      type: "bar",
+      data: {
+        labels: receitasSubLabels,
+        datasets: [{
+          label: "Receitas por subcategoria",
+          data: receitasSubValues,
+          backgroundColor: "#14b8a6",
         }]
       },
       options: {

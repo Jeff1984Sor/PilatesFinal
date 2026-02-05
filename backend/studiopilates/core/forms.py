@@ -47,6 +47,7 @@ class BaseAutoCdForm(forms.ModelForm):
             "cdFornecedor": "Fornecedor",
             "cdCategoria": "Categoria",
             "cdSubcategoria": "Subcategoria",
+            "subcategoria_receita": "Subcategoria",
             "dtVencimento": "Vencimento",
             "valor": "Valor",
             "valor": "Valor",
@@ -199,10 +200,22 @@ class PlanoForm(BaseAutoCdForm):
         super().__init__(*args, **kwargs)
         if "categoria_receita" in self.fields:
             self.fields["categoria_receita"].queryset = models.Categoria.objects.filter(tipo="RECEITA")
+        if "subcategoria_receita" in self.fields:
+            self.fields["subcategoria_receita"].queryset = models.Subcategoria.objects.filter(cdCategoria__tipo="RECEITA")
 
     class Meta:
         model = models.Plano
-        fields = ["cdPlano", "dsPlano", "cdTipoServico", "categoria_receita", "valor", "aulas_por_semana", "duracao_meses", "modeloContrato"]
+        fields = [
+            "cdPlano",
+            "dsPlano",
+            "cdTipoServico",
+            "categoria_receita",
+            "subcategoria_receita",
+            "valor",
+            "aulas_por_semana",
+            "duracao_meses",
+            "modeloContrato",
+        ]
 
 
 class TipoServicoForm(BaseAutoCdForm):

@@ -1498,6 +1498,11 @@ def dre_relatorio(request):
         .annotate(total=Sum("valor"))
         .order_by("-total")
     )
+    receitas_por_subcategoria = (
+        receitas_qs.values("contrato__cdPlano__subcategoria_receita__dsSubcategoria")
+        .annotate(total=Sum("valor"))
+        .order_by("-total")
+    )
     despesas_por_categoria = (
         despesas_qs.values("cdCategoria__dsCategoria")
         .annotate(total=Sum("valor"))
@@ -1537,6 +1542,8 @@ def dre_relatorio(request):
     receitas_values = [float(item["total"] or 0) for item in receitas_por_plano]
     receitas_cat_labels = [item["contrato__cdPlano__categoria_receita__dsCategoria"] or "Sem categoria" for item in receitas_por_categoria]
     receitas_cat_values = [float(item["total"] or 0) for item in receitas_por_categoria]
+    receitas_sub_labels = [item["contrato__cdPlano__subcategoria_receita__dsSubcategoria"] or "Sem subcategoria" for item in receitas_por_subcategoria]
+    receitas_sub_values = [float(item["total"] or 0) for item in receitas_por_subcategoria]
     despesas_labels = [item["cdCategoria__dsCategoria"] or "Sem categoria" for item in despesas_por_categoria]
     despesas_values = [float(item["total"] or 0) for item in despesas_por_categoria]
     despesas_sub_labels = [item["cdSubcategoria__dsSubcategoria"] or "Sem subcategoria" for item in despesas_por_subcategoria]
@@ -1557,12 +1564,15 @@ def dre_relatorio(request):
         "saldo_bancario_final": saldo_bancario_final,
         "receitas_por_plano": receitas_por_plano,
         "receitas_por_categoria": receitas_por_categoria,
+        "receitas_por_subcategoria": receitas_por_subcategoria,
         "despesas_por_categoria": despesas_por_categoria,
         "despesas_por_subcategoria": despesas_por_subcategoria,
         "chart_receitas_labels": json.dumps(receitas_labels),
         "chart_receitas_values": json.dumps(receitas_values),
         "chart_receitas_cat_labels": json.dumps(receitas_cat_labels),
         "chart_receitas_cat_values": json.dumps(receitas_cat_values),
+        "chart_receitas_sub_labels": json.dumps(receitas_sub_labels),
+        "chart_receitas_sub_values": json.dumps(receitas_sub_values),
         "chart_despesas_labels": json.dumps(despesas_labels),
         "chart_despesas_values": json.dumps(despesas_values),
         "chart_despesas_sub_labels": json.dumps(despesas_sub_labels),
@@ -1643,6 +1653,11 @@ def exportar_dre_excel(request):
     ws_receitas_cat.append(["Categoria", "Total"])
     for item in receitas_por_categoria:
         ws_receitas_cat.append([item["contrato__cdPlano__categoria_receita__dsCategoria"] or "Sem categoria", float(item["total"] or 0)])
+
+    ws_receitas_sub = wb.create_sheet("Receitas por subcategoria")
+    ws_receitas_sub.append(["Subcategoria", "Total"])
+    for item in receitas_por_subcategoria:
+        ws_receitas_sub.append([item["contrato__cdPlano__subcategoria_receita__dsSubcategoria"] or "Sem subcategoria", float(item["total"] or 0)])
 
     ws_despesas = wb.create_sheet("Despesas por categoria")
     ws_despesas.append(["Categoria", "Total"])
@@ -1800,6 +1815,15 @@ def exportar_dre_pdf(request):
         Spacer(1, 16),
         Paragraph("Receitas por categoria", styles["Heading3"]),
         receitas_cat_table,
+        Spacer(1, 16),
+        Paragraph("Receitas por subcategoria", styles["Heading3"]),
+        Table(
+            [["Subcategoria", "Total"]] + [
+                [item["contrato__cdPlano__subcategoria_receita__dsSubcategoria"] or "Sem subcategoria", f"R$ {item['total']}"]
+                for item in receitas_por_subcategoria
+            ],
+            colWidths=[260, 120],
+        ),
         Spacer(1, 16),
         Paragraph("Despesas por categoria", styles["Heading3"]),
         despesas_table,
@@ -3046,7 +3070,11 @@ def _filtrar_contas_receber(qs, request):
 def exportar_contas_receber_excel(request, aluno_id):
     aluno = get_object_or_404(models.Aluno, pk=aluno_id)
     qs = _filtrar_contas_receber(
-        models.ContasReceber.objects.filter(contrato__cdAluno=aluno).select_related("contrato"),
+        models.ContasReceber.objects.filter(contrato__cdAluno=aluno).select_related(
+            "contrato",
+            "contrato__cdPlano",
+            "contrato__cdPlano__subcategoria_receita",
+        ),
         request,
     )
     from openpyxl import Workbook
@@ -3054,7 +3082,7 @@ def exportar_contas_receber_excel(request, aluno_id):
     wb = Workbook()
     ws = wb.active
     ws.title = "Faturas"
-    ws.append(["Competencia", "Vencimento", "Pagamento", "Contrato", "Status", "Valor"])
+    ws.append(["Competencia", "Vencimento", "Pagamento", "Contrato", "Subcategoria", "Status", "Valor"])
     for f in qs:
         ws.append(
             [
@@ -3062,6 +3090,7 @@ def exportar_contas_receber_excel(request, aluno_id):
                 f.dtVencimento.strftime("%d/%m/%Y") if f.dtVencimento else "",
                 f.dtPagamento.strftime("%d/%m/%Y") if f.dtPagamento else "",
                 f.contrato.cdContrato if f.contrato_id else "",
+                f.contrato.cdPlano.subcategoria_receita.dsSubcategoria if f.contrato_id and f.contrato.cdPlano and f.contrato.cdPlano.subcategoria_receita else "",
                 f.status,
                 float(f.valor),
             ]
@@ -3081,7 +3110,11 @@ def exportar_contas_receber_excel(request, aluno_id):
 def exportar_contas_receber_pdf(request, aluno_id):
     aluno = get_object_or_404(models.Aluno, pk=aluno_id)
     qs = _filtrar_contas_receber(
-        models.ContasReceber.objects.filter(contrato__cdAluno=aluno).select_related("contrato"),
+        models.ContasReceber.objects.filter(contrato__cdAluno=aluno).select_related(
+            "contrato",
+            "contrato__cdPlano",
+            "contrato__cdPlano__subcategoria_receita",
+        ),
         request,
     )
     from reportlab.lib import colors
@@ -3094,7 +3127,7 @@ def exportar_contas_receber_pdf(request, aluno_id):
     styles = getSampleStyleSheet()
     title = Paragraph(f"Faturas do aluno: {aluno.dsNome}", styles["Title"])
     subtitle = Paragraph("Resumo financeiro", styles["Normal"])
-    data = [["Competencia", "Vencimento", "Pagamento", "Contrato", "Status", "Valor"]]
+    data = [["Competencia", "Vencimento", "Pagamento", "Contrato", "Subcategoria", "Status", "Valor"]]
     for f in qs:
         data.append(
             [
@@ -3102,6 +3135,7 @@ def exportar_contas_receber_pdf(request, aluno_id):
                 f.dtVencimento.strftime("%d/%m/%Y") if f.dtVencimento else "-",
                 f.dtPagamento.strftime("%d/%m/%Y") if f.dtPagamento else "-",
                 str(f.contrato.cdContrato) if f.contrato_id else "-",
+                f.contrato.cdPlano.subcategoria_receita.dsSubcategoria if f.contrato_id and f.contrato.cdPlano and f.contrato.cdPlano.subcategoria_receita else "-",
                 f.status,
                 f"R$ {f.valor}",
             ]
