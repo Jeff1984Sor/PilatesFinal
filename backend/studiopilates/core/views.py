@@ -1101,6 +1101,8 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         return redirect("dashboard")
     query = request.GET.get("q", "").strip()
     order = request.GET.get("order", "id")
+    if model is models.Plano and not request.GET.get("order"):
+        order = "dsPlano"
     qs = model.objects.all()
     if model is models.ContasReceber:
         qs = qs.select_related("contrato", "contrato__cdAluno")
@@ -1118,6 +1120,12 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         for field in model._meta.fields
         if not field.primary_key and not field.name.startswith("cd")
     ][:3]
+    if model is models.Plano:
+        display_fields = [
+            {"name": "dsPlano", "label": "Plano"},
+            {"name": "aulas_por_semana", "label": "Aulas por semana"},
+            {"name": "duracao_meses", "label": "Duracao (meses)"},
+        ]
     edit_forms = {}
     if allow_modal:
         for obj in page:
