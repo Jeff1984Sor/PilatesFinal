@@ -502,7 +502,83 @@
                     </div>
                   </div>
                   <hr class="my-3" />
-                  {{ form.dsTermoUso.label_tag }} {{ form.dsTermoUso }}
+                  {{ form.dsTermoUso.label_tag }}
+                  <div class="wysiwyg-editor js-wysiwyg form-control" data-target="dsTermoUso" contenteditable="true"></div>
+                  {{ form.dsTermoUso.as_widget(attrs={'class': 'form-control js-wysiwyg-source d-none'}) }}
+                {% elif model_name == 'contrato' %}
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label>Aluno</label>
+                      <select class="form-select" name="cdAluno" required>
+                        <option value="">Selecione</option>
+                        {% for a in alunos %}
+                          <option value="{{ a.id }}">{{ a.dsNome }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label>Plano</label>
+                      <select class="form-select js-plano" name="cdPlano" required>
+                        <option value="">Selecione</option>
+                        {% for p in planos %}
+                          <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}">{{ p.dsPlano }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label>Unidade</label>
+                      <select class="form-select" name="cdUnidade" required>
+                        <option value="">Selecione</option>
+                        {% for u in unidades %}
+                          <option value="{{ u.id }}">{{ u.dsUnidade }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label>Profissional</label>
+                      <select class="form-select" name="cdProfissional" required>
+                        <option value="">Selecione</option>
+                        {% for p in profissionais %}
+                          <option value="{{ p.id }}">{{ p.profissional }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      {{ form.modo_pagamento.label_tag }} {{ form.modo_pagamento }}
+                    </div>
+                    <div class="col-md-6">
+                      {{ form.valor_parcela.label_tag }}
+                      <input class="form-control js-valor-parcela" name="valor_parcela" type="number" step="0.01" />
+                    </div>
+                    <div class="col-md-6">
+                      {{ form.valor_total.label_tag }}
+                      <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input class="form-control js-valor-total" name="valor_total" type="text" readonly />
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      {{ form.dtInicioContrato.label_tag }}
+                      <input class="form-control js-contrato-inicio" name="dtInicioContrato" type="date" required />
+                    </div>
+                    <div class="col-md-6">
+                      {{ form.dtFimContrato.label_tag }}
+                      <input class="form-control js-contrato-fim" name="dtFimContrato" type="date" required />
+                    </div>
+                  </div>
+                {% elif model_name == 'modelocontrato' %}
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      {{ form.dsNome.label_tag }} {{ form.dsNome }}
+                    </div>
+                    <div class="col-md-3">
+                      {{ form.ativo.label_tag }} {{ form.ativo }}
+                    </div>
+                  </div>
+                  <hr class="my-3" />
+                  {{ form.conteudo_html.label_tag }}
+                  <div class="wysiwyg-editor js-wysiwyg form-control" data-target="conteudo_html" contenteditable="true"></div>
+                  {{ form.conteudo_html.as_widget(attrs={'class': 'form-control js-wysiwyg-source d-none'}) }}
                 {% else %}
                   {% if model_name == 'contaspagar' %}
                     <div class="row g-3">
@@ -831,7 +907,89 @@
                         </div>
                       </div>
                     {% else %}
-                      {{ edit_form.as_p }}
+                      {% if model_name == 'termouso' and edit_form %}
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            {{ edit_form.nome.label_tag }} {{ edit_form.nome }}
+                          </div>
+                        </div>
+                        <hr class="my-3" />
+                        {{ edit_form.dsTermoUso.label_tag }}
+                        <div class="wysiwyg-editor js-wysiwyg form-control" data-target="dsTermoUso" contenteditable="true"></div>
+                        {{ edit_form.dsTermoUso.as_widget(attrs={'class': 'form-control js-wysiwyg-source d-none'}) }}
+                      {% elif model_name == 'contrato' and edit_form %}
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <label>Aluno</label>
+                            <select class="form-select" name="cdAluno" required>
+                              {% for a in alunos %}
+                                <option value="{{ a.id }}" {% if obj.cdAluno_id == a.id %}selected{% endif %}>{{ a.dsNome }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          <div class="col-md-6">
+                            <label>Plano</label>
+                            <select class="form-select js-plano" name="cdPlano" required>
+                              {% for p in planos %}
+                                <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" {% if obj.cdPlano_id == p.id %}selected{% endif %}>{{ p.dsPlano }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          <div class="col-md-6">
+                            <label>Unidade</label>
+                            <select class="form-select" name="cdUnidade" required>
+                              {% for u in unidades %}
+                                <option value="{{ u.id }}" {% if obj.cdUnidade_id == u.id %}selected{% endif %}>{{ u.dsUnidade }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          <div class="col-md-6">
+                            <label>Profissional</label>
+                            <select class="form-select" name="cdProfissional" required>
+                              {% for p in profissionais %}
+                                <option value="{{ p.id }}" {% if obj.cdProfissional_id == p.id %}selected{% endif %}>{{ p.profissional }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          <div class="col-md-6">
+                            {{ edit_form.modo_pagamento.label_tag }} {{ edit_form.modo_pagamento }}
+                          </div>
+                          <div class="col-md-6">
+                            {{ edit_form.valor_parcela.label_tag }}
+                            <input class="form-control js-valor-parcela" name="valor_parcela" type="number" step="0.01" value="{{ obj.valor_parcela }}" />
+                          </div>
+                          <div class="col-md-6">
+                            {{ edit_form.valor_total.label_tag }}
+                            <div class="input-group">
+                              <span class="input-group-text">R$</span>
+                              <input class="form-control js-valor-total" name="valor_total" type="text" value="{{ obj.valor_total }}" readonly />
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            {{ edit_form.dtInicioContrato.label_tag }}
+                            <input class="form-control js-contrato-inicio" name="dtInicioContrato" type="date" value="{{ obj.dtInicioContrato|date:'Y-m-d' }}" required />
+                          </div>
+                          <div class="col-md-6">
+                            {{ edit_form.dtFimContrato.label_tag }}
+                            <input class="form-control js-contrato-fim" name="dtFimContrato" type="date" value="{{ obj.dtFimContrato|date:'Y-m-d' }}" required />
+                          </div>
+                        </div>
+                      {% elif model_name == 'modelocontrato' and edit_form %}
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            {{ edit_form.dsNome.label_tag }} {{ edit_form.dsNome }}
+                          </div>
+                          <div class="col-md-3">
+                            {{ edit_form.ativo.label_tag }} {{ edit_form.ativo }}
+                          </div>
+                        </div>
+                        <hr class="my-3" />
+                        {{ edit_form.conteudo_html.label_tag }}
+                        <div class="wysiwyg-editor js-wysiwyg form-control" data-target="conteudo_html" contenteditable="true"></div>
+                        {{ edit_form.conteudo_html.as_widget(attrs={'class': 'form-control js-wysiwyg-source d-none'}) }}
+                      {% else %}
+                        {{ edit_form.as_p }}
+                      {% endif %}
                     {% endif %}
                   {% endwith %}
                   <div class="d-flex justify-content-end gap-2 pt-2">

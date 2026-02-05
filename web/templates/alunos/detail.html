@@ -1519,7 +1519,7 @@
             </div>
             <div class="col-md-6">
               <label>Modo de pagamento</label>
-              <select class="form-select" name="modo_pagamento">
+              <select class="form-select" name="modo_pagamento" required>
                 <option value="">Selecione</option>
                 <option value="DINHEIRO">Dinheiro</option>
                 <option value="PIX">Pix</option>
@@ -1556,7 +1556,10 @@
 
               <label>Valor total</label>
 
-              <input class="form-control js-valor-total" name="valor_total" type="text" readonly />
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                <input class="form-control js-valor-total" name="valor_total" type="text" readonly />
+              </div>
 
             </div>
 
@@ -1681,7 +1684,7 @@
                 </div>
                 <div class="col-md-6">
                   <label>Modo de pagamento</label>
-                  <select class="form-select" name="modo_pagamento">
+                  <select class="form-select" name="modo_pagamento" required>
                     <option value="">Selecione</option>
                     <option value="DINHEIRO" {% if c.modo_pagamento == "DINHEIRO" %}selected{% endif %}>Dinheiro</option>
                     <option value="PIX" {% if c.modo_pagamento == "PIX" %}selected{% endif %}>Pix</option>
@@ -1718,7 +1721,10 @@
 
                   <label>Valor total</label>
 
-                  <input class="form-control js-valor-total" name="valor_total" type="text" value="{{ c.valor_total }}" readonly />
+                  <div class="input-group">
+                    <span class="input-group-text">R$</span>
+                    <input class="form-control js-valor-total" name="valor_total" type="text" value="{{ c.valor_total }}" readonly />
+                  </div>
 
                 </div>
 

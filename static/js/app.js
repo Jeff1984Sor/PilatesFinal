@@ -1,4 +1,14 @@
 document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (form) {
+    form.querySelectorAll(".js-wysiwyg").forEach((editor) => {
+      const targetName = editor.dataset.target;
+      const source = form.querySelector(`.js-wysiwyg-source[name="${targetName}"]`);
+      if (source) {
+        source.value = editor.innerHTML || "";
+      }
+    });
+  }
   const btn = event.target.querySelector("button[type='submit']");
   if (btn) {
     btn.disabled = true;
@@ -6,6 +16,43 @@ document.addEventListener("submit", (event) => {
   }
 });
 
+
+function getTargetField(modal, targetName) {
+  if (!modal) return null;
+  const wysiwyg = modal.querySelector(`.js-wysiwyg[data-target="${targetName}"]`);
+  if (wysiwyg) return wysiwyg;
+  return modal.querySelector(`[name="${targetName}"]`);
+}
+
+function getWysiwygSource(modal, targetName) {
+  if (!modal) return null;
+  return modal.querySelector(`.js-wysiwyg-source[name="${targetName}"]`);
+}
+
+function insertTextAtCursor(el, text) {
+  el.focus();
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) {
+    el.innerHTML = `${el.innerHTML || ""}${text}`;
+    return;
+  }
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  const node = document.createTextNode(text);
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.setEndAfter(node);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function syncWysiwygToSource(modal, targetName) {
+  const editor = modal?.querySelector(`.js-wysiwyg[data-target="${targetName}"]`);
+  const source = getWysiwygSource(modal, targetName);
+  if (editor && source) {
+    source.value = editor.innerHTML || "";
+  }
+}
 
 document.addEventListener("click", (event) => {
   const btn = event.target.closest(".js-var");
@@ -15,10 +62,15 @@ document.addEventListener("click", (event) => {
   if (!modal) return;
   const body = btn.closest(".modal-body");
   const targetName = body?.dataset.variableTarget || "conteudo_html";
-  const field = modal.querySelector(`[name="${targetName}"]`);
+  const field = getTargetField(modal, targetName);
   if (!field) return;
   const key = btn.dataset.var || "";
   const token = `{${key}}`;
+  if (field.isContentEditable) {
+    insertTextAtCursor(field, token);
+    syncWysiwygToSource(modal, targetName);
+    return;
+  }
   const start = field.selectionStart || 0;
   const end = field.selectionEnd || 0;
   const value = field.value || "";
@@ -36,10 +88,13 @@ document.addEventListener("click", (event) => {
   if (!modal) return;
   const body = btn.closest(".modal-body");
   const targetName = body?.dataset.variableTarget || "conteudo_html";
-  const field = modal.querySelector(`[name="${targetName}"]`);
+  const field = getTargetField(modal, targetName);
   if (!field) return;
   const cmd = btn.dataset.cmd || "";
   applyFormat(field, cmd);
+  if (field.isContentEditable) {
+    syncWysiwygToSource(modal, targetName);
+  }
 });
 
 document.addEventListener("change", (event) => {
@@ -50,7 +105,7 @@ document.addEventListener("change", (event) => {
   if (!modal) return;
   const body = event.target.closest(".modal-body");
   const targetName = body?.dataset.variableTarget || "conteudo_html";
-  const field = modal.querySelector(`[name="${targetName}"]`);
+  const field = getTargetField(modal, targetName);
   if (!field) return;
   if (selectFamily && selectFamily.value) {
     applyFormat(field, "font-family", selectFamily.value);
@@ -59,6 +114,9 @@ document.addEventListener("change", (event) => {
   if (selectSize && selectSize.value) {
     applyFormat(field, "font-size", selectSize.value);
     selectSize.selectedIndex = 0;
+  }
+  if (field.isContentEditable) {
+    syncWysiwygToSource(modal, targetName);
   }
 });
 
@@ -89,9 +147,8 @@ document.addEventListener("focusin", (event) => {
   }
 });
 
-document.addEventListener("shown.bs.modal", (event) => {
-  const modal = event.target;
-  if (!modal || !modal.querySelector) return;
+function setContratoDefaults(modal) {
+  if (!modal) return;
   const inicio = modal.querySelector(".js-contrato-inicio");
   const fim = modal.querySelector(".js-contrato-fim");
   const plano = modal.querySelector(".js-plano");
@@ -116,11 +173,13 @@ document.addEventListener("shown.bs.modal", (event) => {
     const selected = plano.selectedOptions[0];
     if (selected && selected.value) {
       const valor = parseFloat(selected.dataset.valor || "0");
-      if (!valorParcela.value) {
+      const duracao = parseInt(selected.dataset.duracao || "0", 10);
+      const parcelaAtual = parseFloat(valorParcela.value || "0");
+      const totalAtual = parseFloat(valorTotal.value || "0");
+      if (!valorParcela.value || parcelaAtual === 0) {
         valorParcela.value = valor ? valor.toFixed(2) : "";
       }
-      const duracao = parseInt(selected.dataset.duracao || "0", 10);
-      if (!valorTotal.value) {
+      if (!valorTotal.value || totalAtual === 0) {
         valorTotal.value = valor && duracao ? (valor * duracao).toFixed(2) : "";
       }
     } else {
@@ -128,6 +187,19 @@ document.addEventListener("shown.bs.modal", (event) => {
       valorTotal.value = "";
     }
   }
+}
+
+document.addEventListener("shown.bs.modal", (event) => {
+  const modal = event.target;
+  if (!modal || !modal.querySelector) return;
+  modal.querySelectorAll(".js-wysiwyg").forEach((editor) => {
+    const targetName = editor.dataset.target;
+    const source = modal.querySelector(`.js-wysiwyg-source[name="${targetName}"]`);
+    if (source) {
+      editor.innerHTML = source.value || "";
+    }
+  });
+  setContratoDefaults(modal);
 
   const recorrencia = modal.querySelector("select[name='recorrencia']");
   const quantidade = modal.querySelector(".js-recorrencia-quantidade");
@@ -141,6 +213,17 @@ document.addEventListener("shown.bs.modal", (event) => {
 
   if (modal.querySelector(".js-reserva-date")) {
     initReservaModal(modal);
+  }
+});
+
+document.addEventListener("input", (event) => {
+  const editor = event.target.closest(".js-wysiwyg");
+  if (!editor) return;
+  const modal = editor.closest(".modal");
+  const targetName = editor.dataset.target;
+  const source = modal?.querySelector(`.js-wysiwyg-source[name="${targetName}"]`);
+  if (source) {
+    source.value = editor.innerHTML || "";
   }
 });
 
@@ -181,6 +264,21 @@ document.addEventListener("change", (event) => {
       valorParcela.value = "";
       valorTotal.value = "";
     }
+  }
+});
+
+document.addEventListener("change", (event) => {
+  const inicio = event.target.closest(".js-contrato-inicio");
+  if (!inicio) return;
+  const modal = inicio.closest(".modal");
+  if (!modal) return;
+  const plano = modal.querySelector(".js-plano");
+  const fim = modal.querySelector(".js-contrato-fim");
+  if (!plano || !fim) return;
+  const selected = plano.selectedOptions[0];
+  const duracao = parseInt(selected?.dataset?.duracao || "0", 10);
+  if (selected && selected.value) {
+    fim.value = calcFimContrato(inicio.value, duracao || 1);
   }
 });
 
@@ -741,6 +839,32 @@ function calcFimContrato(inicioIso, duracaoMeses) {
 }
 
 function applyFormat(field, cmd, value) {
+  if (field.isContentEditable) {
+    field.focus();
+    if (cmd === "bold") {
+      document.execCommand("bold");
+    } else if (cmd === "italic") {
+      document.execCommand("italic");
+    } else if (cmd === "underline") {
+      document.execCommand("underline");
+    } else if (cmd === "align-left") {
+      document.execCommand("justifyLeft");
+    } else if (cmd === "align-center") {
+      document.execCommand("justifyCenter");
+    } else if (cmd === "align-right") {
+      document.execCommand("justifyRight");
+    } else if (cmd === "align-justify") {
+      document.execCommand("justifyFull");
+    } else if (cmd === "font-family") {
+      document.execCommand("fontName", false, value);
+    } else if (cmd === "font-size") {
+      const px = parseInt((value || "").replace("px", ""), 10);
+      const sizeMap = { 12: "2", 14: "3", 16: "4", 18: "5", 20: "6" };
+      const fontSize = sizeMap[px] || "3";
+      document.execCommand("fontSize", false, fontSize);
+    }
+    return;
+  }
   const start = field.selectionStart || 0;
   const end = field.selectionEnd || 0;
   const content = field.value || "";

@@ -1235,6 +1235,27 @@ body {
   margin-bottom: 14px;
 }
 
+.wysiwyg-editor {
+  min-height: 260px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  white-space: pre-wrap;
+}
+
+.wysiwyg-content {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #111827;
+  white-space: normal;
+}
+
+.wysiwyg-content p,
+.wysiwyg-content div {
+  margin: 0 0 0.75rem;
+}
+
 .mayris-form__actions {
   margin-top: 12px;
 }
