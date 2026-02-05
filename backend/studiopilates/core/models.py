@@ -119,6 +119,7 @@ class WhatsappMessageType(models.TextChoices):
     AUTOMATED_REMINDER = "automated_reminder", "Lembrete diário"
     PROFESSOR_SCHEDULE = "professor_schedule", "Agenda do professor"
     CONTRACT_LINK = "contract_link", "Link do contrato"
+    CONTRACT_PDF = "contract_pdf", "Contrato em PDF"
     CONTRACT_RENEWAL = "contract_renewal", "Renovação de contrato"
 
 

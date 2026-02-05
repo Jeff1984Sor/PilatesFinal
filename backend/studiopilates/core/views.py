@@ -81,13 +81,31 @@ def _enviar_contrato_whatsapp(request, contrato, is_new=False):
         messages.warning(request, "Aluno sem telefone valido para WhatsApp.")
         return False
     link = _contrato_assinatura_link(contrato, request=request)
+    pdf_link = _contrato_pdf_link(contrato, request=request)
     mensagem = _mensagem_contrato_whatsapp(contrato, link, is_new=is_new)
+    if pdf_link:
+        service.send_document(
+            contrato.cdAluno,
+            telefone,
+            pdf_link,
+            filename=f"Contrato-{contrato.cdContrato}.pdf",
+            caption=f"Contrato {contrato.cdContrato} em PDF",
+            contrato=contrato,
+        )
     resp = service.send(contrato.cdAluno, telefone, mensagem, WhatsappMessageType.CONTRACT_LINK, contrato=contrato)
     if resp.get("error"):
         messages.warning(request, "Nao foi possivel enviar o contrato por WhatsApp.")
         return False
     messages.success(request, "Contrato enviado por WhatsApp.")
     return True
+
+
+def _contrato_pdf_link(contrato, request=None):
+    token = services.gerar_token_contrato(contrato)
+    base_url = (settings.SITE_BASE_URL or "").rstrip("/")
+    if request and (not base_url or "localhost" in base_url):
+        base_url = request.build_absolute_uri("/").rstrip("/")
+    return f"{base_url}/contratos/pdf/{token}/"
 
 
 def _active_menu(path: str) -> str:
@@ -3857,6 +3875,18 @@ def contrato_assinar(request, token):
         "contratos/assinatura.html",
         {"contrato": contrato, "contrato_html": html, "token": token},
     )
+
+
+def contrato_pdf(request, token):
+    try:
+        contrato_id = services.validar_token_contrato(token)
+    except Exception:
+        return HttpResponse("Token invalido", status=404)
+    contrato = get_object_or_404(models.Contrato, pk=contrato_id)
+    pdf = services.render_contrato_pdf(contrato)
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="contrato-{contrato.cdContrato}.pdf"'
+    return response
 
 
 @login_required

@@ -67,6 +67,52 @@ class EvolutionClient:
             logger.exception("Evolution returned bad status for %s", to)
             return {"error": str(exc)}
 
+    def send_document(self, to: str, media_url: str, filename: str, caption: str | None = None) -> dict:
+        if not media_url:
+            return {"error": "Media URL missing"}
+        if self.endpoint_url:
+            url = settings.WASENDER_MEDIA_URL or self.endpoint_url.rstrip("/").replace("send-message", "send-media")
+            if not self.token:
+                logger.warning("WhatsApp API token is not configured.")
+                headers = {}
+            else:
+                headers = {"Authorization": f"Bearer {self.token}"}
+            normalized = to if to.startswith("+") else f"+{to}"
+            payload = {
+                "to": normalized,
+                "mediaUrl": media_url,
+                "fileName": filename,
+                "caption": caption or "",
+                "type": "document",
+            }
+            method = "post"
+        else:
+            if not self.base_url or not self.token or not self.instance:
+                logger.warning("WhatsApp API configuration is not configured.")
+                return {"error": "WhatsApp configuration missing"}
+            url = f"{self.base_url.rstrip('/')}/message/sendMedia/{self.instance}"
+            headers = {"apikey": self.token}
+            payload = {
+                "number": to,
+                "mediaMessage": {
+                    "mediatype": "document",
+                    "media": media_url,
+                    "fileName": filename,
+                    "caption": caption or "",
+                },
+            }
+            method = "post"
+        try:
+            resp = httpx.request(method, url, json=payload, headers=headers, timeout=20)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.RequestError as exc:
+            logger.exception("Failed to send WhatsApp document to %s", to)
+            return {"error": str(exc)}
+        except httpx.HTTPStatusError as exc:
+            logger.exception("Evolution returned bad status for %s", to)
+            return {"error": str(exc)}
+
 
 class WhatsappService:
     def __init__(self):
@@ -127,6 +173,29 @@ class WhatsappService:
             tipo=tipo,
             telefone=telefone,
             mensagem=mensagem,
+            status=status,
+            response_payload=json.dumps(resp, ensure_ascii=False),
+        )
+        return resp
+
+    def send_document(
+        self,
+        aluno: models.Aluno,
+        telefone: str,
+        media_url: str,
+        filename: str,
+        caption: str | None = None,
+        contrato: models.Contrato | None = None,
+    ) -> dict:
+        cliente = self._get_client_for_unidade(getattr(aluno, "cdUnidade", None))
+        resp = cliente.send_document(telefone, media_url, filename, caption=caption)
+        status = "sent" if "error" not in resp else "failed"
+        models.AlunoWhatsappMessage.objects.create(
+            aluno=aluno,
+            contrato=contrato,
+            tipo=models.WhatsappMessageType.CONTRACT_PDF,
+            telefone=telefone,
+            mensagem=caption or "",
             status=status,
             response_payload=json.dumps(resp, ensure_ascii=False),
         )

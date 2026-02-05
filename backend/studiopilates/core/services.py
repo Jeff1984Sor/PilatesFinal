@@ -129,6 +129,90 @@ def render_contrato_html(contrato):
     return template
 
 
+def render_contrato_pdf(contrato):
+    html = render_contrato_html(contrato)
+    try:
+        from weasyprint import HTML, CSS
+
+        doc_html = f"""
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <style>
+              @page {{
+                size: A4;
+                margin: 2.2cm 2cm;
+              }}
+              body {{
+                font-family: 'Manrope', Arial, sans-serif;
+                font-size: 12.5pt;
+                color: #1f2937;
+                line-height: 1.6;
+              }}
+              h1, h2, h3 {{
+                margin: 0 0 12px 0;
+                color: #111827;
+              }}
+              p {{
+                margin: 0 0 10px 0;
+              }}
+              .contrato-header {{
+                border-bottom: 1px solid #e5e7eb;
+                margin-bottom: 16px;
+                padding-bottom: 8px;
+              }}
+              .contrato-meta {{
+                font-size: 11pt;
+                color: #4b5563;
+              }}
+              .contrato-body {{
+                margin-top: 16px;
+              }}
+            </style>
+          </head>
+          <body>
+            <div class="contrato-header">
+              <h2>Contrato {contrato.cdContrato}</h2>
+              <div class="contrato-meta">Aluno: {contrato.cdAluno.dsNome} · Plano: {contrato.cdPlano}</div>
+            </div>
+            <div class="contrato-body">
+              {html}
+            </div>
+          </body>
+        </html>
+        """
+        pdf = HTML(string=doc_html, base_url="").write_pdf(
+            stylesheets=[CSS(string="")],
+        )
+        return pdf
+    except Exception:
+        from io import BytesIO
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+
+        text = strip_tags(html or "")
+        text = text.replace("\r", "")
+        lines = [line.strip() for line in text.split("\n") if line.strip()]
+        styles = getSampleStyleSheet()
+        story = [
+            Paragraph(f"Contrato {contrato.cdContrato}", styles["Title"]),
+            Spacer(1, 10),
+            Paragraph(f"Aluno: {contrato.cdAluno.dsNome}", styles["Normal"]),
+            Paragraph(f"Plano: {contrato.cdPlano}", styles["Normal"]),
+            Spacer(1, 12),
+        ]
+        body = "<br/>".join(lines) if lines else ""
+        if body:
+            story.append(Paragraph(body, styles["Normal"]))
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, title=f"Contrato {contrato.cdContrato}")
+        doc.build(story)
+        pdf = buffer.getvalue()
+        buffer.close()
+        return pdf
+
+
 def gerar_token_contrato(contrato):
     signer = signing.TimestampSigner(salt="contrato-assinatura")
     return signer.sign(str(contrato.pk))
