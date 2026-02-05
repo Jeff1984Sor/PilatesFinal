@@ -504,7 +504,7 @@
                   <hr class="my-3" />
                   {{ form.dsTermoUso.label_tag }}
                   <div class="wysiwyg-editor js-wysiwyg form-control" data-target="dsTermoUso" contenteditable="true"></div>
-                  {{ form.dsTermoUso.as_widget(attrs={'class': 'form-control js-wysiwyg-source d-none'}) }}
+                  {{ form.dsTermoUso }}
                 {% elif model_name == 'contrato' %}
                   <div class="row g-3">
                     <div class="col-md-6">
@@ -578,7 +578,7 @@
                   <hr class="my-3" />
                   {{ form.conteudo_html.label_tag }}
                   <div class="wysiwyg-editor js-wysiwyg form-control" data-target="conteudo_html" contenteditable="true"></div>
-                  {{ form.conteudo_html.as_widget(attrs={'class': 'form-control js-wysiwyg-source d-none'}) }}
+                  {{ form.conteudo_html }}
                 {% else %}
                   {% if model_name == 'contaspagar' %}
                     <div class="row g-3">
@@ -916,7 +916,7 @@
                         <hr class="my-3" />
                         {{ edit_form.dsTermoUso.label_tag }}
                         <div class="wysiwyg-editor js-wysiwyg form-control" data-target="dsTermoUso" contenteditable="true"></div>
-                        {{ edit_form.dsTermoUso.as_widget(attrs={'class': 'form-control js-wysiwyg-source d-none'}) }}
+                        {{ edit_form.dsTermoUso }}
                       {% elif model_name == 'contrato' and edit_form %}
                         <div class="row g-3">
                           <div class="col-md-6">
@@ -986,7 +986,7 @@
                         <hr class="my-3" />
                         {{ edit_form.conteudo_html.label_tag }}
                         <div class="wysiwyg-editor js-wysiwyg form-control" data-target="conteudo_html" contenteditable="true"></div>
-                        {{ edit_form.conteudo_html.as_widget(attrs={'class': 'form-control js-wysiwyg-source d-none'}) }}
+                        {{ edit_form.conteudo_html }}
                       {% else %}
                         {{ edit_form.as_p }}
                       {% endif %}

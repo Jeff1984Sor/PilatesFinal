@@ -243,6 +243,12 @@ class HorarioFuncionamentoForm(BaseAutoCdForm):
 
 
 class TermoUsoForm(BaseAutoCdForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        field = self.fields.get("dsTermoUso")
+        if field:
+            field.widget.attrs["class"] = "form-control js-wysiwyg-source d-none"
+
     class Meta:
         model = models.TermoUso
         fields = ["cdTermoUso", "nome", "dsTermoUso"]
@@ -338,6 +344,12 @@ class ProfissaoForm(BaseAutoCdForm):
 
 
 class ModeloContratoForm(BaseAutoCdForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        field = self.fields.get("conteudo_html")
+        if field:
+            field.widget.attrs["class"] = "form-control js-wysiwyg-source d-none"
+
     class Meta:
         model = models.ModeloContrato
         fields = ["cdModeloContrato", "dsNome", "conteudo_html", "ativo"]
