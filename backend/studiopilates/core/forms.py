@@ -112,6 +112,8 @@ class BaseAutoCdForm(forms.ModelForm):
                 field.widget.attrs.setdefault("class", "form-select")
             else:
                 field.widget.attrs.setdefault("class", "form-control")
+            if name == "modo_pagamento":
+                field.required = True
             if name == "estado_civil":
                 field.widget.attrs["class"] = "form-select"
             if name == "dsCPF":
@@ -128,6 +130,8 @@ class BaseAutoCdForm(forms.ModelForm):
             if name == "data":
                 field.widget = forms.DateInput(attrs={"type": "date", "class": "form-control"})
             if name in ("dataInicio", "dataFim"):
+                field.widget = forms.DateInput(attrs={"type": "date", "class": "form-control"})
+            if name in ("dtInicioContrato", "dtFimContrato"):
                 field.widget = forms.DateInput(attrs={"type": "date", "class": "form-control"})
             if name == "senha":
                 field.widget = forms.PasswordInput(render_value=True, attrs={"class": "form-control"})

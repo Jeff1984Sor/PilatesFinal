@@ -1149,6 +1149,15 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
             address_map[obj.id] = obj.cdEndereco
             phones_map[obj.id] = list(obj.telefones.values_list("dsTelefone", flat=True))
         context.update({"address_map": address_map, "phones_map": phones_map})
+    if model is models.Contrato:
+        context.update(
+            {
+                "alunos": models.Aluno.objects.all(),
+                "planos": models.Plano.objects.all(),
+                "unidades": models.Unidade.objects.all(),
+                "profissionais": models.Profissional.objects.all(),
+            }
+        )
     if extra_context:
         context.update(extra_context)
     return render(request, "generic/list.html", context)
