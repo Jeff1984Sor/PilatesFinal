@@ -256,7 +256,7 @@
       </div>
     {% else %}
       <div class="modal fade" id="createModal" tabindex="-1">
-        <div class="modal-dialog {% if model_name == 'aluno' %}modal-xl modal-dialog-scrollable{% else %}modal-lg{% endif %}">
+        <div class="modal-dialog {% if model_name == 'aluno' or model_name == 'modelocontrato' %}modal-xl modal-dialog-scrollable{% else %}modal-lg{% endif %}">
           <div class="modal-content {% if model_name == 'aluno' %}modal-aluno{% endif %}">
             <div class="modal-header">
               <div>
@@ -699,7 +699,7 @@
         </div>
       {% else %}
         <div class="modal fade" id="editModal-{{ obj.id }}" tabindex="-1">
-          <div class="modal-dialog {% if model_name == 'aluno' %}modal-xl modal-dialog-scrollable{% else %}modal-lg{% endif %}">
+          <div class="modal-dialog {% if model_name == 'aluno' or model_name == 'modelocontrato' %}modal-xl modal-dialog-scrollable{% else %}modal-lg{% endif %}">
             <div class="modal-content {% if model_name == 'aluno' %}modal-aluno{% endif %}">
               <div class="modal-header">
                 <div>
