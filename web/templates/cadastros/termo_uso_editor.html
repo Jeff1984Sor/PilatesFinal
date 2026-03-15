@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Cadastros</div>
+      <h2 class="mayris-title">{{ title }}</h2>
+      <div class="text-muted">{{ subtitle }}</div>
+    </div>
+    <a class="btn btn-outline-secondary" href="{% url 'termos_list' %}">Voltar</a>
+  </div>
+
+  <form method="post" class="mayris-card modelocontrato-editor js-variable-root" data-variable-target="{{ variable_target|default:'dsTermoUso' }}">
+    {% csrf_token %}
+    <div class="modelocontrato-editor__layout">
+      <aside class="modelocontrato-editor__vars">
+        <div class="modelocontrato-editor__vars-head">
+          <div class="modelocontrato-editor__vars-kicker">Todas as variaveis</div>
+          <h3>Clique para inserir no termo</h3>
+          <p>Use os atalhos abaixo para montar o texto com dados dinamicos do aluno e do plano.</p>
+        </div>
+        <div class="modelocontrato-editor__chips">
+          {% for var in variables %}
+            <button type="button" class="btn btn-sm btn-outline-secondary js-var" data-var="{{ var.key }}" title="{{ var.label }}">
+              {{ var.key }}
+            </button>
+          {% endfor %}
+        </div>
+        <div class="modelocontrato-editor__picker">
+          <label class="form-label">Variavel selecionada (duplo clique)</label>
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control js-selected-variable"
+              placeholder="De duplo clique em uma variavel acima"
+              readonly
+            />
+            <button type="button" class="btn btn-outline-secondary js-insert-selected">Inserir no termo</button>
+          </div>
+          <div class="form-text">Dica: com duplo clique, a variavel ja entra automaticamente no texto.</div>
+        </div>
+      </aside>
+
+      <section class="modelocontrato-editor__form">
+        <div class="row g-3">
+          <div class="col-lg-8">
+            {{ form.nome.label_tag }}
+            {{ form.nome }}
+          </div>
+        </div>
+
+        <hr class="my-3" />
+
+        <label class="form-label fw-semibold" for="{{ form.dsTermoUso.id_for_label }}">Conteudo do termo</label>
+        <div class="toolbar mb-2">
+          <select class="form-select form-select-sm js-font-family">
+            <option value="">Fonte</option>
+            <option value="Arial">Arial</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Verdana">Verdana</option>
+          </select>
+          <select class="form-select form-select-sm js-font-size">
+            <option value="">Tamanho</option>
+            <option value="12px">12</option>
+            <option value="14px">14</option>
+            <option value="16px">16</option>
+            <option value="18px">18</option>
+            <option value="20px">20</option>
+          </select>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="bold">B</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="italic"><i>I</i></button>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="underline"><u>U</u></button>
+          <span class="toolbar-sep"></span>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-left">Esq</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-center">Centro</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-right">Dir</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-justify">Just</button>
+        </div>
+        <textarea
+          class="form-control modelocontrato-editor__textarea"
+          id="{{ form.dsTermoUso.id_for_label }}"
+          name="dsTermoUso"
+          rows="16"
+          placeholder="Digite aqui o texto do termo. Use os botoes acima para formatar e as variaveis para inserir campos dinamicos."
+        >{{ form.dsTermoUso.value|default_if_none:'' }}</textarea>
+      </section>
+    </div>
+
+    <div class="mayris-form__actions modelocontrato-editor__actions">
+      <a class="btn btn-outline-secondary" href="{% url 'termos_list' %}">Cancelar</a>
+      <button class="btn btn-primary mayris-btn-primary" type="submit">Salvar termo</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

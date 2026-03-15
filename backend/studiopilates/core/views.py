@@ -1261,6 +1261,53 @@ def _modelos_contrato_editor(request, pk=None):
 
 
 @login_required
+def termos_list(request):
+    return list_view(
+        request,
+        models.TermoUso,
+        forms.TermoUsoForm,
+        "Termo de Uso",
+        allow_modal=False,
+        extra_context={
+            "variables": CONTRACT_TEMPLATE_VARIABLES,
+            "variable_target": "dsTermoUso",
+        },
+    )
+
+
+@login_required
+def termos_create(request):
+    return _termos_editor(request)
+
+
+@login_required
+def termos_edit(request, pk):
+    return _termos_editor(request, pk=pk)
+
+
+def _termos_editor(request, pk=None):
+    obj = get_object_or_404(models.TermoUso, pk=pk) if pk else None
+    form = forms.TermoUsoForm(request.POST or None, instance=obj)
+    if request.method == "POST":
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Termo de uso salvo com sucesso.")
+            return redirect("termos_list")
+        messages.error(request, "Revise os campos antes de salvar.")
+    context = {
+        "title": "Novo termo de uso" if obj is None else "Editar termo de uso",
+        "subtitle": "Monte o termo com variaveis dinamicas e salve para uso imediato.",
+        "form": form,
+        "object": obj,
+        "variables": CONTRACT_TEMPLATE_VARIABLES,
+        "variable_target": "dsTermoUso",
+        "breadcrumbs": [("Home", reverse("dashboard")), ("Termo de Uso", reverse("termos_list")), ("Editor", "#")],
+        "active_menu": "cadastros",
+    }
+    return render(request, "cadastros/termo_uso_editor.html", context)
+
+
+@login_required
 def horarios_studio_list(request):
     extra_context = {
         "unidades": models.Unidade.objects.all(),
