@@ -855,6 +855,17 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", (event) => {
       event.preventDefault();
       selectVariable(btn);
+      const now = Date.now();
+      const last = Number(btn.dataset.lastClickAt || "0");
+      btn.dataset.lastClickAt = String(now);
+      if (now - last <= 500) {
+        const root = getEditorRoot(btn);
+        if (!root) return;
+        const targetName = getVariableTarget(btn);
+        const field = getTargetField(root, targetName);
+        if (!field) return;
+        insertVariableToken(root, field, btn.dataset.var || "", targetName);
+      }
     });
     btn.addEventListener("dblclick", (event) => {
       event.preventDefault();
