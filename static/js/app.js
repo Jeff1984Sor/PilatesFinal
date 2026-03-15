@@ -64,7 +64,38 @@ function syncWysiwygToSource(root, targetName) {
   }
 }
 
+function insertVariableToken(root, field, key, targetName) {
+  if (!field || !key) return;
+  const token = `{${key}}`;
+  if (field.isContentEditable) {
+    insertTextAtCursor(field, token);
+    syncWysiwygToSource(root, targetName);
+    return;
+  }
+  const hasFocus = document.activeElement === field;
+  const value = field.value || "";
+  const start = hasFocus ? (field.selectionStart || 0) : value.length;
+  const end = hasFocus ? (field.selectionEnd || start) : value.length;
+  field.value = value.slice(0, start) + token + value.slice(end);
+  field.focus();
+  const cursor = start + token.length;
+  field.setSelectionRange(cursor, cursor);
+}
+
 document.addEventListener("click", (event) => {
+  const btn = event.target.closest(".js-var");
+  if (!btn) return;
+  event.preventDefault();
+  const root = getEditorRoot(btn);
+  if (!root) return;
+  const key = btn.dataset.var || "";
+  const selectedInput = root.querySelector(".js-selected-variable");
+  if (selectedInput) {
+    selectedInput.value = key;
+  }
+});
+
+document.addEventListener("dblclick", (event) => {
   const btn = event.target.closest(".js-var");
   if (!btn) return;
   event.preventDefault();
@@ -74,19 +105,26 @@ document.addEventListener("click", (event) => {
   const field = getTargetField(root, targetName);
   if (!field) return;
   const key = btn.dataset.var || "";
-  const token = `{${key}}`;
-  if (field.isContentEditable) {
-    insertTextAtCursor(field, token);
-    syncWysiwygToSource(root, targetName);
-    return;
+  const selectedInput = root.querySelector(".js-selected-variable");
+  if (selectedInput) {
+    selectedInput.value = key;
   }
-  const start = field.selectionStart || 0;
-  const end = field.selectionEnd || 0;
-  const value = field.value || "";
-  field.value = value.slice(0, start) + token + value.slice(end);
-  field.focus();
-  const cursor = start + token.length;
-  field.setSelectionRange(cursor, cursor);
+  insertVariableToken(root, field, key, targetName);
+});
+
+document.addEventListener("click", (event) => {
+  const btn = event.target.closest(".js-insert-selected");
+  if (!btn) return;
+  event.preventDefault();
+  const root = getEditorRoot(btn);
+  if (!root) return;
+  const selectedInput = root.querySelector(".js-selected-variable");
+  const key = (selectedInput?.value || "").trim();
+  if (!key) return;
+  const targetName = getVariableTarget(btn);
+  const field = getTargetField(root, targetName);
+  if (!field) return;
+  insertVariableToken(root, field, key, targetName);
 });
 
 document.addEventListener("click", (event) => {

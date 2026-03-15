@@ -26,6 +26,19 @@
             </button>
           {% endfor %}
         </div>
+        <div class="modelocontrato-editor__picker">
+          <label class="form-label">Variavel selecionada (duplo clique)</label>
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control js-selected-variable"
+              placeholder="De duplo clique em uma variavel acima"
+              readonly
+            />
+            <button type="button" class="btn btn-outline-secondary js-insert-selected">Inserir no contrato</button>
+          </div>
+          <div class="form-text">Dica: com duplo clique, a variavel ja entra automaticamente no texto.</div>
+        </div>
       </aside>
 
       <section class="modelocontrato-editor__form">

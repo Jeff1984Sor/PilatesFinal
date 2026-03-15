@@ -1314,6 +1314,10 @@ body {
   border-radius: 999px;
 }
 
+.modelocontrato-editor__picker {
+  margin-top: 14px;
+}
+
 .modelocontrato-editor__form {
   border: 1px solid #e6ecf2;
   border-radius: 14px;
