@@ -31,7 +31,7 @@ function getTargetField(root, targetName) {
   if (!root) return null;
   const wysiwyg = root.querySelector(`.js-wysiwyg[data-target="${targetName}"]`);
   if (wysiwyg) return wysiwyg;
-  return root.querySelector(`[name="${targetName}"]`);
+  return root.querySelector(`[name="${targetName}"]`) || root.querySelector("#id_conteudo_html");
 }
 
 function getWysiwygSource(root, targetName) {
@@ -831,6 +831,50 @@ document.querySelectorAll(".js-photo-preview").forEach((preview) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+  function selectVariable(btn) {
+    const root = getEditorRoot(btn);
+    if (!root) return;
+    const key = btn.dataset.var || "";
+    const selectedInput = root.querySelector(".js-selected-variable");
+    if (selectedInput) selectedInput.value = key;
+  }
+
+  function insertSelected(btn) {
+    const root = getEditorRoot(btn);
+    if (!root) return;
+    const selectedInput = root.querySelector(".js-selected-variable");
+    const key = (selectedInput?.value || "").trim();
+    if (!key) return;
+    const targetName = getVariableTarget(btn);
+    const field = getTargetField(root, targetName);
+    if (!field) return;
+    insertVariableToken(root, field, key, targetName);
+  }
+
+  document.querySelectorAll(".js-variable-root .js-var").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      selectVariable(btn);
+    });
+    btn.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      selectVariable(btn);
+      const root = getEditorRoot(btn);
+      if (!root) return;
+      const targetName = getVariableTarget(btn);
+      const field = getTargetField(root, targetName);
+      if (!field) return;
+      insertVariableToken(root, field, btn.dataset.var || "", targetName);
+    });
+  });
+
+  document.querySelectorAll(".js-variable-root .js-insert-selected").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      insertSelected(btn);
+    });
+  });
+
   document.querySelectorAll(".js-variable-root .js-wysiwyg").forEach((editor) => {
     const targetName = editor.dataset.target;
     const root = getEditorRoot(editor);
