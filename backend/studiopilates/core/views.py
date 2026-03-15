@@ -128,6 +128,38 @@ def _active_menu(path: str) -> str:
 
 PHONE_CLEAN_REGEX = re.compile(r"\D+")
 
+CONTRACT_TEMPLATE_VARIABLES = [
+    {"key": "ALUNO_NOME", "label": "Nome do aluno"},
+    {"key": "ALUNO_CPF", "label": "CPF do aluno"},
+    {"key": "ALUNO_RG", "label": "RG do aluno"},
+    {"key": "ALUNO_NASCIMENTO", "label": "Nascimento do aluno"},
+    {"key": "ALUNO_ESTADO_CIVIL", "label": "Estado civil do aluno"},
+    {"key": "ALUNO_PROFISSAO", "label": "Profissao do aluno"},
+    {"key": "ALUNO_EMAIL", "label": "Email do aluno"},
+    {"key": "ALUNO_TELEFONE", "label": "Telefone do aluno"},
+    {"key": "ALUNO_ENDERECO", "label": "Endereco completo"},
+    {"key": "ENDERECO_LOGRADOURO", "label": "Logradouro"},
+    {"key": "ENDERECO_NUMERO", "label": "Numero"},
+    {"key": "ENDERECO_BAIRRO", "label": "Bairro"},
+    {"key": "ENDERECO_CIDADE", "label": "Cidade"},
+    {"key": "ENDERECO_CEP", "label": "CEP"},
+    {"key": "PROFISSIONAL_NOME", "label": "Profissional"},
+    {"key": "PROFISSIONAL_CREFITO", "label": "Crefito"},
+    {"key": "UNIDADE_NOME", "label": "Unidade"},
+    {"key": "UNIDADE_CAPACIDADE", "label": "Capacidade"},
+    {"key": "PLANO_NOME", "label": "Plano"},
+    {"key": "PLANO_AULAS_SEMANA", "label": "Aulas por semana"},
+    {"key": "PLANO_DURACAO_MESES", "label": "Duracao (meses)"},
+    {"key": "TIPO_SERVICO", "label": "Tipo de servico"},
+    {"key": "CONTRATO_NUMERO", "label": "Numero do contrato"},
+    {"key": "CONTRATO_INICIO", "label": "Inicio do contrato"},
+    {"key": "CONTRATO_FIM", "label": "Fim do contrato"},
+    {"key": "CONTRATO_MODO_PAGAMENTO", "label": "Modo de pagamento"},
+    {"key": "CONTRATO_VALOR_PARCELA", "label": "Valor da parcela"},
+    {"key": "CONTRATO_VALOR_TOTAL", "label": "Valor total"},
+    {"key": "DATA_HOJE", "label": "Data de hoje"},
+]
+
 
 def _format_whatsapp_number(telefones):
     for tel in telefones:
@@ -1179,6 +1211,53 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
     if extra_context:
         context.update(extra_context)
     return render(request, "generic/list.html", context)
+
+
+@login_required
+def modelos_contrato_list(request):
+    return list_view(
+        request,
+        models.ModeloContrato,
+        forms.ModeloContratoForm,
+        "Modelos de Contrato",
+        allow_modal=False,
+        extra_context={
+            "variables": CONTRACT_TEMPLATE_VARIABLES,
+            "variable_target": "conteudo_html",
+        },
+    )
+
+
+@login_required
+def modelos_contrato_create(request):
+    return _modelos_contrato_editor(request)
+
+
+@login_required
+def modelos_contrato_edit(request, pk):
+    return _modelos_contrato_editor(request, pk=pk)
+
+
+def _modelos_contrato_editor(request, pk=None):
+    obj = get_object_or_404(models.ModeloContrato, pk=pk) if pk else None
+    form = forms.ModeloContratoForm(request.POST or None, instance=obj)
+    if request.method == "POST":
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Modelo de contrato salvo com sucesso.")
+            return redirect("modelos_contrato_list")
+        messages.error(request, "Revise os campos antes de salvar.")
+    context = {
+        "title": "Novo modelo de contrato" if obj is None else "Editar modelo de contrato",
+        "subtitle": "Monte o contrato com variaveis dinamicas e salve para uso imediato.",
+        "form": form,
+        "object": obj,
+        "variables": CONTRACT_TEMPLATE_VARIABLES,
+        "variable_target": "conteudo_html",
+        "breadcrumbs": [("Home", reverse("dashboard")), ("Modelos de Contrato", reverse("modelos_contrato_list")), ("Editor", "#")],
+        "active_menu": "contratos",
+    }
+    return render(request, "contratos/modelo_contrato_editor.html", context)
 
 
 @login_required

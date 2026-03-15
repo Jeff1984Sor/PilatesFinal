@@ -1260,6 +1260,112 @@ body {
   margin-top: 12px;
 }
 
+.modelocontrato-editor {
+  padding: 20px;
+}
+
+.modelocontrato-editor__layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.6fr);
+  gap: 20px;
+}
+
+.modelocontrato-editor__vars {
+  border: 1px solid #e6ecf2;
+  border-radius: 14px;
+  background: linear-gradient(170deg, #f7fbfb 0%, #ffffff 100%);
+  padding: 16px;
+  position: sticky;
+  top: 90px;
+  align-self: start;
+}
+
+.modelocontrato-editor__vars-kicker {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #5a6b73;
+  font-weight: 700;
+}
+
+.modelocontrato-editor__vars-head h3 {
+  margin: 6px 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #182c3a;
+}
+
+.modelocontrato-editor__vars-head p {
+  margin: 0 0 12px;
+  color: #586b79;
+  font-size: 13px;
+}
+
+.modelocontrato-editor__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 56vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.modelocontrato-editor__chips .btn {
+  border-radius: 999px;
+}
+
+.modelocontrato-editor__form {
+  border: 1px solid #e6ecf2;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.modelocontrato-editor__switch {
+  border: 1px solid #e6ecf2;
+  border-radius: 12px;
+  padding: 10px 14px;
+  width: 100%;
+}
+
+.modelocontrato-editor__canvas {
+  min-height: 420px;
+  background: #ffffff;
+}
+
+.modelocontrato-editor__actions {
+  border-top: 1px solid #e6ecf2;
+  margin-top: 18px;
+  padding-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modelocontrato-editor__chips .btn:hover {
+  border-color: var(--brand-500);
+  color: var(--brand-500);
+  background: rgba(123, 44, 47, 0.08);
+}
+
+@media (max-width: 992px) {
+  .modelocontrato-editor {
+    padding: 14px;
+  }
+
+  .modelocontrato-editor__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .modelocontrato-editor__vars {
+    position: static;
+  }
+
+  .modelocontrato-editor__canvas {
+    min-height: 320px;
+  }
+}
+
 .mayris-profile__body {
   display: grid;
   gap: 12px;

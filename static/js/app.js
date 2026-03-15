@@ -17,16 +17,26 @@ document.addEventListener("submit", (event) => {
 });
 
 
-function getTargetField(modal, targetName) {
-  if (!modal) return null;
-  const wysiwyg = modal.querySelector(`.js-wysiwyg[data-target="${targetName}"]`);
-  if (wysiwyg) return wysiwyg;
-  return modal.querySelector(`[name="${targetName}"]`);
+function getEditorRoot(node) {
+  if (!node || !node.closest) return null;
+  return node.closest(".modal") || node.closest(".js-variable-root");
 }
 
-function getWysiwygSource(modal, targetName) {
-  if (!modal) return null;
-  return modal.querySelector(`.js-wysiwyg-source[name="${targetName}"]`);
+function getVariableTarget(node) {
+  const targetHolder = node?.closest("[data-variable-target]");
+  return targetHolder?.dataset.variableTarget || "conteudo_html";
+}
+
+function getTargetField(root, targetName) {
+  if (!root) return null;
+  const wysiwyg = root.querySelector(`.js-wysiwyg[data-target="${targetName}"]`);
+  if (wysiwyg) return wysiwyg;
+  return root.querySelector(`[name="${targetName}"]`);
+}
+
+function getWysiwygSource(root, targetName) {
+  if (!root) return null;
+  return root.querySelector(`.js-wysiwyg-source[name="${targetName}"]`);
 }
 
 function insertTextAtCursor(el, text) {
@@ -46,9 +56,9 @@ function insertTextAtCursor(el, text) {
   sel.addRange(range);
 }
 
-function syncWysiwygToSource(modal, targetName) {
-  const editor = modal?.querySelector(`.js-wysiwyg[data-target="${targetName}"]`);
-  const source = getWysiwygSource(modal, targetName);
+function syncWysiwygToSource(root, targetName) {
+  const editor = root?.querySelector(`.js-wysiwyg[data-target="${targetName}"]`);
+  const source = getWysiwygSource(root, targetName);
   if (editor && source) {
     source.value = editor.innerHTML || "";
   }
@@ -58,17 +68,16 @@ document.addEventListener("click", (event) => {
   const btn = event.target.closest(".js-var");
   if (!btn) return;
   event.preventDefault();
-  const modal = btn.closest(".modal");
-  if (!modal) return;
-  const body = btn.closest(".modal-body");
-  const targetName = body?.dataset.variableTarget || "conteudo_html";
-  const field = getTargetField(modal, targetName);
+  const root = getEditorRoot(btn);
+  if (!root) return;
+  const targetName = getVariableTarget(btn);
+  const field = getTargetField(root, targetName);
   if (!field) return;
   const key = btn.dataset.var || "";
   const token = `{${key}}`;
   if (field.isContentEditable) {
     insertTextAtCursor(field, token);
-    syncWysiwygToSource(modal, targetName);
+    syncWysiwygToSource(root, targetName);
     return;
   }
   const start = field.selectionStart || 0;
@@ -84,16 +93,15 @@ document.addEventListener("click", (event) => {
   const btn = event.target.closest(".js-format");
   if (!btn) return;
   event.preventDefault();
-  const modal = btn.closest(".modal");
-  if (!modal) return;
-  const body = btn.closest(".modal-body");
-  const targetName = body?.dataset.variableTarget || "conteudo_html";
-  const field = getTargetField(modal, targetName);
+  const root = getEditorRoot(btn);
+  if (!root) return;
+  const targetName = getVariableTarget(btn);
+  const field = getTargetField(root, targetName);
   if (!field) return;
   const cmd = btn.dataset.cmd || "";
   applyFormat(field, cmd);
   if (field.isContentEditable) {
-    syncWysiwygToSource(modal, targetName);
+    syncWysiwygToSource(root, targetName);
   }
 });
 
@@ -101,11 +109,10 @@ document.addEventListener("change", (event) => {
   const selectFamily = event.target.closest(".js-font-family");
   const selectSize = event.target.closest(".js-font-size");
   if (!selectFamily && !selectSize) return;
-  const modal = event.target.closest(".modal");
-  if (!modal) return;
-  const body = event.target.closest(".modal-body");
-  const targetName = body?.dataset.variableTarget || "conteudo_html";
-  const field = getTargetField(modal, targetName);
+  const root = getEditorRoot(event.target);
+  if (!root) return;
+  const targetName = getVariableTarget(event.target);
+  const field = getTargetField(root, targetName);
   if (!field) return;
   if (selectFamily && selectFamily.value) {
     applyFormat(field, "font-family", selectFamily.value);
@@ -116,7 +123,7 @@ document.addEventListener("change", (event) => {
     selectSize.selectedIndex = 0;
   }
   if (field.isContentEditable) {
-    syncWysiwygToSource(modal, targetName);
+    syncWysiwygToSource(root, targetName);
   }
 });
 
@@ -219,9 +226,9 @@ document.addEventListener("shown.bs.modal", (event) => {
 document.addEventListener("input", (event) => {
   const editor = event.target.closest(".js-wysiwyg");
   if (!editor) return;
-  const modal = editor.closest(".modal");
+  const root = getEditorRoot(editor);
   const targetName = editor.dataset.target;
-  const source = modal?.querySelector(`.js-wysiwyg-source[name="${targetName}"]`);
+  const source = root?.querySelector(`.js-wysiwyg-source[name="${targetName}"]`);
   if (source) {
     source.value = editor.innerHTML || "";
   }
@@ -786,6 +793,15 @@ document.querySelectorAll(".js-photo-preview").forEach((preview) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".js-variable-root .js-wysiwyg").forEach((editor) => {
+    const targetName = editor.dataset.target;
+    const root = getEditorRoot(editor);
+    const source = root?.querySelector(`.js-wysiwyg-source[name="${targetName}"]`);
+    if (source) {
+      editor.innerHTML = source.value || "";
+    }
+  });
+
   const params = new URLSearchParams(window.location.search || "");
   const tab = params.get("tab");
   if (!tab) return;

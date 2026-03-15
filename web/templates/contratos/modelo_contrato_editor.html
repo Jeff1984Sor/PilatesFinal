@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Contratos</div>
+      <h2 class="mayris-title">{{ title }}</h2>
+      <div class="text-muted">{{ subtitle }}</div>
+    </div>
+    <a class="btn btn-outline-secondary" href="{% url 'modelos_contrato_list' %}">Voltar</a>
+  </div>
+
+  <form method="post" class="mayris-card modelocontrato-editor js-variable-root" data-variable-target="{{ variable_target|default:'conteudo_html' }}">
+    {% csrf_token %}
+    <div class="modelocontrato-editor__layout">
+      <aside class="modelocontrato-editor__vars">
+        <div class="modelocontrato-editor__vars-head">
+          <div class="modelocontrato-editor__vars-kicker">Todas as variaveis</div>
+          <h3>Clique para inserir no contrato</h3>
+          <p>Use os atalhos abaixo para montar o texto com dados dinamicos do aluno e do plano.</p>
+        </div>
+        <div class="modelocontrato-editor__chips">
+          {% for var in variables %}
+            <button type="button" class="btn btn-sm btn-outline-secondary js-var" data-var="{{ var.key }}" title="{{ var.label }}">
+              {{ var.key }}
+            </button>
+          {% endfor %}
+        </div>
+      </aside>
+
+      <section class="modelocontrato-editor__form">
+        <div class="row g-3">
+          <div class="col-lg-8">
+            {{ form.dsNome.label_tag }}
+            {{ form.dsNome }}
+          </div>
+          <div class="col-lg-4 d-flex align-items-end">
+            <div class="form-check form-switch modelocontrato-editor__switch">
+              {{ form.ativo }}
+              <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Ativo</label>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-3" />
+
+        <label class="form-label fw-semibold" for="{{ form.conteudo_html.id_for_label }}">Conteudo do contrato</label>
+        <div class="toolbar mb-2">
+          <select class="form-select form-select-sm js-font-family">
+            <option value="">Fonte</option>
+            <option value="Arial">Arial</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Verdana">Verdana</option>
+          </select>
+          <select class="form-select form-select-sm js-font-size">
+            <option value="">Tamanho</option>
+            <option value="12px">12</option>
+            <option value="14px">14</option>
+            <option value="16px">16</option>
+            <option value="18px">18</option>
+            <option value="20px">20</option>
+          </select>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="bold">B</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="italic"><i>I</i></button>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="underline"><u>U</u></button>
+          <span class="toolbar-sep"></span>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-left">Esq</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-center">Centro</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-right">Dir</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-justify">Just</button>
+        </div>
+        <div class="wysiwyg-editor js-wysiwyg modelocontrato-editor__canvas" data-target="conteudo_html" contenteditable="true"></div>
+        {{ form.conteudo_html }}
+      </section>
+    </div>
+
+    <div class="mayris-form__actions modelocontrato-editor__actions">
+      <a class="btn btn-outline-secondary" href="{% url 'modelos_contrato_list' %}">Cancelar</a>
+      <button class="btn btn-primary mayris-btn-primary" type="submit">Salvar modelo</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
