@@ -24,3 +24,5 @@ storage/
 .idea/
 .vscode/
 coverage/
+media/
+staticfiles/
