@@ -580,13 +580,22 @@
 
                           {% if f.status != "PAGO" %}
 
-                            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#baixarFatura-{{ f.id }}">Dar baixa</button>
+                            <form class="d-inline" method="post" action="{% url 'contas_receber_baixar' f.id %}" onsubmit="return confirm('Confirmar baixa deste lancamento?');">
+                              {% csrf_token %}
+                              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
+                              <input type="hidden" name="dtPagamento" value="{{ today|default:'' }}" />
+                              <button class="btn btn-sm btn-outline-success" type="submit">Dar baixa</button>
+                            </form>
 
                           {% endif %}
 
                           <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_recibo' f.id %}">Recibo PDF</a>
 
-                          <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFatura-{{ f.id }}">Excluir</button>
+                          <form class="d-inline" method="post" action="{% url 'contas_receber_excluir' f.id %}" onsubmit="return confirm('Excluir este lancamento?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
+                            <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+                          </form>
 
                         </td>
 
@@ -1970,104 +1979,6 @@
 {% endif %}
 
 
-
-{% if contas_receber %}
-
-  {% for f in contas_receber %}
-
-    <div class="modal fade" id="baixarFatura-{{ f.id }}" tabindex="-1">
-
-      <div class="modal-dialog">
-
-        <div class="modal-content">
-
-          <div class="modal-header">
-
-            <h5 class="modal-title">Dar baixa no lancamento</h5>
-
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-
-          </div>
-
-          <div class="modal-body">
-
-            <form method="post" action="{% url 'contas_receber_baixar' f.id %}">
-
-              {% csrf_token %}
-
-              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
-
-              <div class="mb-3">
-
-                <label class="form-label">Data de pagamento</label>
-
-                <input class="form-control" type="date" name="dtPagamento" value="{{ today|default:'' }}" required />
-
-              </div>
-
-              <div class="d-flex justify-content-end gap-2">
-
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-
-                <button class="btn btn-success" type="submit">Confirmar baixa</button>
-
-              </div>
-
-            </form>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
-    <div class="modal fade" id="deleteFatura-{{ f.id }}" tabindex="-1">
-
-      <div class="modal-dialog">
-
-        <div class="modal-content">
-
-          <div class="modal-header">
-
-            <h5 class="modal-title">Excluir lancamento</h5>
-
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-
-          </div>
-
-          <div class="modal-body">
-
-            Tem certeza que deseja excluir a fatura {{ f.contrato.cdContrato }} ({{ f.dtVencimento|date:"d/m/Y" }})-
-
-          </div>
-
-          <div class="modal-footer">
-
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-
-            <form method="post" action="{% url 'contas_receber_excluir' f.id %}">
-
-              {% csrf_token %}
-
-              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
-
-              <button class="btn btn-danger" type="submit">Excluir</button>
-
-            </form>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  {% endfor %}
-
-{% endif %}
 
 <div class="modal fade" id="whatsappQuickModal" tabindex="-1">
 
