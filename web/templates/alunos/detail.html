@@ -1450,29 +1450,34 @@
 
       </div>
 
-      <div class="modal-body">
+          <div class="modal-body">
 
-        <form class="modal-form" method="post" action="/contratos/criar/">
+            <form class="modal-form" method="post" action="/contratos/criar/">
 
-          {% csrf_token %}
+              {% csrf_token %}
 
-          <div class="row g-3">
+              <div class="row g-3">
 
-            <div class="col-md-6">
+                <div class="col-md-4">
+                  <label>Numero do contrato</label>
+                  <input class="form-control" name="cdContrato" type="number" required />
+                </div>
 
-              <label>Aluno</label>
+                <div class="col-md-4">
 
-              <input class="form-control" value="{{ aluno.dsNome }}" disabled />
+                  <label>Aluno</label>
 
-              <input type="hidden" name="cdAluno" value="{{ aluno.id }}" />
+                  <input class="form-control" value="{{ aluno.dsNome }}" disabled />
 
-            </div>
+                  <input type="hidden" name="cdAluno" value="{{ aluno.id }}" />
 
-            <div class="col-md-6">
+                </div>
 
-              <label>Plano</label>
+                <div class="col-md-4">
 
-              <select class="form-select js-plano" name="cdPlano" required>
+                  <label>Plano</label>
+
+                  <select class="form-select js-plano" name="cdPlano" required>
 
                 <option value="" selected>Selecione</option>
 
@@ -1619,7 +1624,12 @@
 
               <div class="row g-3">
 
-                <div class="col-md-6">
+                <div class="col-md-4">
+                  <label>Numero do contrato</label>
+                  <input class="form-control" name="cdContrato" type="number" value="{{ c.cdContrato }}" required />
+                </div>
+
+                <div class="col-md-4">
 
                   <label>Aluno</label>
 
@@ -1629,7 +1639,7 @@
 
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-md-4">
 
                   <label>Plano</label>
 
@@ -1787,6 +1797,8 @@
               {% csrf_token %}
 
               <input type="hidden" name="next" value="{{ request.path }}?tab=contratos" />
+
+              <input type="hidden" name="confirm_delete" value="1" />
 
               <button class="btn btn-danger" type="submit">Excluir</button>
 

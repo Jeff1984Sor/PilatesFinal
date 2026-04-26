@@ -507,7 +507,11 @@
                   {{ form.dsTermoUso }}
                 {% elif model_name == 'contrato' %}
                   <div class="row g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                      {{ form.cdContrato.label_tag }}
+                      <input class="form-control" name="cdContrato" type="number" required />
+                    </div>
+                    <div class="col-md-4">
                       <label>Aluno</label>
                       <select class="form-select" name="cdAluno" required>
                         <option value="">Selecione</option>
@@ -516,7 +520,7 @@
                         {% endfor %}
                       </select>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                       <label>Plano</label>
                       <select class="form-select js-plano" name="cdPlano" required>
                         <option value="">Selecione</option>
@@ -918,16 +922,20 @@
                         <div class="wysiwyg-editor js-wysiwyg form-control" data-target="dsTermoUso" contenteditable="true"></div>
                         {{ edit_form.dsTermoUso }}
                       {% elif model_name == 'contrato' and edit_form %}
-                        <div class="row g-3">
-                          <div class="col-md-6">
-                            <label>Aluno</label>
-                            <select class="form-select" name="cdAluno" required>
-                              {% for a in alunos %}
+                    <div class="row g-3">
+                      <div class="col-md-4">
+                        <label>Numero do contrato</label>
+                        <input class="form-control" name="cdContrato" type="number" value="{{ obj.cdContrato }}" required />
+                      </div>
+                      <div class="col-md-4">
+                        <label>Aluno</label>
+                        <select class="form-select" name="cdAluno" required>
+                          {% for a in alunos %}
                                 <option value="{{ a.id }}" {% if obj.cdAluno_id == a.id %}selected{% endif %}>{{ a.dsNome }}</option>
                               {% endfor %}
                             </select>
                           </div>
-                          <div class="col-md-6">
+                          <div class="col-md-4">
                             <label>Plano</label>
                             <select class="form-select js-plano" name="cdPlano" required>
                               {% for p in planos %}
