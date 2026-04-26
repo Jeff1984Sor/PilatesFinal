@@ -4084,23 +4084,23 @@ def whatsapp_config_view(request):
             service = WhatsappService()
             hoje = timezone.localdate()
             if action == "send_aluno_now":
-                if not configuracao.avisar_aluno:
-                    messages.warning(request, "Aviso ao aluno esta desligado nesta unidade.")
-                else:
-                    qtd = _send_class_reminders(service, configuracao, hoje + timedelta(days=1), force=True)
+                qtd = _send_class_reminders(service, configuracao, hoje + timedelta(days=1), force=True)
+                if qtd:
                     messages.success(request, f"Aviso ao aluno executado agora. {qtd} mensagem(ns) enviadas.")
+                else:
+                    messages.warning(request, "Nao ha aulas elegiveis para enviar agora.")
             elif action == "send_professor_now":
-                if not configuracao.avisar_professor:
-                    messages.warning(request, "Aviso ao professor esta desligado nesta unidade.")
-                else:
-                    qtd = _send_professor_schedule(service, configuracao, hoje + timedelta(days=1), force=True)
+                qtd = _send_professor_schedule(service, configuracao, hoje + timedelta(days=1), force=True)
+                if qtd:
                     messages.success(request, f"Aviso ao professor executado agora. {qtd} mensagem(ns) enviadas.")
-            elif action == "send_renovacao_now":
-                if not configuracao.avisar_renovacao:
-                    messages.warning(request, "Aviso de renovacao esta desligado nesta unidade.")
                 else:
-                    qtd = _send_contract_renewals(service, configuracao, hoje + timedelta(days=7), force=True)
+                    messages.warning(request, "Nao ha agenda de professor elegivel para enviar agora.")
+            elif action == "send_renovacao_now":
+                qtd = _send_contract_renewals(service, configuracao, hoje + timedelta(days=7), force=True)
+                if qtd:
                     messages.success(request, f"Aviso de renovacao executado agora. {qtd} mensagem(ns) enviadas.")
+                else:
+                    messages.warning(request, "Nao ha contratos elegiveis para renovacao agora.")
             return redirect(f"{reverse('whatsapp_config')}?unidade={unidade.id}")
         form = forms.WhatsappConfiguracaoForm(request.POST, instance=configuracao)
         if form.is_valid():
