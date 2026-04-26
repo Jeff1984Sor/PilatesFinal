@@ -11,12 +11,14 @@ from .repositories import list_aulas, create_reserva, create_contas_receber, cre
 
 def gerar_parcelas(valor, inicio, fim, meses):
     parcelas = []
-    months = max(int(meses or 1), 1)
+    total_parcelas = max(int(meses or 1), 1)
     cursor = inicio
-    while cursor <= fim:
+    for _ in range(total_parcelas):
+        if cursor > fim:
+            break
         competencia = cursor.strftime("%Y-%m")
         parcelas.append({"valor": valor, "vencimento": cursor, "competencia": competencia})
-        month = cursor.month + months
+        month = cursor.month + 1
         year = cursor.year + ((month - 1) // 12)
         month = ((month - 1) % 12) + 1
         day = min(cursor.day, 28)
