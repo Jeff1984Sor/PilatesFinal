@@ -580,22 +580,13 @@
 
                           {% if f.status != "PAGO" %}
 
-                            <form class="d-inline" method="post" action="{% url 'contas_receber_baixar' f.id %}" onsubmit="return confirm('Confirmar baixa deste lancamento?');">
-                              {% csrf_token %}
-                              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
-                              <input type="hidden" name="dtPagamento" value="{{ today|default:'' }}" />
-                              <button class="btn btn-sm btn-outline-success" type="submit">Dar baixa</button>
-                            </form>
+                            <a class="btn btn-sm btn-outline-success" href="{% url 'contas_receber_baixar' f.id %}" onclick="return confirm('Confirmar baixa deste lancamento?');">Dar baixa</a>
 
                           {% endif %}
 
                           <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_recibo' f.id %}">Recibo PDF</a>
 
-                          <form class="d-inline" method="post" action="{% url 'contas_receber_excluir' f.id %}" onsubmit="return confirm('Excluir este lancamento?');">
-                            {% csrf_token %}
-                            <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
-                            <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
-                          </form>
+                          <a class="btn btn-sm btn-outline-danger" href="{% url 'contas_receber_excluir' f.id %}" onclick="return confirm('Excluir este lancamento?');">Excluir</a>
 
                         </td>
 

@@ -3161,22 +3161,42 @@ def aluno_reservas_delete_bulk(request, aluno_id):
 
 @login_required
 def baixar_conta_receber(request, pk):
-    conta = get_object_or_404(models.ContasReceber, pk=pk)
-    if request.method == "POST":
-        next_url = request.POST.get("next", "").strip()
-        if next_url and not next_url.startswith("/"):
-            next_url = ""
-        data_pagamento = request.POST.get("dtPagamento") or ""
-        try:
-            pago_em = datetime.strptime(data_pagamento, "%Y-%m-%d").date() if data_pagamento else timezone.now().date()
-        except ValueError:
-            pago_em = timezone.now().date()
-        conta.status = "PAGO"
-        conta.dtPagamento = pago_em
-        conta.save(update_fields=["status", "dtPagamento"])
-        messages.success(request, "Lancamento baixado com sucesso.")
-        return redirect(next_url or "contas_receber_list")
-    return redirect("contas_receber_list")
+    conta = get_object_or_404(models.ContasReceber.objects.select_related("contrato__cdAluno"), pk=pk)
+    if request.method not in {"GET", "POST"}:
+        return redirect("contas_receber_list")
+    next_url = request.POST.get("next", "").strip() if request.method == "POST" else request.GET.get("next", "").strip()
+    if next_url and not next_url.startswith("/"):
+        next_url = ""
+    data_pagamento = (
+        request.POST.get("dtPagamento")
+        if request.method == "POST"
+        else request.GET.get("dtPagamento", "")
+    ) or ""
+    try:
+        pago_em = datetime.strptime(data_pagamento, "%Y-%m-%d").date() if data_pagamento else timezone.now().date()
+    except ValueError:
+        pago_em = timezone.now().date()
+    conta.status = "PAGO"
+    conta.dtPagamento = pago_em
+    conta.save(update_fields=["status", "dtPagamento"])
+    messages.success(request, "Lancamento baixado com sucesso.")
+    fallback = f"{reverse('alunos_detail', args=[conta.contrato.cdAluno_id])}?tab=financeiro"
+    return redirect(next_url or fallback)
+
+
+@login_required
+def excluir_conta_receber(request, pk):
+    conta = get_object_or_404(models.ContasReceber.objects.select_related("contrato__cdAluno"), pk=pk)
+    if request.method not in {"GET", "POST"}:
+        return redirect("contas_receber_list")
+    next_url = request.POST.get("next", "").strip() if request.method == "POST" else request.GET.get("next", "").strip()
+    if next_url and not next_url.startswith("/"):
+        next_url = ""
+    aluno_id = conta.contrato.cdAluno_id if conta.contrato_id else None
+    conta.delete()
+    messages.success(request, "Lancamento excluido com sucesso.")
+    fallback = f"{reverse('alunos_detail', args=[aluno_id])}?tab=financeiro" if aluno_id else "contas_receber_list"
+    return redirect(next_url or fallback)
 
 
 @login_required
