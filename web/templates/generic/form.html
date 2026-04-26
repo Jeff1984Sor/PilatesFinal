@@ -19,16 +19,8 @@
           <div class="fw-bold mb-1">Nao foi possivel salvar.</div>
           <div class="small mb-2">Revise os campos destacados abaixo.</div>
           <ul class="mb-0">
-            {% for field, errors in form.errors.items %}
-              {% for error in errors %}
-                <li>
-                  {% if field == "__all__" %}
-                    {{ error }}
-                  {% else %}
-                    {{ form[field].label }}: {{ error }}
-                  {% endif %}
-                </li>
-              {% endfor %}
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
             {% endfor %}
           </ul>
         </div>
