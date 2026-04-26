@@ -101,6 +101,10 @@ class BaseAutoCdForm(forms.ModelForm):
             if (name.startswith("cd") and not is_fk) or name == "user":
                 field.required = False
                 field.widget = forms.HiddenInput()
+            if name == "recorrencia" and self._meta.model is models.Contrato:
+                field.disabled = True
+                field.required = False
+                field.initial = getattr(self.instance, "recorrencia", None) or "MENSAL"
             if name in label_map:
                 field.label = label_map[name]
             if isinstance(field.widget, forms.HiddenInput):
@@ -262,6 +266,7 @@ class ContratoForm(BaseAutoCdForm):
             "cdContrato",
             "cdAluno",
             "cdPlano",
+            "recorrencia",
             "cdUnidade",
             "cdProfissional",
             "modo_pagamento",

@@ -540,9 +540,12 @@
                       <select class="form-select js-plano" name="cdPlano" required>
                         <option value="">Selecione</option>
                         {% for p in planos %}
-                          <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}">{{ p.dsPlano }}</option>
+                          <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}">{{ p.dsPlano }}</option>
                         {% endfor %}
                       </select>
+                    </div>
+                    <div class="col-md-4">
+                      {{ form.recorrencia.label_tag }} {{ form.recorrencia }}
                     </div>
                     <div class="col-md-6">
                       <label>Unidade</label>
@@ -954,9 +957,12 @@
                             <label>Plano</label>
                             <select class="form-select js-plano" name="cdPlano" required>
                               {% for p in planos %}
-                                <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" {% if obj.cdPlano_id == p.id %}selected{% endif %}>{{ p.dsPlano }}</option>
+                                <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}" {% if obj.cdPlano_id == p.id %}selected{% endif %}>{{ p.dsPlano }}</option>
                               {% endfor %}
                             </select>
+                          </div>
+                          <div class="col-md-4">
+                            {{ edit_form.recorrencia.label_tag }} {{ edit_form.recorrencia }}
                           </div>
                           <div class="col-md-6">
                             <label>Unidade</label>

@@ -24,9 +24,12 @@
           </select>
         </div>
         <div class="col-md-4">
-          <select class="form-select" name="cdPlano" required>
-            {% for p in planos %}<option value="{{ p.id }}">{{ p.dsPlano }}</option>{% endfor %}
+          <select class="form-select js-plano" name="cdPlano" required>
+            {% for p in planos %}<option value="{{ p.id }}" data-recorrencia="{{ p.recorrencia }}" data-valor="{{ p.valor }}">{{ p.dsPlano }}</option>{% endfor %}
           </select>
+        </div>
+        <div class="col-md-4">
+          <input class="form-control js-contrato-recorrencia" name="recorrencia" placeholder="Recorrencia" readonly />
         </div>
         <div class="col-md-4">
           <select class="form-select" name="cdUnidade" required>

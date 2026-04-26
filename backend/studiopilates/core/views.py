@@ -108,6 +108,12 @@ def _contrato_pdf_link(contrato, request=None):
     return f"{base_url}/contratos/pdf/{token}/"
 
 
+def _contrato_precificacao(plano):
+    recorrencia = getattr(plano, "recorrencia", "MENSAL") or "MENSAL"
+    valor = float(getattr(plano, "valor", 0) or 0)
+    return recorrencia, valor, valor
+
+
 def _active_menu(path: str) -> str:
     if path.startswith("/cadastros/alunos") or path.startswith("/cadastros/profissionais"):
         return "pessoas"
@@ -150,10 +156,12 @@ CONTRACT_TEMPLATE_VARIABLES = [
     {"key": "PLANO_NOME", "label": "Plano"},
     {"key": "PLANO_AULAS_SEMANA", "label": "Aulas por semana"},
     {"key": "PLANO_DURACAO_MESES", "label": "Duracao (meses)"},
+    {"key": "PLANO_RECORRENCIA", "label": "Recorrencia do plano"},
     {"key": "TIPO_SERVICO", "label": "Tipo de servico"},
     {"key": "CONTRATO_NUMERO", "label": "Numero do contrato"},
     {"key": "CONTRATO_INICIO", "label": "Inicio do contrato"},
     {"key": "CONTRATO_FIM", "label": "Fim do contrato"},
+    {"key": "CONTRATO_RECORRENCIA", "label": "Recorrencia do contrato"},
     {"key": "CONTRATO_MODO_PAGAMENTO", "label": "Modo de pagamento"},
     {"key": "CONTRATO_VALOR_PARCELA", "label": "Valor da parcela"},
     {"key": "CONTRATO_VALOR_TOTAL", "label": "Valor total"},
@@ -1194,6 +1202,14 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
             {"name": "aulas_por_semana", "label": "Aulas por semana"},
             {"name": "duracao_meses", "label": "Duracao (meses)"},
             {"name": "recorrencia", "label": "Recorrencia"},
+        ]
+    if model is models.Contrato:
+        display_fields = [
+            {"name": "cdPlano", "label": "Plano"},
+            {"name": "recorrencia", "label": "Recorrencia"},
+            {"name": "valor_parcela", "label": "Valor (parcela)"},
+            {"name": "valor_total", "label": "Valor total"},
+            {"name": "status", "label": "Status"},
         ]
     edit_forms = {}
     if allow_modal:
@@ -2966,16 +2982,14 @@ def create_view(request, model, form_class, redirect_name):
         if form.is_valid():
             if model is models.Contrato:
                 cleaned = form.cleaned_data
-                valor_parcela = cleaned.get("valor_parcela") or float(data.get("valor", "0") or 0)
-                valor_total = cleaned.get("valor_total") or 0
-                if not valor_total and cleaned.get("cdPlano"):
-                    valor_total = float(valor_parcela) * float(cleaned["cdPlano"].duracao_meses or 1)
                 plano = cleaned.get("cdPlano")
+                recorrencia, valor_parcela, valor_total = _contrato_precificacao(plano)
                 is_avulso = bool(getattr(plano, "is_avulso", False))
                 contrato_data = {
                     "cdContrato": cleaned["cdContrato"],
                     "cdAluno": cleaned["cdAluno"],
                     "cdPlano": cleaned["cdPlano"],
+                    "recorrencia": recorrencia,
                     "cdUnidade": cleaned["cdUnidade"],
                     "cdProfissional": cleaned["cdProfissional"],
                     "valor_parcela": valor_parcela,
@@ -2984,8 +2998,7 @@ def create_view(request, model, form_class, redirect_name):
                     "dtFimContrato": cleaned["dtFimContrato"],
                     "modo_pagamento": cleaned.get("modo_pagamento"),
                 }
-                valor = float(valor_parcela or 0)
-                obj = services.criar_contrato_e_contas(contrato_data, valor)
+                obj = services.criar_contrato_e_contas(contrato_data, valor_parcela, recorrencia=recorrencia)
                 if services.enviar_contrato_para_assinatura(obj, request.build_absolute_uri("/")):
                     messages.success(request, "Contrato criado e enviado por email. Agende as aulas.")
                 else:
@@ -3066,6 +3079,20 @@ def edit_view(request, model, form_class, redirect_name, pk):
         form = form_class(data, files=request.FILES or None, instance=obj)
         if form.is_valid():
             obj = form.save()
+            if model is models.Contrato:
+                recorrencia, valor_parcela, valor_total = _contrato_precificacao(obj.cdPlano)
+                updates = []
+                if obj.recorrencia != recorrencia:
+                    obj.recorrencia = recorrencia
+                    updates.append("recorrencia")
+                if obj.valor_parcela != valor_parcela:
+                    obj.valor_parcela = valor_parcela
+                    updates.append("valor_parcela")
+                if obj.valor_total != valor_total:
+                    obj.valor_total = valor_total
+                    updates.append("valor_total")
+                if updates:
+                    obj.save(update_fields=updates)
             if model is models.Profissional:
                 _sync_user_for_profissional(obj, raw_password=form.cleaned_data.get("password"))
             if model is models.Aluno:
@@ -3632,14 +3659,12 @@ def wizard_step5(request):
         data = request.session.get("wizard_contrato", {})
         aluno = models.Aluno.objects.get(pk=int(data.get("cdAluno")))
         plano = models.Plano.objects.get(pk=int(data.get("cdPlano")))
-        valor_parcela = float(data.get("valor_parcela") or data.get("valor") or 0)
-        valor_total = float(data.get("valor_total") or 0)
-        if not valor_total and plano:
-            valor_total = float(valor_parcela) * float(plano.duracao_meses or 1)
+        recorrencia, valor_parcela, valor_total = _contrato_precificacao(plano)
         contrato_data = {
             "cdContrato": int(data.get("cdContrato")),
             "cdAluno": aluno,
             "cdPlano": plano,
+            "recorrencia": recorrencia,
             "cdUnidade": models.Unidade.objects.get(pk=int(data.get("cdUnidade"))),
             "cdProfissional": models.Profissional.objects.get(pk=int(data.get("cdProfissional"))),
             "valor_parcela": valor_parcela,
@@ -3647,7 +3672,7 @@ def wizard_step5(request):
             "dtInicioContrato": data.get("dtInicioContrato"),
             "dtFimContrato": data.get("dtFimContrato"),
         }
-        contrato = services.criar_contrato_e_contas(contrato_data, float(data.get("valor", "0")))
+        contrato = services.criar_contrato_e_contas(contrato_data, valor_parcela, recorrencia=recorrencia)
         if services.enviar_contrato_para_assinatura(contrato, request.build_absolute_uri("/")):
             messages.success(request, "Contrato criado e enviado por email. Agende as aulas.")
         else:

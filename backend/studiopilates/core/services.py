@@ -9,7 +9,7 @@ from . import models
 from .repositories import list_aulas, create_reserva, create_contas_receber, create_contrato
 
 
-def gerar_parcelas(valor, inicio, fim, meses):
+def gerar_parcelas(valor, inicio, fim, meses, recorrencia="MENSAL"):
     def _add_months(base_date, months):
         offset = (base_date.month - 1) + months
         year = base_date.year + (offset // 12)
@@ -18,20 +18,33 @@ def gerar_parcelas(valor, inicio, fim, meses):
         return date(year, month, day)
 
     parcelas = []
-    total_parcelas = max(int(meses or 1), 1)
-    for idx in range(total_parcelas):
-        vencimento = _add_months(inicio, idx)
-        competencia = vencimento.strftime("%Y-%m")
-        parcelas.append({"valor": valor, "vencimento": vencimento, "competencia": competencia})
+    if recorrencia == "SEMANAL":
+        vencimento = inicio
+        while vencimento <= fim:
+            competencia = vencimento.strftime("%Y-%m-%d")
+            parcelas.append({"valor": valor, "vencimento": vencimento, "competencia": competencia})
+            vencimento += timedelta(days=7)
+    else:
+        total_parcelas = max(int(meses or 1), 1)
+        for idx in range(total_parcelas):
+            vencimento = _add_months(inicio, idx)
+            competencia = vencimento.strftime("%Y-%m")
+            parcelas.append({"valor": valor, "vencimento": vencimento, "competencia": competencia})
     return parcelas
 
 
-def criar_contrato_e_contas(data_contrato, valor_parcela):
-    meses = data_contrato["cdPlano"].duracao_meses
+def criar_contrato_e_contas(data_contrato, valor_parcela, recorrencia=None):
+    plano = data_contrato["cdPlano"]
+    meses = plano.duracao_meses
+    recorrencia = recorrencia or getattr(plano, "recorrencia", "MENSAL")
     with transaction.atomic():
         contrato = create_contrato(data_contrato)
         parcelas = gerar_parcelas(
-            valor_parcela, data_contrato["dtInicioContrato"], data_contrato["dtFimContrato"], meses
+            valor_parcela,
+            data_contrato["dtInicioContrato"],
+            data_contrato["dtFimContrato"],
+            meses,
+            recorrencia=recorrencia,
         )
         create_contas_receber(contrato, parcelas)
     return contrato
@@ -107,10 +120,12 @@ def render_contrato_html(contrato):
         "{PLANO_NOME}": str(plano),
         "{PLANO_AULAS_SEMANA}": str(plano.aulas_por_semana or ""),
         "{PLANO_DURACAO_MESES}": str(plano.duracao_meses or ""),
+        "{PLANO_RECORRENCIA}": plano.get_recorrencia_display() if plano and hasattr(plano, "get_recorrencia_display") else "",
         "{TIPO_SERVICO}": str(plano.cdTipoServico) if plano and plano.cdTipoServico else "",
         "{CONTRATO_NUMERO}": str(contrato.cdContrato),
         "{CONTRATO_INICIO}": contrato.dtInicioContrato.strftime("%d/%m/%Y"),
         "{CONTRATO_FIM}": contrato.dtFimContrato.strftime("%d/%m/%Y"),
+        "{CONTRATO_RECORRENCIA}": contrato.get_recorrencia_display() if contrato.recorrencia else "",
         "{CONTRATO_MODO_PAGAMENTO}": contrato.get_modo_pagamento_display() if contrato.modo_pagamento else "",
         "{CONTRATO_VALOR_PARCELA}": _currency(contrato.valor_parcela),
         "{CONTRATO_VALOR_TOTAL}": _currency(contrato.valor_total),
@@ -122,6 +137,7 @@ def render_contrato_html(contrato):
             "<h3>Contrato {CONTRATO_NUMERO}</h3>"
             "<p>Aluno: {ALUNO_NOME} - {ALUNO_CPF}</p>"
             "<p>Plano: {PLANO_NOME}</p>"
+            "<p>Recorrencia: {CONTRATO_RECORRENCIA}</p>"
             "<p>Periodo: {CONTRATO_INICIO} a {CONTRATO_FIM}</p>"
             "<p>Valor parcela: {CONTRATO_VALOR_PARCELA}</p>"
             "<p>Valor total: {CONTRATO_VALOR_TOTAL}</p>"

@@ -1508,17 +1508,20 @@
 
                   <select class="form-select js-plano" name="cdPlano" required>
 
-                <option value="" selected>Selecione</option>
+                    <option value="" selected>Selecione</option>
 
-                {% for p in planos %}
+                    {% for p in planos %}
 
-                  <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}">{{ p.dsPlano }}</option>
+                      <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}">{{ p.dsPlano }}</option>
 
-                {% endfor %}
+                    {% endfor %}
 
-              </select>
+                  </select>
 
-            </div>
+                </div>
+                <div class="col-md-4">
+                  {{ form.recorrencia.label_tag }} {{ form.recorrencia }}
+                </div>
 
             <div class="col-md-6">
 
@@ -1678,7 +1681,7 @@
 
                     {% for p in planos %}
 
-                      <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" {% if c.cdPlano_id == p.id %}selected{% endif %}>
+                      <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}" {% if c.cdPlano_id == p.id %}selected{% endif %}>
 
                         {{ p.dsPlano }}
 
@@ -1688,6 +1691,9 @@
 
                   </select>
 
+                </div>
+                <div class="col-md-4">
+                  {{ edit_form.recorrencia.label_tag }} {{ edit_form.recorrencia }}
                 </div>
 
                 <div class="col-md-6">

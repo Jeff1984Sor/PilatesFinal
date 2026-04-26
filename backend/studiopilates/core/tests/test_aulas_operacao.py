@@ -21,6 +21,18 @@ def test_gerar_parcelas_usa_quantidade_do_plano():
     ]
 
 
+def test_gerar_parcelas_semanal_usa_intervalo_semanal():
+    parcelas = services.gerar_parcelas(80, date(2026, 1, 1), date(2026, 1, 29), 6, recorrencia="SEMANAL")
+    assert len(parcelas) == 5
+    assert [parcela["vencimento"].isoformat() for parcela in parcelas] == [
+        "2026-01-01",
+        "2026-01-08",
+        "2026-01-15",
+        "2026-01-22",
+        "2026-01-29",
+    ]
+
+
 @pytest.mark.django_db
 def test_operacao_listagem_filtra_data(client, django_user_model):
     user = django_user_model.objects.create_user(username="user", password="pass")

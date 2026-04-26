@@ -242,6 +242,10 @@ class Contrato(models.Model):
         ("ASSINADO", "Contrato assinado"),
         ("ASSINADO_DIGITALMENTE", "Assinado digitalmente"),
     ]
+    RECORRENCIA_CHOICES = [
+        ("SEMANAL", "Semanal"),
+        ("MENSAL", "Mensal"),
+    ]
     PAGAMENTO_CHOICES = [
         ("DINHEIRO", "Dinheiro"),
         ("PIX", "Pix"),
@@ -252,6 +256,7 @@ class Contrato(models.Model):
     cdContrato = models.IntegerField(unique=True, db_index=True)
     cdAluno = models.ForeignKey(Aluno, on_delete=models.PROTECT)
     cdPlano = models.ForeignKey(Plano, on_delete=models.PROTECT)
+    recorrencia = models.CharField(max_length=10, choices=RECORRENCIA_CHOICES, default="MENSAL")
     cdUnidade = models.ForeignKey(Unidade, on_delete=models.PROTECT)
     cdProfissional = models.ForeignKey(Profissional, on_delete=models.PROTECT)
     modo_pagamento = models.CharField(max_length=20, choices=PAGAMENTO_CHOICES, blank=True)
