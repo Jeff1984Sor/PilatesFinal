@@ -125,13 +125,13 @@ class WhatsappService:
         return models.WhatsappConfiguracao.objects.filter(unidade=unidade).first()
 
     def _get_client_for_unidade(self, unidade: models.Unidade | None) -> EvolutionClient:
-        if settings.WASENDER_API_URL:
-            return self.client
         config = self._get_config_for_unidade(unidade)
-        if not config:
-            return self.client
-        token = config.evolution_senha or config.evolution_usuario or None
-        return EvolutionClient(endpoint_url=config.evolution_url or None, token=token)
+        if config:
+            return EvolutionClient(
+                endpoint_url=config.evolution_url or settings.WASENDER_API_URL or None,
+                token=config.evolution_senha or settings.WASENDER_API_TOKEN or None,
+            )
+        return self.client
 
     @staticmethod
     def clean_phone(raw: str | None) -> str | None:
