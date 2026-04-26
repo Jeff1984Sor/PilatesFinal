@@ -1995,7 +1995,7 @@
 
               {% csrf_token %}
 
-              <input type="hidden" name="next" value="{{ request.path }}-tab=financeiro" />
+              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
 
               <div class="mb-3">
 
@@ -2051,7 +2051,7 @@
 
               {% csrf_token %}
 
-              <input type="hidden" name="next" value="{{ request.path }}-tab=financeiro" />
+              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
 
               <button class="btn btn-danger" type="submit">Excluir</button>
 
