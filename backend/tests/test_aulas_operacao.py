@@ -11,7 +11,7 @@ from app.main import app
 def _setup_core_tables(db):
     db.execute(text('CREATE TABLE IF NOT EXISTS core_unidade (id INTEGER PRIMARY KEY, "dsUnidade" TEXT)'))
     db.execute(text('CREATE TABLE IF NOT EXISTS core_profissional (id INTEGER PRIMARY KEY, profissional TEXT)'))
-    db.execute(text('CREATE TABLE IF NOT EXISTS core_aluno (id INTEGER PRIMARY KEY, "dsNome" TEXT, "dsCPF" TEXT, foto TEXT, termo_aceite_em DATETIME)'))
+    db.execute(text('CREATE TABLE IF NOT EXISTS core_aluno (id INTEGER PRIMARY KEY, "dsNome" TEXT, "dsCPF" TEXT, foto TEXT, autoriza_imagem INTEGER DEFAULT 0, termo_aceite_em DATETIME)'))
     db.execute(text('CREATE TABLE IF NOT EXISTS core_telefonealuno (id INTEGER PRIMARY KEY, "cdAluno_id" INTEGER, "dsTelefone" TEXT, "dtCadastro" DATETIME)'))
     db.execute(text('CREATE TABLE IF NOT EXISTS core_plano (id INTEGER PRIMARY KEY, "dsPlano" TEXT)'))
     db.execute(text('CREATE TABLE IF NOT EXISTS core_contrato (id INTEGER PRIMARY KEY, "cdAluno_id" INTEGER, "cdPlano_id" INTEGER, "dtInicioContrato" DATE, "dtFimContrato" DATE, status TEXT)'))
@@ -57,7 +57,7 @@ def client():
 def seed_operacao(db):
     db.execute(text('INSERT INTO core_unidade (id, "dsUnidade") VALUES (1, "Unidade Central")'))
     db.execute(text('INSERT INTO core_profissional (id, profissional) VALUES (1, "Flavia Barros")'))
-    db.execute(text('INSERT INTO core_aluno (id, "dsNome", "dsCPF", foto, termo_aceite_em) VALUES (1, "Elena Vianna", "123", NULL, CURRENT_TIMESTAMP)'))
+    db.execute(text('INSERT INTO core_aluno (id, "dsNome", "dsCPF", foto, autoriza_imagem, termo_aceite_em) VALUES (1, "Elena Vianna", "123", NULL, 0, CURRENT_TIMESTAMP)'))
     db.execute(text('INSERT INTO core_telefonealuno (id, "cdAluno_id", "dsTelefone", "dtCadastro") VALUES (1, 1, "11999998888", CURRENT_TIMESTAMP)'))
     db.execute(text('INSERT INTO core_plano (id, "dsPlano") VALUES (1, "Pilates 2x semana")'))
     db.execute(text('INSERT INTO core_contrato (id, "cdAluno_id", "cdPlano_id", "dtInicioContrato", "dtFimContrato", status) VALUES (1, 1, 1, "2026-02-01", "2026-03-01", "ASSINADO")'))

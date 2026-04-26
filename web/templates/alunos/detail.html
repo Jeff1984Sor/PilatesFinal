@@ -64,6 +64,28 @@
 
         <div class="mb-2"><strong>Termo:</strong> {{ aluno.cdTermoUso|default:"-" }}</div>
 
+        <div class="mt-3 p-3 rounded-4 border {% if aluno.autoriza_imagem %}border-success bg-success-subtle{% else %}border-danger bg-danger-subtle{% endif %}">
+          <div class="d-flex justify-content-between align-items-center gap-3">
+            <div>
+              <div class="small text-muted">Autoriza o uso da imagem?</div>
+              <div class="fw-bold {% if aluno.autoriza_imagem %}text-success{% else %}text-danger{% endif %}">
+                {% if aluno.autoriza_imagem %}Sim{% else %}Nao{% endif %}
+              </div>
+            </div>
+            <form method="post" action="{% url 'aluno_autoriza_imagem_toggle' aluno.id %}" class="m-0">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}" />
+              <input type="hidden" name="autoriza_imagem" value="{% if aluno.autoriza_imagem %}0{% else %}1{% endif %}" />
+              <button
+                class="btn btn-sm {% if aluno.autoriza_imagem %}btn-success{% else %}btn-danger{% endif %}"
+                type="submit"
+              >
+                {% if aluno.autoriza_imagem %}Desligar{% else %}Ligar{% endif %}
+              </button>
+            </form>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -1277,6 +1299,13 @@
 
               {{ edit_form.cdUnidade.label_tag }} {{ edit_form.cdUnidade }}
 
+            </div>
+
+            <div class="col-md-4 d-flex align-items-center">
+              <div class="form-check form-switch mt-4">
+                {{ edit_form.autoriza_imagem }}
+                {{ edit_form.autoriza_imagem.label_tag }}
+              </div>
             </div>
 
             <div class="col-md-4">

@@ -31,6 +31,7 @@ urlpatterns = [
     path("cadastros/alunos/<int:pk>/editar/", lambda r, pk: views.edit_view(r, models.Aluno, forms.AlunoForm, "alunos_list", pk), name="alunos_edit"),
     path("cadastros/alunos/<int:pk>/excluir/", lambda r, pk: views.delete_view(r, models.Aluno, "alunos_list", pk), name="alunos_delete"),
     path("cadastros/alunos/<int:pk>/ficha/", views.aluno_detail, name="alunos_detail"),
+    path("cadastros/alunos/<int:pk>/autoriza-imagem/", views.aluno_autoriza_imagem_toggle, name="aluno_autoriza_imagem_toggle"),
     path("contratos/<int:pk>/whatsapp/", views.contrato_whatsapp, name="contratos_whatsapp"),
     path("cadastros/alunos/<int:aluno_id>/evolucoes/criar/", views.aluno_evolucao_create, name="alunos_evolucao_create"),
     path("cadastros/alunos/evolucoes/<int:evolucao_id>/editar/", views.aluno_evolucao_update, name="alunos_evolucao_update"),

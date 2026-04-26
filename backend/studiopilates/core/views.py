@@ -523,6 +523,19 @@ def aluno_detail(request, pk):
 
 
 @login_required
+@require_POST
+def aluno_autoriza_imagem_toggle(request, pk):
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    next_url = request.POST.get("next", "").strip()
+    if next_url and not next_url.startswith("/"):
+        next_url = ""
+    aluno.autoriza_imagem = request.POST.get("autoriza_imagem") in ("1", "on", "true", "True")
+    aluno.save(update_fields=["autoriza_imagem"])
+    messages.success(request, "Permissao de uso da imagem atualizada.")
+    return redirect(next_url or reverse("alunos_detail", args=[aluno.pk]))
+
+
+@login_required
 def aluno_whatsapp_message(request, pk):
     aluno = get_object_or_404(models.Aluno, pk=pk)
     if request.method != "POST":
@@ -1245,6 +1258,7 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         "display_fields": display_fields,
         "edit_forms": edit_forms,
         "page_size": page_size,
+        "page_range": page_range,
         "pagination_query": pagination_query,
     }
     if model is models.Aluno:

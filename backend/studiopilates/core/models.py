@@ -73,6 +73,7 @@ class Aluno(models.Model):
     dsRg = models.CharField(max_length=30, blank=True)
     dsEmail = models.EmailField(blank=True)
     foto = models.ImageField(upload_to="alunos", null=True, blank=True)
+    autoriza_imagem = models.BooleanField(default=False)
     dtNascimento = models.DateField(null=True, blank=True)
     estado_civil = models.CharField(max_length=20, choices=ESTADO_CIVIL_CHOICES, blank=True)
     cdProfissao = models.ForeignKey(Profissao, on_delete=models.SET_NULL, null=True, blank=True)
