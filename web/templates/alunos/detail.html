@@ -304,9 +304,9 @@
 
                           <div class="d-flex flex-wrap gap-2">
 
-                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editContrato-{{ c.id }}">Editar</button>
+                            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editContrato-{{ c.id }}">Editar</button>
 
-                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteContrato-{{ c.id }}">Excluir</button>
+                            <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteContrato-{{ c.id }}">Excluir</button>
 
                             <form method="post" action="{% url 'contrato_enviar_email' c.id %}">
 
@@ -1615,7 +1615,7 @@
 
               {% csrf_token %}
 
-              <input type="hidden" name="next" value="{{ request.path }}-tab=contratos" />
+              <input type="hidden" name="next" value="{{ request.path }}?tab=contratos" />
 
               <div class="row g-3">
 
@@ -1786,7 +1786,7 @@
 
               {% csrf_token %}
 
-              <input type="hidden" name="next" value="{{ request.path }}-tab=contratos" />
+              <input type="hidden" name="next" value="{{ request.path }}?tab=contratos" />
 
               <button class="btn btn-danger" type="submit">Excluir</button>
 
