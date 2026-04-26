@@ -37,7 +37,10 @@
       <hr class="my-4" />
       <div class="row g-4 mt-0">
         <div class="col-md-6">
-          <h5>Aviso ao aluno</h5>
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <h5 class="mb-0">Aviso ao aluno</h5>
+            <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="send_aluno_now" formnovalidate>Enviar agora</button>
+          </div>
           <div class="mb-3">
             {{ form.avisar_aluno }}
             <label class="form-check-label" for="{{ form.avisar_aluno.id_for_label }}">{{ form.avisar_aluno.label }}</label>
@@ -55,7 +58,10 @@
           </div>
         </div>
         <div class="col-md-6">
-          <h5>Aviso ao professor</h5>
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <h5 class="mb-0">Aviso ao professor</h5>
+            <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="send_professor_now" formnovalidate>Enviar agora</button>
+          </div>
           <div class="mb-3">
             {{ form.avisar_professor }}
             <label class="form-check-label" for="{{ form.avisar_professor.id_for_label }}">{{ form.avisar_professor.label }}</label>
@@ -86,7 +92,10 @@
           </div>
         </div>
         <div class="col-md-6">
-          <h5>Renovação</h5>
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <h5 class="mb-0">Renovação</h5>
+            <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="send_renovacao_now" formnovalidate>Enviar agora</button>
+          </div>
           <div class="mb-3">
             {{ form.avisar_renovacao }}
             <label class="form-check-label" for="{{ form.avisar_renovacao.id_for_label }}">{{ form.avisar_renovacao.label }}</label>

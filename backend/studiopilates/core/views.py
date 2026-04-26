@@ -24,6 +24,7 @@ from . import forms, models, services, totalpass_service
 from .signals import ensure_profissional_for_user
 from shared.ai.gemini_client import extract_address_from_proof, extract_student_from_document
 from .whatsapp_service import WhatsappService, WhatsappMessageType
+from .whatsapp_scheduler import _send_class_reminders, _send_professor_schedule, _send_contract_renewals
 
 logger = logging.getLogger(__name__)
 
@@ -4075,6 +4076,32 @@ def whatsapp_config_view(request):
         unidade = unidades.first()
     configuracao = models.WhatsappConfiguracao.objects.filter(unidade=unidade).first()
     if request.method == "POST":
+        action = request.POST.get("action", "").strip()
+        if action in {"send_aluno_now", "send_professor_now", "send_renovacao_now"}:
+            if not configuracao:
+                messages.warning(request, "Salve a configuracao antes de enviar agora.")
+                return redirect(f"{reverse('whatsapp_config')}?unidade={unidade.id}")
+            service = WhatsappService()
+            hoje = timezone.localdate()
+            if action == "send_aluno_now":
+                if not configuracao.avisar_aluno:
+                    messages.warning(request, "Aviso ao aluno esta desligado nesta unidade.")
+                else:
+                    _send_class_reminders(service, configuracao, hoje + timedelta(days=1))
+                    messages.success(request, "Aviso ao aluno executado agora.")
+            elif action == "send_professor_now":
+                if not configuracao.avisar_professor:
+                    messages.warning(request, "Aviso ao professor esta desligado nesta unidade.")
+                else:
+                    _send_professor_schedule(service, configuracao, hoje + timedelta(days=1))
+                    messages.success(request, "Aviso ao professor executado agora.")
+            elif action == "send_renovacao_now":
+                if not configuracao.avisar_renovacao:
+                    messages.warning(request, "Aviso de renovacao esta desligado nesta unidade.")
+                else:
+                    _send_contract_renewals(service, configuracao, hoje + timedelta(days=7))
+                    messages.success(request, "Aviso de renovacao executado agora.")
+            return redirect(f"{reverse('whatsapp_config')}?unidade={unidade.id}")
         form = forms.WhatsappConfiguracaoForm(request.POST, instance=configuracao)
         if form.is_valid():
             cfg = form.save(commit=False)
