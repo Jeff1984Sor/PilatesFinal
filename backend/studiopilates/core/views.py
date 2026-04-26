@@ -1159,13 +1159,20 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         return redirect("dashboard")
     query = request.GET.get("q", "").strip()
     order = request.GET.get("order", "id")
-    page_size = request.GET.get("page_size", "10")
-    try:
-        page_size = int(page_size)
-    except (TypeError, ValueError):
-        page_size = 10
+    page_size_key = f"list_page_size_{model._meta.model_name}"
+    page_size_raw = request.GET.get("page_size")
+    if page_size_raw is None:
+        page_size = request.session.get(page_size_key, 100)
+    else:
+        try:
+            page_size = int(page_size_raw)
+        except (TypeError, ValueError):
+            page_size = 100
+        if page_size not in (10, 25, 50, 100):
+            page_size = 100
+        request.session[page_size_key] = page_size
     if page_size not in (10, 25, 50, 100):
-        page_size = 10
+        page_size = 100
     if model is models.Plano and not request.GET.get("order"):
         order = "dsPlano"
     qs = model.objects.all()
@@ -1182,8 +1189,16 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
             )
         )
     if query:
-        field_name = model._meta.fields[1].name
-        qs = qs.filter(Q(**{f"{field_name}__icontains": query}) | Q(id__icontains=query))
+        if model is models.Aluno:
+            qs = qs.filter(
+                Q(dsNome__icontains=query)
+                | Q(dsCPF__icontains=query)
+                | Q(dsRg__icontains=query)
+                | Q(id__icontains=query)
+            )
+        else:
+            field_name = model._meta.fields[1].name
+            qs = qs.filter(Q(**{f"{field_name}__icontains": query}) | Q(id__icontains=query))
     if order:
         qs = qs.order_by(order)
     paginator = Paginator(qs, page_size)
