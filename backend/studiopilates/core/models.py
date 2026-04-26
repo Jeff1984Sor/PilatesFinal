@@ -186,6 +186,11 @@ class HorarioFuncionamento(models.Model):
 
 
 class Plano(models.Model):
+    RECORRENCIA_CHOICES = [
+        ("SEMANAL", "Semanal"),
+        ("MENSAL", "Mensal"),
+    ]
+
     cdPlano = models.IntegerField(unique=True, db_index=True)
     dsPlano = models.CharField(max_length=120)
     cdTipoServico = models.ForeignKey(TipoServico, on_delete=models.PROTECT)
@@ -194,6 +199,7 @@ class Plano(models.Model):
     valor = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     aulas_por_semana = models.IntegerField(default=1)
     duracao_meses = models.IntegerField(default=1)
+    recorrencia = models.CharField(max_length=10, choices=RECORRENCIA_CHOICES, default="MENSAL")
     is_avulso = models.BooleanField(default=False)
     modeloContrato = models.ForeignKey("ModeloContrato", on_delete=models.SET_NULL, null=True, blank=True)
 

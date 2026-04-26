@@ -1193,6 +1193,7 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
             {"name": "dsPlano", "label": "Plano"},
             {"name": "aulas_por_semana", "label": "Aulas por semana"},
             {"name": "duracao_meses", "label": "Duracao (meses)"},
+            {"name": "recorrencia", "label": "Recorrencia"},
         ]
     edit_forms = {}
     if allow_modal:

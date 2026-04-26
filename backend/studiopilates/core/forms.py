@@ -219,6 +219,7 @@ class PlanoForm(BaseAutoCdForm):
             "valor",
             "aulas_por_semana",
             "duracao_meses",
+            "recorrencia",
             "is_avulso",
             "modeloContrato",
         ]
