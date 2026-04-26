@@ -98,7 +98,7 @@ def _format_aulas(reservas):
     return "\n".join(lines)
 
 
-def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfiguracao, target_date):
+def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfiguracao, target_date, *, force: bool = False):
     reservas = (
         models.Reserva.objects.filter(
             aulaSessao__data=target_date,
@@ -108,13 +108,14 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
         .select_related("aluno", "aulaSessao", "aulaSessao__tipoServico", "aulaSessao__unidade")
         .order_by("aluno__cdAluno", "aulaSessao__horaInicio")
     )
+    sent_count = 0
     for aluno_id, aluno_reservas in _reservas_por_aluno(reservas).items():
         aluno = aluno_reservas[0].aluno
         telefone = service.get_aluno_phone(aluno)
         if not telefone:
             continue
         dedupe_key = _log_key("student_reminder", config.unidade_id, target_date, aluno.id)
-        if _already_sent(dedupe_key):
+        if not force and _already_sent(dedupe_key):
             continue
         aulas = _format_aulas(aluno_reservas)
         primeira = aluno_reservas[0].aulaSessao
@@ -131,6 +132,7 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
         )
         resp = service.send(aluno, telefone, mensagem, WhatsappMessageType.AUTOMATED_REMINDER)
         if "error" not in resp:
+            sent_count += 1
             _store_log(
                 dedupe_key=dedupe_key,
                 tipo=WhatsappMessageType.AUTOMATED_REMINDER,
@@ -141,9 +143,10 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
                 mensagem=mensagem,
                 response_payload=json.dumps(resp, ensure_ascii=False),
             )
+    return sent_count
 
 
-def _send_professor_schedule(service: WhatsappService, config: models.WhatsappConfiguracao, target_date):
+def _send_professor_schedule(service: WhatsappService, config: models.WhatsappConfiguracao, target_date, *, force: bool = False):
     reservas = (
         models.Reserva.objects.filter(
             aulaSessao__data=target_date,
@@ -154,6 +157,7 @@ def _send_professor_schedule(service: WhatsappService, config: models.WhatsappCo
         .select_related("aluno", "aulaSessao", "aulaSessao__profissional", "aulaSessao__unidade", "aulaSessao__tipoServico")
         .order_by("aulaSessao__profissional_id", "aulaSessao__horaInicio")
     )
+    sent_count = 0
     for prof_id, prof_reservas in _reservas_por_professor(reservas).items():
         prof = prof_reservas[0].aulaSessao.profissional
         if not prof:
@@ -162,7 +166,7 @@ def _send_professor_schedule(service: WhatsappService, config: models.WhatsappCo
         if not telefone:
             continue
         dedupe_key = _log_key("professor_schedule", config.unidade_id, target_date, prof.id)
-        if _already_sent(dedupe_key):
+        if not force and _already_sent(dedupe_key):
             continue
         slots = []
         for reserva in prof_reservas:
@@ -179,6 +183,7 @@ def _send_professor_schedule(service: WhatsappService, config: models.WhatsappCo
         )
         resp = service._get_client_for_unidade(config.unidade).send_message(telefone, mensagem)
         if "error" not in resp:
+            sent_count += 1
             _store_log(
                 dedupe_key=dedupe_key,
                 tipo=WhatsappMessageType.PROFESSOR_SCHEDULE,
@@ -189,9 +194,10 @@ def _send_professor_schedule(service: WhatsappService, config: models.WhatsappCo
                 mensagem=mensagem,
                 response_payload=json.dumps(resp, ensure_ascii=False),
             )
+    return sent_count
 
 
-def _send_contract_renewals(service: WhatsappService, config: models.WhatsappConfiguracao, reminder_date):
+def _send_contract_renewals(service: WhatsappService, config: models.WhatsappConfiguracao, reminder_date, *, force: bool = False):
     contratos = (
         models.Contrato.objects.filter(
             cdUnidade=config.unidade,
@@ -201,13 +207,14 @@ def _send_contract_renewals(service: WhatsappService, config: models.WhatsappCon
         .select_related("cdAluno")
         .order_by("cdContrato")
     )
+    sent_count = 0
     for contrato in contratos:
         aluno = contrato.cdAluno
         telefone = service.get_aluno_phone(aluno)
         if not telefone:
             continue
         dedupe_key = _log_key("contract_renewal", config.unidade_id, reminder_date, contrato.id)
-        if _already_sent(dedupe_key):
+        if not force and _already_sent(dedupe_key):
             continue
         mensagem = _render_template(
             config.template_aviso_renovacao
@@ -220,6 +227,7 @@ def _send_contract_renewals(service: WhatsappService, config: models.WhatsappCon
         )
         resp = service.send(aluno, telefone, mensagem, WhatsappMessageType.CONTRACT_RENEWAL, contrato=contrato)
         if "error" not in resp:
+            sent_count += 1
             _store_log(
                 dedupe_key=dedupe_key,
                 tipo=WhatsappMessageType.CONTRACT_RENEWAL,
@@ -231,6 +239,7 @@ def _send_contract_renewals(service: WhatsappService, config: models.WhatsappCon
                 mensagem=mensagem,
                 response_payload=json.dumps(resp, ensure_ascii=False),
             )
+    return sent_count
 
 
 def _run_jobs():
