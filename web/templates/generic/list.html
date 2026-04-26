@@ -24,6 +24,15 @@
         <label>Ordenar</label>
         <input class="form-control" name="order" value="{{ request.GET.order }}" placeholder="Ordenar" />
       </div>
+      <div class="mayris-filter">
+        <label>Itens por página</label>
+        <select class="form-select" name="page_size">
+          <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+          <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+        </select>
+      </div>
       <div class="mayris-filter mayris-filter--actions">
         <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
       </div>
@@ -172,11 +181,11 @@
     <nav class="mayris-pagination">
       <ul class="pagination">
         {% if page.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}">Anterior</a></li>
+          <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Anterior</a></li>
         {% endif %}
         <li class="page-item active"><span class="page-link">{{ page.number }}</span></li>
         {% if page.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}">Proxima</a></li>
+          <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Proxima</a></li>
         {% endif %}
       </ul>
     </nav>

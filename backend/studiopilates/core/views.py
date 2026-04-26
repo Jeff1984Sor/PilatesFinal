@@ -1151,6 +1151,13 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         return redirect("dashboard")
     query = request.GET.get("q", "").strip()
     order = request.GET.get("order", "id")
+    page_size = request.GET.get("page_size", "10")
+    try:
+        page_size = int(page_size)
+    except (TypeError, ValueError):
+        page_size = 10
+    if page_size not in (10, 25, 50, 100):
+        page_size = 10
     if model is models.Plano and not request.GET.get("order"):
         order = "dsPlano"
     qs = model.objects.all()
@@ -1163,8 +1170,11 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         qs = qs.filter(Q(**{f"{field_name}__icontains": query}) | Q(id__icontains=query))
     if order:
         qs = qs.order_by(order)
-    paginator = Paginator(qs, 10)
+    paginator = Paginator(qs, page_size)
     page = paginator.get_page(request.GET.get("page"))
+    query_params = request.GET.copy()
+    query_params.pop("page", None)
+    pagination_query = query_params.urlencode()
     display_fields = [
         {"name": field.name, "label": str(field.verbose_name)}
         for field in model._meta.fields
@@ -1191,6 +1201,8 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         "allow_modal": allow_modal,
         "display_fields": display_fields,
         "edit_forms": edit_forms,
+        "page_size": page_size,
+        "pagination_query": pagination_query,
     }
     if model is models.Aluno:
         address_map = {}
