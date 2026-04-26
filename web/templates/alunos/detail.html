@@ -324,11 +324,16 @@
 
                           <td>
 
-                          <div class="d-flex flex-wrap gap-2">
+                            <div class="d-flex flex-wrap gap-2">
 
-                            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editContrato-{{ c.id }}">Editar</button>
+                              <a class="btn btn-sm btn-outline-primary" href="{% url 'contratos_edit' c.id %}?next={{ request.path }}?tab=contratos">Editar</a>
 
-                            <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteContrato-{{ c.id }}">Excluir</button>
+                              <form method="post" action="{% url 'contratos_delete' c.id %}" class="d-inline" onsubmit="return confirm('Excluir este contrato?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}?tab=contratos" />
+                                <input type="hidden" name="confirm_delete" value="1" />
+                                <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+                              </form>
 
                             <form method="post" action="{% url 'contrato_enviar_email' c.id %}">
 
