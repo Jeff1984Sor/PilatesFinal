@@ -3124,7 +3124,13 @@ def edit_view(request, model, form_class, redirect_name, pk):
     return render(
         request,
         "generic/form.html",
-        {"form": form_class(instance=obj), "title": "Editar", "model_name": model._meta.model_name, "active_menu": _active_menu(request.path)},
+        {
+            "form": form_class(instance=obj),
+            "title": "Editar",
+            "model_name": model._meta.model_name,
+            "active_menu": _active_menu(request.path),
+            "next_url": request.GET.get("next", ""),
+        },
     )
 
 

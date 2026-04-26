@@ -11,6 +11,9 @@
   <div class="mayris-card">
     <form method="post" enctype="multipart/form-data" class="mayris-form">
       {% csrf_token %}
+      {% if next_url %}
+        <input type="hidden" name="next" value="{{ next_url }}" />
+      {% endif %}
       {{ form.as_p }}
       <div class="mayris-form__actions">
         <button class="btn btn-primary mayris-btn-primary" type="submit">Salvar</button>

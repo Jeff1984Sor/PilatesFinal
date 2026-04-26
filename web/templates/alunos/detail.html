@@ -444,7 +444,7 @@
 
                         <td>
 
-                          <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editReserva-{{ r.id }}">Editar</button>
+                          <a class="btn btn-sm btn-outline-primary" href="{% url 'reservas_edit' r.id %}?next={{ request.path }}?tab=agenda">Editar</a>
 
                         </td>
 
