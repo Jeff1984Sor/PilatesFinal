@@ -14,6 +14,25 @@
       {% if next_url %}
         <input type="hidden" name="next" value="{{ next_url }}" />
       {% endif %}
+      {% if form.errors %}
+        <div class="alert alert-danger">
+          <div class="fw-bold mb-1">Nao foi possivel salvar.</div>
+          <div class="small mb-2">Revise os campos destacados abaixo.</div>
+          <ul class="mb-0">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}
+                <li>
+                  {% if field == "__all__" %}
+                    {{ error }}
+                  {% else %}
+                    {{ form[field].label }}: {{ error }}
+                  {% endif %}
+                </li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
       {{ form.as_p }}
       <div class="mayris-form__actions">
         <button class="btn btn-primary mayris-btn-primary" type="submit">Salvar</button>

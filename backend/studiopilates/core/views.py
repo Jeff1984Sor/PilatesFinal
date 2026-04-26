@@ -3076,7 +3076,17 @@ def create_view(request, model, form_class, redirect_name):
                 _sync_aluno_phones(obj, request.POST)
             messages.success(request, "Salvo com sucesso")
         else:
-            messages.error(request, "Verifique os erros")
+            messages.error(request, "Verifique os erros do formulario.")
+            return render(
+                request,
+                "generic/form.html",
+                {
+                    "form": form,
+                    "title": "Novo",
+                    "model_name": model._meta.model_name,
+                    "active_menu": _active_menu(request.path),
+                },
+            )
         return redirect(redirect_name)
     return render(
         request,
@@ -3135,9 +3145,18 @@ def edit_view(request, model, form_class, redirect_name, pk):
                     messages.warning(request, "Contrato atualizado, mas aluno sem email para assinatura.")
             messages.success(request, "Atualizado com sucesso")
             return redirect(next_url or redirect_name)
-        messages.error(request, "Verifique os erros")
-        if next_url:
-            return redirect(next_url)
+        messages.error(request, "Verifique os erros do formulario.")
+        return render(
+            request,
+            "generic/form.html",
+            {
+                "form": form,
+                "title": "Editar",
+                "model_name": model._meta.model_name,
+                "active_menu": _active_menu(request.path),
+                "next_url": next_url or None,
+            },
+        )
     return render(
         request,
         "generic/form.html",
