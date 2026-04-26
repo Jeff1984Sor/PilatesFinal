@@ -169,6 +169,20 @@ CONTRACT_TEMPLATE_VARIABLES = [
 ]
 
 
+def _render_whatsapp_template(template, **context):
+    class _SafeDict(dict):
+        def __missing__(self, key):
+            return "{" + key + "}"
+
+    text = (template or "").strip()
+    if not text:
+        return ""
+    try:
+        return text.format_map(_SafeDict({k: "" if v is None else v for k, v in context.items()}))
+    except Exception:
+        return text
+
+
 def _format_whatsapp_number(telefones):
     for tel in telefones:
         cleaned = PHONE_CLEAN_REGEX.sub("", tel or "")
@@ -2964,6 +2978,45 @@ def aula_remarcar_api(request, reserva_id):
               "dt_fim": fim_dt.isoformat(),
           }
       )
+
+
+@login_required
+@require_POST
+def aula_whatsapp_now_api(request, reserva_id):
+    reserva = get_object_or_404(
+        models.Reserva.objects.select_related(
+            "aluno",
+            "aulaSessao",
+            "aulaSessao__unidade",
+            "aulaSessao__profissional",
+            "aulaSessao__tipoServico",
+        ),
+        pk=reserva_id,
+    )
+    service = WhatsappService()
+    telefone = service.get_aluno_phone(reserva.aluno)
+    if not telefone:
+        return JsonResponse({"error": "Aluno sem telefone valido cadastrado."}, status=400)
+    config = models.WhatsappConfiguracao.objects.filter(unidade=reserva.aulaSessao.unidade).first()
+    template = (
+        config.template_aviso_aluno
+        if config and config.template_aviso_aluno
+        else "Olá {aluno}, amanhã temos aula de {tipo_servico} às {horario}. Podemos confirmar?"
+    )
+    mensagem = _render_whatsapp_template(
+        template,
+        aluno=reserva.aluno.dsNome,
+        unidade=reserva.aulaSessao.unidade.dsUnidade if reserva.aulaSessao and reserva.aulaSessao.unidade else "",
+        data=reserva.aulaSessao.data.strftime("%d/%m/%Y") if reserva.aulaSessao and reserva.aulaSessao.data else "",
+        horario=reserva.aulaSessao.horaInicio.strftime("%H:%M") if reserva.aulaSessao and reserva.aulaSessao.horaInicio else "",
+        tipo_servico=reserva.aulaSessao.tipoServico.dsTipoServico if reserva.aulaSessao and reserva.aulaSessao.tipoServico else "Pilates",
+        profissional=reserva.aulaSessao.profissional.profissional if reserva.aulaSessao and reserva.aulaSessao.profissional else "",
+        aulas=f"{reserva.aulaSessao.horaInicio.strftime('%H:%M')} - {reserva.aulaSessao.tipoServico.dsTipoServico if reserva.aulaSessao and reserva.aulaSessao.tipoServico else 'Pilates'}",
+    )
+    resp = service.send(reserva.aluno, telefone, mensagem, WhatsappMessageType.MANUAL)
+    if resp.get("error"):
+        return JsonResponse({"error": "Nao foi possivel enviar a mensagem."}, status=400)
+    return JsonResponse({"ok": True, "message": "Mensagem enviada agora."})
 
 
 @csrf_exempt

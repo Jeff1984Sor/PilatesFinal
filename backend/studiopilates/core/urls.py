@@ -147,6 +147,7 @@ urlpatterns = [
     path("agenda/aulas/reservas/<int:reserva_id>/historico/", views.aula_historico_api, name="aulas_historico_api"),
     path("agenda/aulas/reservas/<int:reserva_id>/status/", views.aula_status_api, name="aulas_status_api"),
     path("agenda/aulas/reservas/<int:reserva_id>/remarcar/", views.aula_remarcar_api, name="aulas_remarcar_api"),
+    path("agenda/aulas/reservas/<int:reserva_id>/whatsapp/", views.aula_whatsapp_now_api, name="aulas_whatsapp_now_api"),
     path("integrations/totalpass/webhook/", views.totalpass_webhook, name="totalpass_webhook"),
     path("agenda/aulas/criar/", lambda r: views.create_view(r, models.AulaSessao, forms.AulaSessaoForm, "aulas_list"), name="aulas_create"),
     path("agenda/aulas/<int:pk>/editar/", lambda r, pk: views.edit_view(r, models.AulaSessao, forms.AulaSessaoForm, "aulas_list", pk), name="aulas_edit"),

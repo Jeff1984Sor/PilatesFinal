@@ -137,11 +137,11 @@ class WhatsappService:
     def clean_phone(raw: str | None) -> str | None:
         if not raw:
             return None
-        cleaned = PHONE_CLEAN_REGEX.sub("", raw)
+        cleaned = PHONE_CLEAN_REGEX.sub("", raw).lstrip("0")
         if not cleaned:
             return None
         if cleaned.startswith("55"):
-            return cleaned
+            return cleaned if len(cleaned) >= 12 else None
         if len(cleaned) in (10, 11):
             return f"55{cleaned}"
         return cleaned

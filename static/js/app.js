@@ -1158,8 +1158,19 @@ function initAulasOperacao() {
 
   function formatPhone(raw) {
     if (!raw) return "";
-    const digits = String(raw).replace(/\D/g, "");
-    return digits.startsWith("55") ? digits : `55${digits}`;
+    let digits = String(raw).replace(/\D/g, "");
+    if (!digits) return "";
+    if (digits.startsWith("0")) digits = digits.replace(/^0+/, "");
+    if (digits.startsWith("55")) {
+      return digits.length >= 12 ? digits : "";
+    }
+    if (digits.length === 11 || digits.length === 10) {
+      return `55${digits}`;
+    }
+    if (digits.length > 11 && digits.startsWith("55")) {
+      return digits;
+    }
+    return "";
   }
 
   function render() {
@@ -1214,6 +1225,7 @@ function initAulasOperacao() {
               <button data-action="chegou">Chegou</button>
               <button data-action="evolucao">Evolucao</button>
               <button data-action="whatsapp">WhatsApp</button>
+              <button data-action="whatsapp-now">Enviar agora</button>
             </div>
           `;
           card.addEventListener("click", () => openDrawer(item));
@@ -1224,6 +1236,37 @@ function initAulasOperacao() {
               if (action === "whatsapp") {
                 const phone = formatPhone(item.aluno.telefone);
                 if (phone) window.open(`https://wa.me/${phone}`, "_blank");
+                return;
+              }
+              if (action === "whatsapp-now") {
+                const phone = formatPhone(item.aluno.telefone);
+                if (!phone) {
+                  window.alert("Aluno sem telefone valido cadastrado.");
+                  return;
+                }
+                const urlTemplate = root?.dataset.whatsappNowUrlTemplate || "";
+                if (!urlTemplate) {
+                  window.alert("Envio imediato indisponivel.");
+                  return;
+                }
+                const url = urlTemplate.replace("/0/", `/${item.id}/`);
+                fetch(url, {
+                  method: "POST",
+                  headers: {
+                    "X-CSRFToken": getCsrfToken(),
+                    "X-Requested-With": "XMLHttpRequest",
+                  },
+                })
+                  .then(async (response) => {
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok || data.error) {
+                      throw new Error(data.error || "Nao foi possivel enviar a mensagem.");
+                    }
+                    window.alert(data.message || "Mensagem enviada agora.");
+                  })
+                  .catch((error) => {
+                    window.alert(error.message || "Nao foi possivel enviar a mensagem.");
+                  });
                 return;
               }
               if (action === "evolucao") {
