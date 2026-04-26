@@ -148,6 +148,24 @@ class AlunoWhatsappMessage(models.Model):
         ordering = ["-enviado_em"]
 
 
+class WhatsappAgendamentoLog(models.Model):
+    tipo = models.CharField(max_length=30, choices=WhatsappMessageType.choices)
+    dedupe_key = models.CharField(max_length=220, unique=True)
+    unidade = models.ForeignKey(Unidade, on_delete=models.CASCADE, null=True, blank=True, related_name="whatsapp_agendamentos")
+    aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE, null=True, blank=True, related_name="whatsapp_agendamentos")
+    profissional = models.ForeignKey(Profissional, on_delete=models.CASCADE, null=True, blank=True, related_name="whatsapp_agendamentos")
+    contrato = models.ForeignKey("Contrato", on_delete=models.CASCADE, null=True, blank=True, related_name="whatsapp_agendamentos")
+    data_referencia = models.DateField()
+    telefone = models.CharField(max_length=20, blank=True)
+    mensagem = models.TextField()
+    status = models.CharField(max_length=20, default="sent")
+    response_payload = models.TextField(blank=True)
+    enviado_em = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-enviado_em"]
+
+
 class TipoServico(models.Model):
     cdTipoServico = models.IntegerField(unique=True, db_index=True)
     dsTipoServico = models.CharField(max_length=80)
