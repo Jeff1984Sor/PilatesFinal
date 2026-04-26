@@ -1077,6 +1077,14 @@ function initAulasOperacao() {
   let selectedStatus = "";
   let selectedPeriod = "hoje";
 
+  if (dateInput && !dateInput.value) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    dateInput.value = `${year}-${month}-${day}`;
+  }
+
   function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
