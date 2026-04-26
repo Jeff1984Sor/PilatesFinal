@@ -419,7 +419,16 @@
 
                           <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editReserva-{{ r.id }}">Editar</button>
 
-                          <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteReserva-{{ r.id }}">Excluir</button>
+                          <form
+                            class="d-inline"
+                            method="post"
+                            action="{% url 'reservas_delete' r.id %}"
+                            onsubmit="return confirm('Excluir esta aula?');"
+                          >
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}?tab=agenda" />
+                            <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+                          </form>
 
                         </td>
 
@@ -1851,7 +1860,7 @@
 
               {% csrf_token %}
 
-              <input type="hidden" name="next" value="{{ request.path }}-tab=agenda" />
+              <input type="hidden" name="next" value="{{ request.path }}?tab=agenda" />
 
               <input type="hidden" name="aluno" value="{{ aluno.id }}" />
 
@@ -1930,58 +1939,6 @@
               {% endwith %}
 
             {% endwith %}
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  {% endfor %}
-
-{% endif %}
-
-
-
-{% if reservas %}
-
-  {% for r in reservas %}
-
-    <div class="modal fade" id="deleteReserva-{{ r.id }}" tabindex="-1">
-
-      <div class="modal-dialog">
-
-        <div class="modal-content">
-
-          <div class="modal-header">
-
-            <h5 class="modal-title">Excluir aula</h5>
-
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-
-          </div>
-
-          <div class="modal-body">
-
-            Tem certeza que deseja excluir a aula de {{ r.aulaSessao.data|date:"d/m/Y" }}-
-
-          </div>
-
-          <div class="modal-footer">
-
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-
-            <form method="post" action="{% url 'reservas_delete' r.id %}">
-
-              {% csrf_token %}
-
-              <input type="hidden" name="next" value="{{ request.path }}-tab=agenda" />
-
-              <button class="btn btn-danger" type="submit">Excluir</button>
-
-            </form>
 
           </div>
 
