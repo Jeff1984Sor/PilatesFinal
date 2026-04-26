@@ -10,19 +10,19 @@ from .repositories import list_aulas, create_reserva, create_contas_receber, cre
 
 
 def gerar_parcelas(valor, inicio, fim, meses):
+    def _add_months(base_date, months):
+        offset = (base_date.month - 1) + months
+        year = base_date.year + (offset // 12)
+        month = (offset % 12) + 1
+        day = min(base_date.day, 28)
+        return date(year, month, day)
+
     parcelas = []
     total_parcelas = max(int(meses or 1), 1)
-    cursor = inicio
-    for _ in range(total_parcelas):
-        if cursor > fim:
-            break
-        competencia = cursor.strftime("%Y-%m")
-        parcelas.append({"valor": valor, "vencimento": cursor, "competencia": competencia})
-        month = cursor.month + 1
-        year = cursor.year + ((month - 1) // 12)
-        month = ((month - 1) % 12) + 1
-        day = min(cursor.day, 28)
-        cursor = date(year, month, day)
+    for idx in range(total_parcelas):
+        vencimento = _add_months(inicio, idx)
+        competencia = vencimento.strftime("%Y-%m")
+        parcelas.append({"valor": valor, "vencimento": vencimento, "competencia": competencia})
     return parcelas
 
 

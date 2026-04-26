@@ -1,8 +1,24 @@
+from datetime import date
+
 import pytest
 from django.urls import reverse
 from django.utils import timezone
 
 from studiopilates.core import models
+from studiopilates.core import services
+
+
+def test_gerar_parcelas_usa_quantidade_do_plano():
+    parcelas = services.gerar_parcelas(100, date(2026, 1, 25), date(2026, 7, 25), 6)
+    assert len(parcelas) == 6
+    assert [parcela["vencimento"].isoformat() for parcela in parcelas] == [
+        "2026-01-25",
+        "2026-02-25",
+        "2026-03-25",
+        "2026-04-25",
+        "2026-05-25",
+        "2026-06-25",
+    ]
 
 
 @pytest.mark.django_db
