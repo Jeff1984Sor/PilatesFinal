@@ -3128,6 +3128,30 @@ def delete_view(request, model, redirect_name, pk):
 
 
 @login_required
+def aluno_reservas_delete_bulk(request, aluno_id):
+    aluno = get_object_or_404(models.Aluno, pk=aluno_id)
+    if request.method != "POST":
+        return redirect(f"{reverse('alunos_detail', args=[aluno.id])}?tab=agenda")
+    next_url = request.POST.get("next", "").strip()
+    if next_url and not next_url.startswith("/"):
+        next_url = ""
+    reserva_ids = [value for value in request.POST.getlist("reserva_ids") if value]
+    if not reserva_ids:
+        messages.error(request, "Selecione pelo menos uma aula.")
+        return redirect(next_url or f"{reverse('alunos_detail', args=[aluno.id])}?tab=agenda")
+    reservas_qs = models.Reserva.objects.filter(id__in=reserva_ids, aluno=aluno).select_related("aulaSessao")
+    aula_ids = list(reservas_qs.values_list("aulaSessao_id", flat=True))
+    if not aula_ids:
+        messages.error(request, "Nenhuma aula valida foi selecionada.")
+        return redirect(next_url or f"{reverse('alunos_detail', args=[aluno.id])}?tab=agenda")
+    reservas_qs.delete()
+    if aula_ids:
+        models.AulaSessao.objects.filter(id__in=aula_ids).annotate(total=Count("reserva")).filter(total=0).delete()
+    messages.success(request, "Aulas excluidas com sucesso.")
+    return redirect(next_url or f"{reverse('alunos_detail', args=[aluno.id])}?tab=agenda")
+
+
+@login_required
 def baixar_conta_receber(request, pk):
     conta = get_object_or_404(models.ContasReceber, pk=pk)
     if request.method == "POST":

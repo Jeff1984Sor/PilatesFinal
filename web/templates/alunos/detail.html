@@ -367,17 +367,40 @@
 
               <div class="fw-semibold">Aulas do aluno</div>
 
+              {% if reservas %}
+                <button
+                  class="btn btn-sm btn-outline-danger"
+                  type="submit"
+                  form="bulkDeleteReservasForm"
+                  onclick="return confirm('Excluir as aulas selecionadas?');"
+                >
+                  Excluir selecionadas
+                </button>
+              {% endif %}
+
             </div>
 
             {% if reservas %}
 
-              <div class="table-responsive">
+              <form
+                id="bulkDeleteReservasForm"
+                method="post"
+                action="{% url 'alunos_reservas_delete_bulk' aluno.id %}"
+              >
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}?tab=agenda" />
+
+                <div class="table-responsive">
 
                 <table class="table table-sm">
 
                   <thead>
 
                     <tr>
+
+                      <th style="width: 36px;">
+                        <input class="form-check-input" type="checkbox" id="selectAllReservas" />
+                      </th>
 
                       <th>Data</th>
 
@@ -403,6 +426,10 @@
 
                       <tr>
 
+                        <td>
+                          <input class="form-check-input js-reserva-check" type="checkbox" name="reserva_ids" value="{{ r.id }}" />
+                        </td>
+
                         <td>{{ r.aulaSessao.data|date:"d/m/Y" }}</td>
 
                         <td>{{ r.aulaSessao.horaInicio|time:"H:i" }} - {{ r.aulaSessao.horaFim|time:"H:i" }}</td>
@@ -417,18 +444,7 @@
 
                         <td>
 
-                          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editReserva-{{ r.id }}">Editar</button>
-
-                          <form
-                            class="d-inline"
-                            method="post"
-                            action="{% url 'reservas_delete' r.id %}"
-                            onsubmit="return confirm('Excluir esta aula?');"
-                          >
-                            {% csrf_token %}
-                            <input type="hidden" name="next" value="{{ request.path }}?tab=agenda" />
-                            <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
-                          </form>
+                          <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editReserva-{{ r.id }}">Editar</button>
 
                         </td>
 
@@ -440,7 +456,8 @@
 
                 </table>
 
-              </div>
+                </div>
+              </form>
 
             {% else %}
 
@@ -2101,6 +2118,19 @@
 </div>
 
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const selectAll = document.getElementById("selectAllReservas");
+    const checks = Array.from(document.querySelectorAll(".js-reserva-check"));
+    if (!selectAll || !checks.length) return;
+    selectAll.addEventListener("change", function () {
+      checks.forEach((checkbox) => {
+        checkbox.checked = selectAll.checked;
+      });
+    });
+  });
+</script>
 
 {% endblock %}
 
