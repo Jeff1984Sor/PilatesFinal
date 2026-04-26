@@ -112,6 +112,9 @@
         <thead>
           <tr>
             <th>ID</th>
+            {% if model_name == 'aluno' %}
+              <th>Aulas Reservadas</th>
+            {% endif %}
             {% if model_name == 'contasreceber' %}
               <th>Cliente</th>
             {% endif %}
@@ -128,6 +131,9 @@
           {% for obj in page %}
             <tr>
               <td>{{ obj.id }}</td>
+              {% if model_name == 'aluno' %}
+                <td>{{ obj.aulas_reservadas_count|default:0 }}</td>
+              {% endif %}
               {% if model_name == 'contasreceber' %}
                 <td>{{ obj.contrato.cdAluno.dsNome|default:"-" }}</td>
               {% endif %}

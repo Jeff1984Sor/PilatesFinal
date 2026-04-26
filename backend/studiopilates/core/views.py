@@ -1165,6 +1165,14 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         qs = qs.select_related("contrato", "contrato__cdAluno")
     if model is models.Contrato:
         qs = qs.select_related("cdAluno", "cdPlano", "cdUnidade")
+    if model is models.Aluno:
+        qs = qs.annotate(
+            aulas_reservadas_count=Count(
+                "reserva",
+                filter=Q(reserva__status="RESERVADA"),
+                distinct=True,
+            )
+        )
     if query:
         field_name = model._meta.fields[1].name
         qs = qs.filter(Q(**{f"{field_name}__icontains": query}) | Q(id__icontains=query))
