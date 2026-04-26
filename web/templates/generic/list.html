@@ -191,15 +191,51 @@
         </tbody>
       </table>
     </div>
-    <nav class="mayris-pagination">
-      <ul class="pagination">
-        {% if page.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Anterior</a></li>
+    <nav class="mayris-pagination d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="small text-muted">
+        Mostrando {{ page.start_index }}-{{ page.end_index }} de {{ page.paginator.count }} registros
+        {% if page.paginator.num_pages > 1 %}
+          <span class="ms-1">| Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
         {% endif %}
-        <li class="page-item active"><span class="page-link">{{ page.number }}</span></li>
-        {% if page.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Proxima</a></li>
-        {% endif %}
+      </div>
+      <ul class="pagination mb-0">
+        <li class="page-item {% if not page.has_previous %}disabled{% endif %}">
+          {% if page.has_previous %}
+            <a class="page-link" href="?page=1{% if pagination_query %}&{{ pagination_query }}{% endif %}">Primeira</a>
+          {% else %}
+            <span class="page-link">Primeira</span>
+          {% endif %}
+        </li>
+        <li class="page-item {% if not page.has_previous %}disabled{% endif %}">
+          {% if page.has_previous %}
+            <a class="page-link" href="?page={{ page.previous_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Anterior</a>
+          {% else %}
+            <span class="page-link">Anterior</span>
+          {% endif %}
+        </li>
+        {% for num in page_range %}
+          {% if num == page.paginator.ELLIPSIS %}
+            <li class="page-item disabled"><span class="page-link">{{ num }}</span></li>
+          {% elif num == page.number %}
+            <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+          {% else %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not page.has_next %}disabled{% endif %}">
+          {% if page.has_next %}
+            <a class="page-link" href="?page={{ page.next_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Proxima</a>
+          {% else %}
+            <span class="page-link">Proxima</span>
+          {% endif %}
+        </li>
+        <li class="page-item {% if not page.has_next %}disabled{% endif %}">
+          {% if page.has_next %}
+            <a class="page-link" href="?page={{ page.paginator.num_pages }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">Ultima</a>
+          {% else %}
+            <span class="page-link">Ultima</span>
+          {% endif %}
+        </li>
       </ul>
     </nav>
   </div>

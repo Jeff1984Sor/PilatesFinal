@@ -1205,6 +1205,7 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         qs = qs.order_by(order)
     paginator = Paginator(qs, page_size)
     page = paginator.get_page(request.GET.get("page"))
+    page_range = list(paginator.get_elided_page_range(page.number, on_each_side=1, on_ends=1))
     query_params = request.GET.copy()
     query_params.pop("page", None)
     pagination_query = query_params.urlencode()
