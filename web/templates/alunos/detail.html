@@ -46,7 +46,7 @@
 
             <div class="fw-semibold">{{ aluno.dsNome }}</div>
 
-            <div class="text-muted small">CPF: {{ aluno.dsCPF }}</div>
+            <div class="text-muted small">CPF: {% if aluno.sem_cpf %}Nao informado{% else %}{{ aluno.dsCPF }}{% endif %}</div>
 
           </div>
 
@@ -1272,6 +1272,13 @@
 
               {{ edit_form.dsCPF.label_tag }} {{ edit_form.dsCPF }}
 
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+              <div class="form-check mt-4">
+                {{ edit_form.sem_cpf }}
+                {{ edit_form.sem_cpf.label_tag }}
+              </div>
             </div>
 
             <div class="col-md-3">

@@ -1,8 +1,10 @@
+from datetime import datetime, time
+from uuid import uuid4
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from datetime import datetime, time
 from .validators import validar_cpf
 
 
@@ -69,7 +71,8 @@ class Aluno(models.Model):
 
     cdAluno = models.IntegerField(unique=True, db_index=True)
     dsNome = models.CharField(max_length=150)
-    dsCPF = models.CharField(max_length=14, unique=True)
+    dsCPF = models.CharField(max_length=32, unique=True, blank=True)
+    sem_cpf = models.BooleanField(default=False)
     dsRg = models.CharField(max_length=30, blank=True)
     dsEmail = models.EmailField(blank=True)
     foto = models.ImageField(upload_to="alunos", null=True, blank=True)
@@ -84,8 +87,15 @@ class Aluno(models.Model):
     termo_aceite_em = models.DateTimeField(null=True, blank=True)
 
     def clean(self):
+        if self.sem_cpf:
+            return
         if not validar_cpf(self.dsCPF):
             raise ValidationError({"dsCPF": "CPF invalido"})
+
+    def save(self, *args, **kwargs):
+        if self.sem_cpf and (not self.dsCPF or not self.dsCPF.startswith("SEM_CPF_")):
+            self.dsCPF = f"SEM_CPF_{uuid4().hex[:16]}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.dsNome

@@ -152,6 +152,8 @@
                   <td>{{ obj|attr:field.name|striptags }}</td>
                 {% elif model_name == 'termouso' and field.name == 'dsTermoUso' %}
                   <td>{{ obj|attr:field.name|striptags }}</td>
+                {% elif model_name == 'aluno' and field.name == 'dsCPF' and obj.sem_cpf %}
+                  <td>Nao informado</td>
                 {% else %}
                   <td>{{ obj|attr:field.name }}</td>
                 {% endif %}

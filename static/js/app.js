@@ -318,6 +318,29 @@ document.querySelectorAll(".js-plano").forEach((plano) => {
   setContratoFields(getContratoContainer(plano));
 });
 
+function syncCpfToggle(container) {
+  if (!container) return;
+  const semCpf = container.querySelector("input[name='sem_cpf']");
+  const cpf = container.querySelector(".js-cpf, input[name='dsCPF']");
+  if (!semCpf || !cpf) return;
+  const applyState = () => {
+    const disabled = semCpf.checked;
+    cpf.disabled = disabled;
+    cpf.required = !disabled;
+    if (disabled) {
+      cpf.value = "";
+    }
+  };
+  if (semCpf.dataset.boundCpfToggle === "1") return;
+  semCpf.dataset.boundCpfToggle = "1";
+  semCpf.addEventListener("change", applyState);
+  applyState();
+}
+
+document.querySelectorAll("input[name='sem_cpf']").forEach((checkbox) => {
+  syncCpfToggle(getContratoContainer(checkbox) || checkbox.closest("form"));
+});
+
 document.addEventListener("click", (event) => {
   const btn = event.target.closest(".js-add-phone");
   if (!btn) return;
@@ -1697,9 +1720,15 @@ function initAulasOperacao() {
       if (selected) {
         event.preventDefault();
         saveEvolucao(false);
-      }
     }
-  });
+  }
+});
+
+document.addEventListener("change", (event) => {
+  const semCpf = event.target.closest("input[name='sem_cpf']");
+  if (!semCpf) return;
+  syncCpfToggle(getContratoContainer(semCpf) || semCpf.closest("form"));
+});
 
   loadData();
 }
