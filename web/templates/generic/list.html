@@ -22,7 +22,14 @@
       </div>
       <div class="mayris-filter">
         <label>Ordenar</label>
-        <input class="form-control" name="order" value="{{ request.GET.order }}" placeholder="Ordenar" />
+        {% if model_name == 'aluno' %}
+          <select class="form-select" name="order">
+            <option value="dsNome" {% if request.GET.order == "dsNome" or not request.GET.order %}selected{% endif %}>Nome (A-Z)</option>
+            <option value="id" {% if request.GET.order == "id" %}selected{% endif %}>ID (crescente)</option>
+          </select>
+        {% else %}
+          <input class="form-control" name="order" value="{{ request.GET.order }}" placeholder="Ordenar" />
+        {% endif %}
       </div>
       <div class="mayris-filter">
         <label>Itens por página</label>

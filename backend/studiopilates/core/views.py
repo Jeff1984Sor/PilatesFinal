@@ -1175,6 +1175,8 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         page_size = 100
     if model is models.Plano and not request.GET.get("order"):
         order = "dsPlano"
+    if model is models.Aluno and not request.GET.get("order"):
+        order = "dsNome"
     qs = model.objects.all()
     if model is models.ContasReceber:
         qs = qs.select_related("contrato", "contrato__cdAluno")
