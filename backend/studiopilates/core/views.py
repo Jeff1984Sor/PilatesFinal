@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 import calendar
 import json
 import re
+from urllib.parse import quote
 from io import BytesIO
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -31,10 +32,11 @@ logger = logging.getLogger(__name__)
 
 def _contrato_assinatura_link(contrato, request=None):
     token = services.gerar_token_contrato(contrato)
+    safe_token = quote(token, safe="")
     base_url = (settings.SITE_BASE_URL or "").rstrip("/")
     if request and (not base_url or "localhost" in base_url):
         base_url = request.build_absolute_uri("/").rstrip("/")
-    return f"{base_url}/contratos/assinar/{token}/"
+    return f"{base_url}/contratos/assinar/{safe_token}/"
 
 
 def _mensagem_contrato_whatsapp(contrato, link, is_new=False):
@@ -42,16 +44,20 @@ def _mensagem_contrato_whatsapp(contrato, link, is_new=False):
     plano = contrato.cdPlano
     unidade = contrato.cdUnidade
     prefix = "Seu contrato foi criado com sucesso" if is_new else "Seu contrato foi gerado"
-    return (
-        f"Oi {aluno.dsNome}!\\n"
-        f"{prefix} no Mayris Pilates.\\n\\n"
-        f"Contrato: #{contrato.cdContrato}\\n"
-        f"Plano: {plano}\\n"
-        f"Unidade: {unidade}\\n\\n"
-        "Para ler e assinar, clique no link abaixo:\\n"
-        f"{link}\\n\\n"
-        "Qualquer duvida, estamos a disposicao."
-    )
+    linhas = [
+        f"Oi {aluno.dsNome}!",
+        f"{prefix} no Mayris Pilates.",
+        "",
+        f"Contrato: #{contrato.cdContrato}",
+        f"Plano: {plano}",
+        f"Unidade: {unidade}",
+        "",
+        "Para ler e assinar, clique no link abaixo:",
+        link,
+        "",
+        "Qualquer duvida, estamos a disposicao.",
+    ]
+    return "\n".join(linhas)
 
 
 def _shift_month(value, months):
@@ -4202,10 +4208,10 @@ def contrato_assinar(request, token):
                 service = WhatsappService()
                 telefone = service.get_aluno_phone(contrato.cdAluno)
                 if telefone:
-                    token = services.gerar_token_contrato(contrato)
-                    link = request.build_absolute_uri(reverse("contrato_assinar", kwargs={"token": token}))
+                    link = _contrato_assinatura_link(contrato, request=request)
                     mensagem = (
-                        f"Olá {contrato.cdAluno.dsNome}, o contrato #{contrato.cdContrato} foi assinado. "
+                        f"Olá {contrato.cdAluno.dsNome}! "
+                        f"O contrato #{contrato.cdContrato} foi assinado. "
                         f"Você pode acessá-lo em {link}"
                     )
                     resp = service.send(
