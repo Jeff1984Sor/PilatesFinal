@@ -3633,6 +3633,14 @@ def create_view(request, model, form_class, redirect_name):
                 cdPerfilAcesso=1, defaults={"dsPerfilAcesso": "Padrao"}
             )
             data["cdPerfilAcesso"] = perfil.id
+        if model is models.Contrato:
+            plano_id = data.get("cdPlano")
+            plano = models.Plano.objects.filter(pk=plano_id).first() if plano_id else None
+            if plano:
+                recorrencia, valor_parcela, valor_total = _contrato_precificacao(plano)
+                data["recorrencia"] = recorrencia
+                data["valor_parcela"] = valor_parcela
+                data["valor_total"] = valor_total
         form = form_class(data, files=request.FILES or None)
         if form.is_valid():
             if model is models.Contrato:
@@ -3742,6 +3750,14 @@ def edit_view(request, model, form_class, redirect_name, pk):
                     base = datetime.combine(date.today(), inicio_time)
                     fim = base + timedelta(minutes=unidade.duracao_aula_minutos)
                     data["horaFim"] = fim.time().strftime("%H:%M")
+        if model is models.Contrato:
+            plano_id = data.get("cdPlano")
+            plano = models.Plano.objects.filter(pk=plano_id).first() if plano_id else None
+            if plano:
+                recorrencia, valor_parcela, valor_total = _contrato_precificacao(plano)
+                data["recorrencia"] = recorrencia
+                data["valor_parcela"] = valor_parcela
+                data["valor_total"] = valor_total
         form = form_class(data, files=request.FILES or None, instance=obj)
         if form.is_valid():
             obj = form.save()
