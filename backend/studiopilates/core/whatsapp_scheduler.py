@@ -17,6 +17,7 @@ from .whatsapp_service import WhatsappMessageType, WhatsappService
 logger = logging.getLogger(__name__)
 _scheduler = None
 _ADVISORY_LOCK_ID = 91437251
+BATCH_THROTTLE_SECONDS = getattr(settings, "WHATSAPP_BATCH_PAUSE_SECONDS", 5.0)
 _SKIP_COMMANDS = {
     "check",
     "collectstatic",
@@ -53,6 +54,16 @@ def _send_with_retry(send_fn, *, attempts: int = 3, pause_seconds: float = 1.0):
         last_response = send_fn()
         if isinstance(last_response, dict) and "error" not in last_response:
             return last_response
+        retry_after = None
+        if isinstance(last_response, dict):
+            retry_after = last_response.get("retry_after")
+            if retry_after is None and isinstance(last_response.get("response"), dict):
+                retry_after = last_response["response"].get("retry_after")
+        if retry_after is not None:
+            try:
+                pause_seconds = max(float(retry_after), pause_seconds)
+            except (TypeError, ValueError):
+                pass
         if attempt < attempts and pause_seconds > 0:
             time.sleep(pause_seconds)
     return last_response or {"error": "Falha ao enviar mensagem."}
@@ -127,11 +138,13 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
         "eligible_students": total_alunos,
         "sent": 0,
         "without_phone": 0,
+        "rate_limited": 0,
         "already_sent": 0,
         "failed": 0,
         "entries": [],
     }
-    for idx, (aluno_id, aluno_reservas) in enumerate(aluno_groups, start=1):
+
+    for idx, (_aluno_id, aluno_reservas) in enumerate(aluno_groups, start=1):
         aluno = aluno_reservas[0].aluno
         dedupe_key = _log_key("student_reminder", config.unidade_id, target_date, aluno.id)
         if not force and _already_sent(dedupe_key):
@@ -148,6 +161,7 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
                 }
             )
             continue
+
         telefone = service.get_aluno_phone(aluno)
         if not telefone:
             resumo["without_phone"] += 1
@@ -163,6 +177,7 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
                 }
             )
             continue
+
         aulas = _format_aulas(aluno_reservas)
         primeira = aluno_reservas[0].aulaSessao
         mensagem = _render_template(
@@ -176,13 +191,30 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
             aulas=aulas,
             horarios=aulas,
         )
+
         try:
             resp = _send_with_retry(
                 lambda: service.send(aluno, telefone, mensagem, WhatsappMessageType.AUTOMATED_REMINDER),
                 attempts=3,
-                pause_seconds=1.0,
+                pause_seconds=BATCH_THROTTLE_SECONDS,
             )
-            if "error" not in resp:
+            is_rate_limited = bool(resp.get("rate_limited") or resp.get("status_code") == 429)
+            if is_rate_limited:
+                resumo["rate_limited"] += 1
+                resumo["entries"].append(
+                    {
+                        "ordem": idx,
+                        "total": total_alunos,
+                        "aluno": aluno.dsNome,
+                        "status": "rate_limited",
+                        "status_label": "Pendente por limite",
+                        "telefone": telefone,
+                        "mensagem": mensagem,
+                        "retry_after": resp.get("retry_after"),
+                        "error": resp.get("error"),
+                    }
+                )
+            elif "error" not in resp:
                 resumo["sent"] += 1
                 resumo["entries"].append(
                     {
@@ -234,8 +266,9 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
                     "error": str(exc),
                 }
             )
-        if len(aluno_reservas) > 0:
-            time.sleep(0.5)
+
+        time.sleep(BATCH_THROTTLE_SECONDS)
+
     return resumo
 
 
@@ -276,7 +309,7 @@ def _send_professor_schedule(service: WhatsappService, config: models.WhatsappCo
         )
         cliente = service._get_client_for_unidade(config.unidade)
         try:
-            resp = _send_with_retry(lambda: cliente.send_message(telefone, mensagem), attempts=3, pause_seconds=1.0)
+            resp = _send_with_retry(lambda: cliente.send_message(telefone, mensagem), attempts=3, pause_seconds=BATCH_THROTTLE_SECONDS)
             if "error" not in resp:
                 sent_count += 1
                 _store_log(
@@ -292,7 +325,7 @@ def _send_professor_schedule(service: WhatsappService, config: models.WhatsappCo
         except Exception:
             logger.exception("Falha ao enviar agenda para professor %s na unidade %s", prof.id, config.unidade_id)
         if len(prof_reservas) > 0:
-            time.sleep(0.5)
+            time.sleep(BATCH_THROTTLE_SECONDS)
     return sent_count
 
 
@@ -328,7 +361,7 @@ def _send_contract_renewals(service: WhatsappService, config: models.WhatsappCon
             resp = _send_with_retry(
                 lambda: service.send(aluno, telefone, mensagem, WhatsappMessageType.CONTRACT_RENEWAL, contrato=contrato),
                 attempts=3,
-                pause_seconds=1.0,
+                pause_seconds=BATCH_THROTTLE_SECONDS,
             )
             if "error" not in resp:
                 sent_count += 1
@@ -345,7 +378,7 @@ def _send_contract_renewals(service: WhatsappService, config: models.WhatsappCon
                 )
         except Exception:
             logger.exception("Falha ao enviar renovacao de contrato %s na unidade %s", contrato.id, config.unidade_id)
-        time.sleep(0.5)
+        time.sleep(BATCH_THROTTLE_SECONDS)
     return sent_count
 
 

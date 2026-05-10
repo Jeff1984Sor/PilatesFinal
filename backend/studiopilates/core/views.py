@@ -5265,7 +5265,10 @@ def whatsapp_config_view(request):
     batch_log = []
     batch_summary = None
     batch_sent = []
-    batch_ignored = []
+    batch_without_phone = []
+    batch_rate_limited = []
+    batch_failed = []
+    batch_skipped = []
     if request.method == "POST":
         action = request.POST.get("action", "").strip()
         if action in {"send_aluno_now", "send_professor_now", "send_renovacao_now"}:
@@ -5279,11 +5282,15 @@ def whatsapp_config_view(request):
                 qtd = resumo.get("sent", 0)
                 batch_log = resumo.get("entries", [])
                 batch_sent = [item for item in batch_log if item.get("status") == "sent"]
-                batch_ignored = [item for item in batch_log if item.get("status") != "sent"]
+                batch_without_phone = [item for item in batch_log if item.get("status") == "without_phone"]
+                batch_rate_limited = [item for item in batch_log if item.get("status") == "rate_limited"]
+                batch_failed = [item for item in batch_log if item.get("status") == "failed"]
+                batch_skipped = [item for item in batch_log if item.get("status") == "skipped"]
                 batch_summary = {
                     "sent": resumo.get("sent", 0),
                     "eligible_students": resumo.get("eligible_students", 0),
                     "without_phone": resumo.get("without_phone", 0),
+                    "rate_limited": resumo.get("rate_limited", 0),
                     "failed": resumo.get("failed", 0),
                     "already_sent": resumo.get("already_sent", 0),
                 }
@@ -5294,6 +5301,7 @@ def whatsapp_config_view(request):
                             f"Aviso ao aluno executado agora. {qtd} mensagem(ns) enviadas. "
                             f"{resumo.get('eligible_students', 0)} aluno(s) elegiveis, "
                             f"{resumo.get('without_phone', 0)} sem telefone e "
+                            f"{resumo.get('rate_limited', 0)} pendente(s) por limite e "
                             f"{resumo.get('failed', 0)} falha(s)."
                         ),
                     )
@@ -5316,7 +5324,10 @@ def whatsapp_config_view(request):
                         "unidade": unidade,
                         "batch_log": batch_log,
                         "batch_sent": batch_sent,
-                        "batch_ignored": batch_ignored,
+                        "batch_without_phone": batch_without_phone,
+                        "batch_rate_limited": batch_rate_limited,
+                        "batch_failed": batch_failed,
+                        "batch_skipped": batch_skipped,
                         "batch_summary": batch_summary,
                         "title": "Configuracao de WhatsApp",
                         "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
@@ -5339,7 +5350,10 @@ def whatsapp_config_view(request):
                         "unidade": unidade,
                         "batch_log": batch_log,
                         "batch_sent": batch_sent,
-                        "batch_ignored": batch_ignored,
+                        "batch_without_phone": batch_without_phone,
+                        "batch_rate_limited": batch_rate_limited,
+                        "batch_failed": batch_failed,
+                        "batch_skipped": batch_skipped,
                         "batch_summary": batch_summary,
                         "title": "Configuracao de WhatsApp",
                         "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
@@ -5362,7 +5376,10 @@ def whatsapp_config_view(request):
                         "unidade": unidade,
                         "batch_log": batch_log,
                         "batch_sent": batch_sent,
-                        "batch_ignored": batch_ignored,
+                        "batch_without_phone": batch_without_phone,
+                        "batch_rate_limited": batch_rate_limited,
+                        "batch_failed": batch_failed,
+                        "batch_skipped": batch_skipped,
                         "batch_summary": batch_summary,
                         "title": "Configuracao de WhatsApp",
                         "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
@@ -5388,7 +5405,10 @@ def whatsapp_config_view(request):
             "unidade": unidade,
             "batch_log": batch_log,
             "batch_sent": batch_sent,
-            "batch_ignored": batch_ignored,
+            "batch_without_phone": batch_without_phone,
+            "batch_rate_limited": batch_rate_limited,
+            "batch_failed": batch_failed,
+            "batch_skipped": batch_skipped,
             "batch_summary": batch_summary,
             "title": "Configuracao de WhatsApp",
             "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],

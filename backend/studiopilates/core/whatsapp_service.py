@@ -21,6 +21,29 @@ def _normalize_endpoint(url: str) -> str:
     return normalized
 
 
+def _extract_error_payload(resp: httpx.Response | None = None, exc: Exception | None = None) -> dict:
+    payload: dict = {}
+    if resp is not None:
+        payload["status_code"] = resp.status_code
+        try:
+            data = resp.json()
+            if isinstance(data, dict):
+                payload["response"] = data
+        except Exception:
+            payload["response_text"] = (resp.text or "").strip()
+        retry_after = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+        if retry_after:
+            try:
+                payload["retry_after"] = int(float(retry_after))
+            except (TypeError, ValueError):
+                payload["retry_after"] = retry_after
+        if resp.status_code == 429:
+            payload["rate_limited"] = True
+    if exc is not None:
+        payload["error"] = str(exc)
+    return payload
+
+
 class EvolutionClient:
     def __init__(
         self,
@@ -62,10 +85,10 @@ class EvolutionClient:
             return resp.json()
         except httpx.RequestError as exc:
             logger.exception("Failed to send WhatsApp message to %s", to)
-            return {"error": str(exc)}
+            return _extract_error_payload(exc=exc) | {"error": str(exc)}
         except httpx.HTTPStatusError as exc:
             logger.exception("Evolution returned bad status for %s", to)
-            return {"error": str(exc)}
+            return _extract_error_payload(resp=exc.response, exc=exc) | {"error": str(exc)}
 
     def send_document(self, to: str, media_url: str, filename: str, caption: str | None = None) -> dict:
         if not media_url:

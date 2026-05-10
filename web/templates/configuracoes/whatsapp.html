@@ -10,6 +10,7 @@
         {{ batch_summary.sent }} enviado(s),
         {{ batch_summary.eligible_students }} elegível(is),
         {{ batch_summary.without_phone }} sem telefone,
+        {{ batch_summary.rate_limited }} pendente(s) por limite,
         {{ batch_summary.failed }} falha(s).
       </div>
     {% endif %}
@@ -39,10 +40,10 @@
             <div class="display-6 mb-0">{{ batch_summary.eligible_students|default:0 }}</div>
             <div class="text-muted small">Alunos encontrados no lote</div>
           </div>
+          </div>
         </div>
       </div>
-    </div>
-    {% if batch_sent or batch_ignored %}
+    {% if batch_sent or batch_without_phone or batch_rate_limited or batch_failed or batch_skipped %}
       <div class="row g-4 mb-4">
         <div class="col-lg-6">
           <div class="card border-0 shadow-sm h-100">
@@ -51,17 +52,21 @@
                 <h5 class="mb-0">Enviados</h5>
                 <span class="badge bg-success">{{ batch_sent|length }}</span>
               </div>
-              <div class="list-group">
-                {% for item in batch_sent %}
-                  <div class="list-group-item d-flex justify-content-between align-items-start">
-                    <div class="me-3">
-                      <div class="fw-semibold">{{ item.ordem }}/{{ item.total }} - {{ item.aluno }}</div>
-                      <div class="text-muted small">{{ item.telefone }}</div>
+              {% if batch_sent %}
+                <div class="list-group">
+                  {% for item in batch_sent %}
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                      <div class="me-3">
+                        <div class="fw-semibold">{{ item.ordem }}/{{ item.total }} - {{ item.aluno }}</div>
+                        <div class="text-muted small">{{ item.telefone }}</div>
+                      </div>
+                      <span class="badge bg-success">{{ item.status_label }}</span>
                     </div>
-                    <span class="badge bg-success">{{ item.status_label }}</span>
-                  </div>
-                {% endfor %}
-              </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="text-muted">Nenhum envio concluido ainda.</div>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -70,24 +75,56 @@
             <div class="card-body">
               <div class="d-flex align-items-center justify-content-between mb-3">
                 <h5 class="mb-0">Ignorados / pendentes</h5>
-                <span class="badge bg-secondary">{{ batch_ignored|length }}</span>
+                <span class="badge bg-secondary">{{ batch_without_phone|length|add:batch_rate_limited|add:batch_failed|add:batch_skipped|default:0 }}</span>
               </div>
-              <div class="list-group">
-                {% for item in batch_ignored %}
-                  <div class="list-group-item d-flex justify-content-between align-items-start">
-                    <div class="me-3">
-                      <div class="fw-semibold">{{ item.ordem }}/{{ item.total }} - {{ item.aluno }}</div>
-                      <div class="text-muted small">
-                        {% if item.telefone %}{{ item.telefone }}{% endif %}
-                        {% if item.error %} · {{ item.error }}{% endif %}
+              {% if batch_without_phone or batch_rate_limited or batch_failed or batch_skipped %}
+                <div class="list-group">
+                  {% for item in batch_without_phone %}
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                      <div class="me-3">
+                        <div class="fw-semibold">{{ item.ordem }}/{{ item.total }} - {{ item.aluno }}</div>
+                        <div class="text-muted small">Sem telefone cadastrado</div>
                       </div>
+                      <span class="badge bg-secondary">{{ item.status_label }}</span>
                     </div>
-                    <span class="badge {% if item.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
-                      {{ item.status_label }}
-                    </span>
-                  </div>
-                {% endfor %}
-              </div>
+                  {% endfor %}
+                  {% for item in batch_rate_limited %}
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                      <div class="me-3">
+                        <div class="fw-semibold">{{ item.ordem }}/{{ item.total }} - {{ item.aluno }}</div>
+                        <div class="text-muted small">
+                          {% if item.retry_after %}Limite informado: {{ item.retry_after }}s{% endif %}
+                          {% if item.error %}{{ item.error }}{% endif %}
+                        </div>
+                      </div>
+                      <span class="badge bg-warning text-dark">{{ item.status_label }}</span>
+                    </div>
+                  {% endfor %}
+                  {% for item in batch_failed %}
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                      <div class="me-3">
+                        <div class="fw-semibold">{{ item.ordem }}/{{ item.total }} - {{ item.aluno }}</div>
+                        <div class="text-muted small">
+                          {% if item.telefone %}{{ item.telefone }}{% endif %}
+                          {% if item.error %} · {{ item.error }}{% endif %}
+                        </div>
+                      </div>
+                      <span class="badge bg-danger">{{ item.status_label }}</span>
+                    </div>
+                  {% endfor %}
+                  {% for item in batch_skipped %}
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                      <div class="me-3">
+                        <div class="fw-semibold">{{ item.ordem }}/{{ item.total }} - {{ item.aluno }}</div>
+                        <div class="text-muted small">Mensagem já enviada anteriormente</div>
+                      </div>
+                      <span class="badge bg-secondary">{{ item.status_label }}</span>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="text-muted">Nenhum item ignorado, pendente ou com falha.</div>
+              {% endif %}
             </div>
           </div>
         </div>
