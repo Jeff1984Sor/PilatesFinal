@@ -322,7 +322,7 @@ function syncAulaAvulsaPricing(container) {
     valorAula.value = valorPlano ? valorPlano.toFixed(2) : "";
   }
   const valorBase = parseCurrencyValue(valorAula?.value || valorPlano);
-  const total = valorBase * quantidadeValor;
+  const total = valorBase;
   setCurrencyValue(valorTotal, total);
 
   if (inicio && fim) {

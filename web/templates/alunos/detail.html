@@ -557,7 +557,7 @@
                   <form class="modal-form js-aula-avulsa-form" method="post" action="{% url 'alunos_aula_avulsa_create' aluno.id %}">
                     {% csrf_token %}
                     <div class="alert alert-info py-2 small">
-                      O valor total e o periodo final sao calculados automaticamente.
+                      O valor por aula e o periodo final sao calculados automaticamente.
                     </div>
                     <div class="row g-3">
                       <div class="col-md-6">
@@ -565,21 +565,25 @@
                         <select class="form-select js-avulsa-plano" name="plano" required>
                           <option value="">Selecione</option>
                           {% for plano in planos_avulsos %}
-                            <option value="{{ plano.id }}" data-recorrencia="{{ plano.recorrencia }}" data-valor="{{ plano.valor }}">{{ plano.dsPlano }}</option>
+                            <option value="{{ plano.id }}" data-recorrencia="{{ plano.recorrencia }}" data-valor="{{ plano.valor }}" {% if aula_avulsa_preview.plano_id == plano.id %}selected{% endif %}>{{ plano.dsPlano }}</option>
                           {% endfor %}
                         </select>
                       </div>
                       <div class="col-md-2">
                         <label class="form-label">Quantidade</label>
-                        <input class="form-control js-avulsa-quantidade" type="number" name="quantidade" min="1" value="1" required />
+                        <input class="form-control js-avulsa-quantidade" type="number" name="quantidade" min="1" value="{{ aula_avulsa_preview.quantidade|default:1 }}" required />
                       </div>
                       <div class="col-md-2">
                         <label class="form-label">Recorrencia</label>
-                        <input class="form-control js-avulsa-recorrencia" type="text" name="recorrencia" readonly />
+                        <select class="form-select js-avulsa-recorrencia" name="recorrencia" required>
+                          <option value="">Selecione</option>
+                          <option value="SEMANAL" {% if aula_avulsa_preview.recorrencia == "SEMANAL" %}selected{% endif %}>Semanal</option>
+                          <option value="MENSAL" {% if aula_avulsa_preview.recorrencia == "MENSAL" %}selected{% endif %}>Mensal</option>
+                        </select>
                       </div>
                       <div class="col-md-2">
                         <label class="form-label">Valor por aula</label>
-                        <input class="form-control js-avulsa-valor-aula" type="text" name="valor_aula" inputmode="decimal" placeholder="0,00" />
+                        <input class="form-control js-avulsa-valor-aula" type="text" name="valor_aula" inputmode="decimal" placeholder="0,00" value="{{ aula_avulsa_preview.valor_aula|default_if_none:''|floatformat:2 }}" />
                       </div>
                       <div class="col-md-4">
                         <label class="form-label">Unidade</label>
@@ -600,15 +604,15 @@
                       </div>
                       <div class="col-md-4">
                         <label class="form-label">Inicio</label>
-                        <input class="form-control js-avulsa-inicio" type="date" name="dtInicio" value="{{ today_date|date:'Y-m-d' }}" required />
+                        <input class="form-control js-avulsa-inicio" type="date" name="dtInicio" value="{{ aula_avulsa_preview.dtInicio|default:today_date|date:'Y-m-d' }}" required />
                       </div>
                       <div class="col-md-4">
                         <label class="form-label">Fim</label>
-                        <input class="form-control js-avulsa-fim" type="date" name="dtFim" readonly />
+                        <input class="form-control js-avulsa-fim" type="date" name="dtFim" value="{{ aula_avulsa_preview.dtFim|default:''|date:'Y-m-d' }}" readonly />
                       </div>
                       <div class="col-md-4">
                         <label class="form-label">Valor total</label>
-                        <input class="form-control js-avulsa-valor-total" type="text" name="valor_total" readonly />
+                        <input class="form-control js-avulsa-valor-total" type="text" name="valor_total" value="{{ aula_avulsa_preview.valor_total|default_if_none:''|floatformat:2 }}" readonly />
                       </div>
                     </div>
                     <div class="d-flex justify-content-end gap-2 pt-3">

@@ -170,7 +170,7 @@ def _aula_avulsa_precificacao(plano, quantidade, valor_aula=None):
         valor_base = Decimal(str(valor_aula)) if valor_aula not in (None, "") else valor_plano
     except Exception:
         valor_base = valor_plano
-    valor_total = valor_base * Decimal(str(quantidade))
+    valor_total = valor_base
     return recorrencia, valor_base, valor_total, quantidade
 
 
@@ -615,6 +615,26 @@ def aluno_detail(request, pk):
             "quantidade": 1,
         }
     )
+    aula_avulsa_preview = {}
+    plano_avulso_padrao = planos_avulsos.first()
+    if plano_avulso_padrao:
+        qtd_preview = 1
+        dt_inicio_preview = timezone.localdate()
+        recorrencia_preview = (getattr(plano_avulso_padrao, "recorrencia", "SEMANAL") or "SEMANAL").upper()
+        valor_aula_preview = Decimal(str(getattr(plano_avulso_padrao, "valor", 0) or 0))
+        if recorrencia_preview == "MENSAL":
+            dt_fim_preview = _add_months(dt_inicio_preview, qtd_preview)
+        else:
+            dt_fim_preview = dt_inicio_preview + timedelta(days=7 * qtd_preview)
+        aula_avulsa_preview = {
+            "plano_id": plano_avulso_padrao.id,
+            "recorrencia": recorrencia_preview,
+            "quantidade": qtd_preview,
+            "valor_aula": valor_aula_preview,
+            "valor_total": valor_aula_preview,
+            "dtInicio": dt_inicio_preview,
+            "dtFim": dt_fim_preview,
+        }
     context = {
         "aluno": aluno,
         "endereco": endereco,
@@ -635,6 +655,7 @@ def aluno_detail(request, pk):
         "today_date": timezone.now().date(),
         "planos": planos,
         "planos_avulsos": planos_avulsos,
+        "aula_avulsa_preview": aula_avulsa_preview,
         "unidades": unidades,
         "profissionais": profissionais,
         "whatsapp_messages": whatsapp_messages,
