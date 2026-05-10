@@ -176,35 +176,51 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
             aulas=aulas,
             horarios=aulas,
         )
-        resp = _send_with_retry(
-            lambda: service.send(aluno, telefone, mensagem, WhatsappMessageType.AUTOMATED_REMINDER),
-            attempts=3,
-            pause_seconds=1.0,
-        )
-        if "error" not in resp:
-            resumo["sent"] += 1
-            resumo["entries"].append(
-                {
-                    "ordem": idx,
-                    "total": total_alunos,
-                    "aluno": aluno.dsNome,
-                    "status": "sent",
-                    "status_label": "Enviado",
-                    "telefone": telefone,
-                    "mensagem": mensagem,
-                }
+        try:
+            resp = _send_with_retry(
+                lambda: service.send(aluno, telefone, mensagem, WhatsappMessageType.AUTOMATED_REMINDER),
+                attempts=3,
+                pause_seconds=1.0,
             )
-            _store_log(
-                dedupe_key=dedupe_key,
-                tipo=WhatsappMessageType.AUTOMATED_REMINDER,
-                unidade=config.unidade,
-                aluno=aluno,
-                data_referencia=target_date,
-                telefone=telefone,
-                mensagem=mensagem,
-                response_payload=json.dumps(resp, ensure_ascii=False),
-            )
-        else:
+            if "error" not in resp:
+                resumo["sent"] += 1
+                resumo["entries"].append(
+                    {
+                        "ordem": idx,
+                        "total": total_alunos,
+                        "aluno": aluno.dsNome,
+                        "status": "sent",
+                        "status_label": "Enviado",
+                        "telefone": telefone,
+                        "mensagem": mensagem,
+                    }
+                )
+                _store_log(
+                    dedupe_key=dedupe_key,
+                    tipo=WhatsappMessageType.AUTOMATED_REMINDER,
+                    unidade=config.unidade,
+                    aluno=aluno,
+                    data_referencia=target_date,
+                    telefone=telefone,
+                    mensagem=mensagem,
+                    response_payload=json.dumps(resp, ensure_ascii=False),
+                )
+            else:
+                resumo["failed"] += 1
+                resumo["entries"].append(
+                    {
+                        "ordem": idx,
+                        "total": total_alunos,
+                        "aluno": aluno.dsNome,
+                        "status": "failed",
+                        "status_label": "Falhou",
+                        "telefone": telefone,
+                        "mensagem": mensagem,
+                        "error": resp.get("error"),
+                    }
+                )
+        except Exception as exc:
+            logger.exception("Falha ao enviar WhatsApp para aluno %s na unidade %s", aluno.id, config.unidade_id)
             resumo["failed"] += 1
             resumo["entries"].append(
                 {
@@ -215,7 +231,7 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
                     "status_label": "Falhou",
                     "telefone": telefone,
                     "mensagem": mensagem,
-                    "error": resp.get("error"),
+                    "error": str(exc),
                 }
             )
         if len(aluno_reservas) > 0:
@@ -259,19 +275,22 @@ def _send_professor_schedule(service: WhatsappService, config: models.WhatsappCo
             alunos=agenda_text,
         )
         cliente = service._get_client_for_unidade(config.unidade)
-        resp = _send_with_retry(lambda: cliente.send_message(telefone, mensagem), attempts=3, pause_seconds=1.0)
-        if "error" not in resp:
-            sent_count += 1
-            _store_log(
-                dedupe_key=dedupe_key,
-                tipo=WhatsappMessageType.PROFESSOR_SCHEDULE,
-                unidade=config.unidade,
-                profissional=prof,
-                data_referencia=target_date,
-                telefone=telefone,
-                mensagem=mensagem,
-                response_payload=json.dumps(resp, ensure_ascii=False),
-            )
+        try:
+            resp = _send_with_retry(lambda: cliente.send_message(telefone, mensagem), attempts=3, pause_seconds=1.0)
+            if "error" not in resp:
+                sent_count += 1
+                _store_log(
+                    dedupe_key=dedupe_key,
+                    tipo=WhatsappMessageType.PROFESSOR_SCHEDULE,
+                    unidade=config.unidade,
+                    profissional=prof,
+                    data_referencia=target_date,
+                    telefone=telefone,
+                    mensagem=mensagem,
+                    response_payload=json.dumps(resp, ensure_ascii=False),
+                )
+        except Exception:
+            logger.exception("Falha ao enviar agenda para professor %s na unidade %s", prof.id, config.unidade_id)
         if len(prof_reservas) > 0:
             time.sleep(0.5)
     return sent_count
@@ -305,24 +324,27 @@ def _send_contract_renewals(service: WhatsappService, config: models.WhatsappCon
             dias_restantes=7,
             vencimento=contrato.dtFimContrato.strftime("%d/%m/%Y"),
         )
-        resp = _send_with_retry(
-            lambda: service.send(aluno, telefone, mensagem, WhatsappMessageType.CONTRACT_RENEWAL, contrato=contrato),
-            attempts=3,
-            pause_seconds=1.0,
-        )
-        if "error" not in resp:
-            sent_count += 1
-            _store_log(
-                dedupe_key=dedupe_key,
-                tipo=WhatsappMessageType.CONTRACT_RENEWAL,
-                unidade=config.unidade,
-                aluno=aluno,
-                contrato=contrato,
-                data_referencia=reminder_date,
-                telefone=telefone,
-                mensagem=mensagem,
-                response_payload=json.dumps(resp, ensure_ascii=False),
+        try:
+            resp = _send_with_retry(
+                lambda: service.send(aluno, telefone, mensagem, WhatsappMessageType.CONTRACT_RENEWAL, contrato=contrato),
+                attempts=3,
+                pause_seconds=1.0,
             )
+            if "error" not in resp:
+                sent_count += 1
+                _store_log(
+                    dedupe_key=dedupe_key,
+                    tipo=WhatsappMessageType.CONTRACT_RENEWAL,
+                    unidade=config.unidade,
+                    aluno=aluno,
+                    contrato=contrato,
+                    data_referencia=reminder_date,
+                    telefone=telefone,
+                    mensagem=mensagem,
+                    response_payload=json.dumps(resp, ensure_ascii=False),
+                )
+        except Exception:
+            logger.exception("Falha ao enviar renovacao de contrato %s na unidade %s", contrato.id, config.unidade_id)
         time.sleep(0.5)
     return sent_count
 
