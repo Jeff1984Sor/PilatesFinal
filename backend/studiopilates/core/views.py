@@ -291,8 +291,6 @@ def _load_funcionamento(unidade_id, tipo_servico_id=None):
             | Q(tipos_servico=tipo_servico_id)
             | Q(tipoServico__isnull=True, tipos_servico__isnull=True)
         )
-    else:
-        qs = qs.filter(tipoServico__isnull=True, tipos_servico__isnull=True)
     horarios = list(qs.order_by("diaSemana", "horaInicio"))
     by_day = {}
     if tipo_servico_id:
@@ -339,7 +337,7 @@ def _load_horarios_ativos(unidade_id, tipo_servico_id=None):
         return funcionamento, True
 
     qs = models.HorarioStudio.objects.filter(unidade_id=unidade_id)
-    if tipo_servico_id:
+    if tipo_servico_id is not None:
         qs = qs.filter(Q(tipoServico_id=tipo_servico_id) | Q(tipoServico__isnull=True))
     horarios = list(qs.order_by("diaSemana", "horaInicio"))
     by_day = {}
@@ -350,10 +348,8 @@ def _load_horarios_ativos(unidade_id, tipo_servico_id=None):
 
 def _load_bloqueios(unidade_id, tipo_servico_id, profissional_id, start_date, end_date):
     qs = models.BloqueioAgenda.objects.filter(unidade_id=unidade_id, ativo=True)
-    if tipo_servico_id:
+    if tipo_servico_id is not None:
         qs = qs.filter(Q(tipoServico_id=tipo_servico_id) | Q(tipoServico__isnull=True))
-    else:
-        qs = qs.filter(tipoServico__isnull=True)
     if profissional_id:
         qs = qs.filter(Q(profissional_id=profissional_id) | Q(profissional__isnull=True))
     else:
@@ -865,13 +861,12 @@ def aluno_aula_avulsa_agenda(request, aluno_id, pk):
     agenda_fim = pacote.dtFim
     aulas = models.AulaSessao.objects.filter(
         unidade=pacote.unidade,
-        tipoServico=plano.cdTipoServico,
         data__range=(pacote.dtInicio, agenda_fim),
-    ).select_related("unidade").order_by("data", "horaInicio")
+    ).select_related("unidade", "tipoServico").order_by("data", "horaInicio", "tipoServico_id")
 
     profissionais = list(models.Profissional.objects.all())
     duracao = pacote.unidade.duracao_aula_minutos or 50
-    funcionamento, horarios_configurados = _load_horarios_ativos(pacote.unidade_id, plano.cdTipoServico_id)
+    funcionamento, horarios_configurados = _load_horarios_ativos(pacote.unidade_id)
 
     slots = {}
     aulas_by_key = {(aula.data, aula.horaInicio, aula.horaFim, aula.profissional_id): aula for aula in aulas}
@@ -887,7 +882,7 @@ def aluno_aula_avulsa_agenda(request, aluno_id, pk):
     for prof in profissionais:
         blocks_by_prof[prof.id] = _load_bloqueios(
             pacote.unidade_id,
-            plano.cdTipoServico_id,
+            None,
             prof.id,
             pacote.dtInicio,
             agenda_fim,
@@ -990,7 +985,6 @@ def aluno_aula_avulsa_agenda(request, aluno_id, pk):
                 continue
             aula = models.AulaSessao.objects.filter(
                 unidade=pacote.unidade,
-                tipoServico=plano.cdTipoServico,
                 profissional_id=prof_id,
                 data=target_date,
                 horaInicio=inicio_time,
@@ -4952,14 +4946,13 @@ def contrato_agenda(request, pk):
         agenda_fim = min(agenda_fim, contrato.dtInicioContrato + timedelta(days=27))
     aulas = models.AulaSessao.objects.filter(
         unidade=contrato.cdUnidade,
-        tipoServico=plano.cdTipoServico,
         data__range=(contrato.dtInicioContrato, agenda_fim),
-    ).select_related("unidade").order_by("data", "horaInicio")
+    ).select_related("unidade", "tipoServico").order_by("data", "horaInicio", "tipoServico_id")
 
     profissionais = list(models.Profissional.objects.all())
     prof_ids = [prof.id for prof in profissionais]
     duracao = contrato.cdUnidade.duracao_aula_minutos or 50
-    funcionamento, horarios_configurados = _load_horarios_ativos(contrato.cdUnidade_id, plano.cdTipoServico_id)
+    funcionamento, horarios_configurados = _load_horarios_ativos(contrato.cdUnidade_id)
 
     slots = {}
     aulas_by_key = {(aula.data, aula.horaInicio, aula.horaFim, aula.profissional_id): aula for aula in aulas}
@@ -4975,7 +4968,7 @@ def contrato_agenda(request, pk):
     for prof in profissionais:
         blocks_by_prof[prof.id] = _load_bloqueios(
             contrato.cdUnidade_id,
-            plano.cdTipoServico_id,
+            None,
             prof.id,
             contrato.dtInicioContrato,
             agenda_fim,
@@ -5096,7 +5089,6 @@ def contrato_agenda(request, pk):
                             continue
                         aula = models.AulaSessao.objects.filter(
                             unidade=contrato.cdUnidade,
-                            tipoServico=plano.cdTipoServico,
                             profissional_id=prof_id,
                             data=current,
                             horaInicio=inicio_time,
