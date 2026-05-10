@@ -5264,9 +5264,6 @@ def whatsapp_config_view(request):
     configuracao = models.WhatsappConfiguracao.objects.filter(unidade=unidade).first()
     batch_log = []
     batch_summary = None
-    if request.method == "GET":
-        batch_log = request.session.pop("whatsapp_batch_log", [])
-        batch_summary = request.session.pop("whatsapp_batch_summary", None)
     if request.method == "POST":
         action = request.POST.get("action", "").strip()
         if action in {"send_aluno_now", "send_professor_now", "send_renovacao_now"}:
@@ -5278,8 +5275,8 @@ def whatsapp_config_view(request):
             if action == "send_aluno_now":
                 resumo = _send_class_reminders(service, configuracao, hoje + timedelta(days=1), force=True)
                 qtd = resumo.get("sent", 0)
-                request.session["whatsapp_batch_log"] = resumo.get("entries", [])
-                request.session["whatsapp_batch_summary"] = {
+                batch_log = resumo.get("entries", [])
+                batch_summary = {
                     "sent": resumo.get("sent", 0),
                     "eligible_students": resumo.get("eligible_students", 0),
                     "without_phone": resumo.get("without_phone", 0),
@@ -5305,19 +5302,63 @@ def whatsapp_config_view(request):
                             f"{resumo.get('without_phone', 0)} sem telefone."
                         ),
                     )
+                form = forms.WhatsappConfiguracaoForm(instance=configuracao)
+                return render(
+                    request,
+                    "configuracoes/whatsapp.html",
+                    {
+                        "form": form,
+                        "unidades": unidades,
+                        "unidade": unidade,
+                        "batch_log": batch_log,
+                        "batch_summary": batch_summary,
+                        "title": "Configuracao de WhatsApp",
+                        "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
+                        "active_menu": "configuracoes",
+                    },
+                )
             elif action == "send_professor_now":
                 qtd = _send_professor_schedule(service, configuracao, hoje + timedelta(days=1), force=True)
                 if qtd:
                     messages.success(request, f"Aviso ao professor executado agora. {qtd} mensagem(ns) enviadas.")
                 else:
                     messages.warning(request, "Nao ha agenda de professor elegivel para enviar agora.")
+                form = forms.WhatsappConfiguracaoForm(instance=configuracao)
+                return render(
+                    request,
+                    "configuracoes/whatsapp.html",
+                    {
+                        "form": form,
+                        "unidades": unidades,
+                        "unidade": unidade,
+                        "batch_log": batch_log,
+                        "batch_summary": batch_summary,
+                        "title": "Configuracao de WhatsApp",
+                        "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
+                        "active_menu": "configuracoes",
+                    },
+                )
             elif action == "send_renovacao_now":
                 qtd = _send_contract_renewals(service, configuracao, hoje + timedelta(days=7), force=True)
                 if qtd:
                     messages.success(request, f"Aviso de renovacao executado agora. {qtd} mensagem(ns) enviadas.")
                 else:
                     messages.warning(request, "Nao ha contratos elegiveis para renovacao agora.")
-            return redirect(f"{reverse('whatsapp_config')}?unidade={unidade.id}")
+                form = forms.WhatsappConfiguracaoForm(instance=configuracao)
+                return render(
+                    request,
+                    "configuracoes/whatsapp.html",
+                    {
+                        "form": form,
+                        "unidades": unidades,
+                        "unidade": unidade,
+                        "batch_log": batch_log,
+                        "batch_summary": batch_summary,
+                        "title": "Configuracao de WhatsApp",
+                        "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
+                        "active_menu": "configuracoes",
+                    },
+                )
         form = forms.WhatsappConfiguracaoForm(request.POST, instance=configuracao)
         if form.is_valid():
             cfg = form.save(commit=False)
