@@ -214,6 +214,7 @@ function setContratoFields(container) {
     const valor = parseFloat(selected.dataset.valor || "0");
     const duracao = parseInt(selected.dataset.duracao || "0", 10);
     const recorrenciaValor = selected.dataset.recorrencia || "";
+    const total = recorrenciaValor === "SEMANAL" ? valor * 4 : valor;
     if (recorrencia) {
       recorrencia.value = recorrenciaValor;
     }
@@ -221,7 +222,7 @@ function setContratoFields(container) {
       valorParcela.value = valor ? valor.toFixed(2) : "";
     }
     if (valorTotal) {
-      valorTotal.value = valor ? valor.toFixed(2) : "";
+      valorTotal.value = total ? total.toFixed(2) : "";
     }
     if (inicio && fim && !fim.value) {
       fim.value = calcFimContrato(inicio.value, duracao || 1);
@@ -308,10 +309,14 @@ document.addEventListener("input", (event) => {
   const valorParcela = event.target.closest(".js-valor-parcela, input[name='valor']");
   if (!valorParcela) return;
   const container = getContratoContainer(valorParcela);
+  const plano = container?.querySelector(".js-plano, select[name='cdPlano']");
+  const selected = plano?.selectedOptions?.[0];
+  const recorrencia = selected?.dataset?.recorrencia || container?.querySelector(".js-contrato-recorrencia, select[name='recorrencia'], input[name='recorrencia']")?.value || "MENSAL";
   const valorTotal = container?.querySelector(".js-valor-total, input[name='valor_total']");
   if (!valorTotal) return;
   const valor = parseFloat(valorParcela.value || "0");
-  valorTotal.value = valor ? valor.toFixed(2) : "";
+  const total = recorrencia === "SEMANAL" ? valor * 4 : valor;
+  valorTotal.value = total ? total.toFixed(2) : "";
 });
 
 document.querySelectorAll(".js-plano").forEach((plano) => {
