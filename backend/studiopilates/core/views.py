@@ -122,10 +122,12 @@ def _contrato_pdf_link(contrato, request=None):
 
 def _salvar_documento_contrato(contrato, pdf_bytes=None):
     pdf_bytes = pdf_bytes or services.render_contrato_pdf(contrato)
+    max_cd = models.AlunoDocumento.objects.order_by("-cdDocumento").values_list("cdDocumento", flat=True).first() or 0
     documento, _ = models.AlunoDocumento.objects.update_or_create(
         contrato=contrato,
         origem="CONTRATO_PDF",
         defaults={
+            "cdDocumento": max_cd + 1,
             "aluno": contrato.cdAluno,
             "titulo": f"Contrato #{contrato.cdContrato}",
             "descricao": f"Contrato gerado para {contrato.cdAluno.dsNome}.",
