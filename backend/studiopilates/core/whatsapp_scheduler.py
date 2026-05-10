@@ -103,19 +103,29 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
         models.Reserva.objects.filter(
             aulaSessao__data=target_date,
             aulaSessao__unidade=config.unidade,
-            status__in=["RESERVADA", "PENDENTE"],
         )
+        .exclude(status__in=["CANCELADA", "CONCLUIDA", "FALTOU_AVISOU", "FALTOU_SEM_AVISAR"])
         .select_related("aluno", "aulaSessao", "aulaSessao__tipoServico", "aulaSessao__unidade")
+        .prefetch_related("aluno__telefones")
         .order_by("aluno__cdAluno", "aulaSessao__horaInicio")
     )
-    sent_count = 0
+    resumo = {
+        "eligible_students": 0,
+        "sent": 0,
+        "without_phone": 0,
+        "already_sent": 0,
+        "failed": 0,
+    }
     for aluno_id, aluno_reservas in _reservas_por_aluno(reservas).items():
+        resumo["eligible_students"] += 1
         aluno = aluno_reservas[0].aluno
-        telefone = service.get_aluno_phone(aluno)
-        if not telefone:
-            continue
         dedupe_key = _log_key("student_reminder", config.unidade_id, target_date, aluno.id)
         if not force and _already_sent(dedupe_key):
+            resumo["already_sent"] += 1
+            continue
+        telefone = service.get_aluno_phone(aluno)
+        if not telefone:
+            resumo["without_phone"] += 1
             continue
         aulas = _format_aulas(aluno_reservas)
         primeira = aluno_reservas[0].aulaSessao
@@ -132,7 +142,7 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
         )
         resp = service.send(aluno, telefone, mensagem, WhatsappMessageType.AUTOMATED_REMINDER)
         if "error" not in resp:
-            sent_count += 1
+            resumo["sent"] += 1
             _store_log(
                 dedupe_key=dedupe_key,
                 tipo=WhatsappMessageType.AUTOMATED_REMINDER,
@@ -143,7 +153,9 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
                 mensagem=mensagem,
                 response_payload=json.dumps(resp, ensure_ascii=False),
             )
-    return sent_count
+        else:
+            resumo["failed"] += 1
+    return resumo
 
 
 def _send_professor_schedule(service: WhatsappService, config: models.WhatsappConfiguracao, target_date, *, force: bool = False):

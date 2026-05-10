@@ -5271,11 +5271,27 @@ def whatsapp_config_view(request):
             service = WhatsappService()
             hoje = timezone.localdate()
             if action == "send_aluno_now":
-                qtd = _send_class_reminders(service, configuracao, hoje + timedelta(days=1), force=True)
+                resumo = _send_class_reminders(service, configuracao, hoje + timedelta(days=1), force=True)
+                qtd = resumo.get("sent", 0)
                 if qtd:
-                    messages.success(request, f"Aviso ao aluno executado agora. {qtd} mensagem(ns) enviadas.")
+                    messages.success(
+                        request,
+                        (
+                            f"Aviso ao aluno executado agora. {qtd} mensagem(ns) enviadas. "
+                            f"{resumo.get('eligible_students', 0)} aluno(s) elegiveis, "
+                            f"{resumo.get('without_phone', 0)} sem telefone e "
+                            f"{resumo.get('failed', 0)} falha(s)."
+                        ),
+                    )
                 else:
-                    messages.warning(request, "Nao ha aulas elegiveis para enviar agora.")
+                    messages.warning(
+                        request,
+                        (
+                            "Nao ha aulas elegiveis para enviar agora. "
+                            f"{resumo.get('eligible_students', 0)} aluno(s) encontrados, "
+                            f"{resumo.get('without_phone', 0)} sem telefone."
+                        ),
+                    )
             elif action == "send_professor_now":
                 qtd = _send_professor_schedule(service, configuracao, hoje + timedelta(days=1), force=True)
                 if qtd:

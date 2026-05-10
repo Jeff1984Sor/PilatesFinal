@@ -31,6 +31,14 @@ def test_whatsapp_scheduler_uses_unit_config_and_logs(monkeypatch):
         cdUnidade=unidade,
     )
     models.TelefoneAluno.objects.create(cdTelefone=1, cdAluno=aluno, dsTelefone="(11) 98888-7777")
+    aluno2 = models.Aluno.objects.create(
+        cdAluno=2,
+        dsNome="Marina Souza",
+        dsCPF="SEM_CPF_2",
+        sem_cpf=True,
+        cdUnidade=unidade,
+    )
+    models.TelefoneAluno.objects.create(cdTelefone=2, cdAluno=aluno2, dsTelefone="(11) 97777-6666")
     tipo_servico = models.TipoServico.objects.create(cdTipoServico=1, dsTipoServico="Pilates")
     plano = models.Plano.objects.create(
         cdPlano=1,
@@ -62,6 +70,7 @@ def test_whatsapp_scheduler_uses_unit_config_and_logs(monkeypatch):
         horaFim=time(8, 50),
     )
     models.Reserva.objects.create(aluno=aluno, aulaSessao=sessao, status="RESERVADA")
+    models.Reserva.objects.create(aluno=aluno2, aulaSessao=sessao, status="PENDENTE")
     models.WhatsappConfiguracao.objects.create(
         unidade=unidade,
         evolution_url="https://www.wasenderapi.com/api/send-message",
@@ -102,14 +111,15 @@ def test_whatsapp_scheduler_uses_unit_config_and_logs(monkeypatch):
 
     ws._run_jobs()
 
-    assert len(aluno_calls) == 2
-    assert professor_calls == [{"telefone": "5511999998888", "mensagem": "Prof Matriz 08:00 - Elena Vianna - Pilates"}]
-    assert models.WhatsappAgendamentoLog.objects.count() == 3
+    assert len(aluno_calls) == 3
+    assert {call["aluno"] for call in aluno_calls} == {"Elena Vianna", "Marina Souza"}
+    assert professor_calls == [{"telefone": "5511999998888", "mensagem": "Prof Matriz 08:00 - Elena Vianna - Pilates\n08:00 - Marina Souza - Pilates"}]
+    assert models.WhatsappAgendamentoLog.objects.count() == 4
     assert models.WhatsappAgendamentoLog.objects.filter(tipo=models.WhatsappMessageType.AUTOMATED_REMINDER).exists()
     assert models.WhatsappAgendamentoLog.objects.filter(tipo=models.WhatsappMessageType.PROFESSOR_SCHEDULE).exists()
     assert models.WhatsappAgendamentoLog.objects.filter(tipo=models.WhatsappMessageType.CONTRACT_RENEWAL).exists()
 
     ws._run_jobs()
-    assert len(aluno_calls) == 2
-    assert professor_calls == [{"telefone": "5511999998888", "mensagem": "Prof Matriz 08:00 - Elena Vianna - Pilates"}]
-    assert models.WhatsappAgendamentoLog.objects.count() == 3
+    assert len(aluno_calls) == 3
+    assert professor_calls == [{"telefone": "5511999998888", "mensagem": "Prof Matriz 08:00 - Elena Vianna - Pilates\n08:00 - Marina Souza - Pilates"}]
+    assert models.WhatsappAgendamentoLog.objects.count() == 4
