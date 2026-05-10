@@ -5264,6 +5264,8 @@ def whatsapp_config_view(request):
     configuracao = models.WhatsappConfiguracao.objects.filter(unidade=unidade).first()
     batch_log = []
     batch_summary = None
+    batch_sent = []
+    batch_ignored = []
     if request.method == "POST":
         action = request.POST.get("action", "").strip()
         if action in {"send_aluno_now", "send_professor_now", "send_renovacao_now"}:
@@ -5276,6 +5278,8 @@ def whatsapp_config_view(request):
                 resumo = _send_class_reminders(service, configuracao, hoje + timedelta(days=1), force=True)
                 qtd = resumo.get("sent", 0)
                 batch_log = resumo.get("entries", [])
+                batch_sent = [item for item in batch_log if item.get("status") == "sent"]
+                batch_ignored = [item for item in batch_log if item.get("status") != "sent"]
                 batch_summary = {
                     "sent": resumo.get("sent", 0),
                     "eligible_students": resumo.get("eligible_students", 0),
@@ -5311,6 +5315,8 @@ def whatsapp_config_view(request):
                         "unidades": unidades,
                         "unidade": unidade,
                         "batch_log": batch_log,
+                        "batch_sent": batch_sent,
+                        "batch_ignored": batch_ignored,
                         "batch_summary": batch_summary,
                         "title": "Configuracao de WhatsApp",
                         "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
@@ -5332,6 +5338,8 @@ def whatsapp_config_view(request):
                         "unidades": unidades,
                         "unidade": unidade,
                         "batch_log": batch_log,
+                        "batch_sent": batch_sent,
+                        "batch_ignored": batch_ignored,
                         "batch_summary": batch_summary,
                         "title": "Configuracao de WhatsApp",
                         "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
@@ -5353,6 +5361,8 @@ def whatsapp_config_view(request):
                         "unidades": unidades,
                         "unidade": unidade,
                         "batch_log": batch_log,
+                        "batch_sent": batch_sent,
+                        "batch_ignored": batch_ignored,
                         "batch_summary": batch_summary,
                         "title": "Configuracao de WhatsApp",
                         "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
@@ -5377,6 +5387,8 @@ def whatsapp_config_view(request):
             "unidades": unidades,
             "unidade": unidade,
             "batch_log": batch_log,
+            "batch_sent": batch_sent,
+            "batch_ignored": batch_ignored,
             "batch_summary": batch_summary,
             "title": "Configuracao de WhatsApp",
             "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
