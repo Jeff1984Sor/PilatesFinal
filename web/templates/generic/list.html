@@ -314,12 +314,15 @@
                   </div>
                   <div class="hf-panel">
                     <div class="hf-label">Servicos</div>
-                    <select class="form-select" name="tipos_servico" multiple size="5">
+                    <div class="hf-checkboxes">
                       {% for t in tipos_servico %}
-                        <option value="{{ t.id }}">{{ t.dsTipoServico }}</option>
+                        <label class="form-check">
+                          <input class="form-check-input" type="checkbox" name="tipos_servico" value="{{ t.id }}">
+                          <span class="form-check-label">{{ t.dsTipoServico }}</span>
+                        </label>
                       {% endfor %}
-                    </select>
-                    <div class="text-muted small mt-1">Selecione um ou mais servicos. Deixe vazio para todos.</div>
+                    </div>
+                    <div class="text-muted small mt-1">Marque um ou mais servicos. Se nao marcar nenhum, vale para todos.</div>
                   </div>
                   <div class="hf-panel hf-days">
                     <div class="hf-label">Dias da semana</div>
@@ -768,13 +771,16 @@
                     <div class="hf-panel">
                       <div class="hf-label">Servicos</div>
                       {% with selected_servicos=obj.tipos_servico_ids %}
-                        <select class="form-select" name="tipos_servico" multiple size="5">
+                        <div class="hf-checkboxes">
                           {% for t in tipos_servico %}
-                            <option value="{{ t.id }}" {% if t.id in selected_servicos or obj.tipoServico_id == t.id %}selected{% endif %}>{{ t.dsTipoServico }}</option>
+                            <label class="form-check">
+                              <input class="form-check-input" type="checkbox" name="tipos_servico" value="{{ t.id }}" {% if t.id in selected_servicos or obj.tipoServico_id == t.id %}checked{% endif %}>
+                              <span class="form-check-label">{{ t.dsTipoServico }}</span>
+                            </label>
                           {% endfor %}
-                        </select>
+                        </div>
                       {% endwith %}
-                      <div class="text-muted small mt-1">Selecione um ou mais servicos. Deixe vazio para todos.</div>
+                      <div class="text-muted small mt-1">Marque um ou mais servicos. Se nao marcar nenhum, vale para todos.</div>
                     </div>
                     <div class="hf-panel hf-days">
                       <div class="hf-label">Dias da semana</div>
