@@ -740,6 +740,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".js-aula-avulsa-form").forEach((form) => {
+    setAulaAvulsaFields(form.closest(".modal") || form);
+  });
   const modal = document.getElementById("novaAulaAvulsa");
   const params = new URLSearchParams(window.location.search);
   const tabName = params.get("tab");
