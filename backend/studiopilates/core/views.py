@@ -1193,6 +1193,7 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         return redirect("dashboard")
     query = request.GET.get("q", "").strip()
     order = request.GET.get("order", "id")
+    show_inativos = request.GET.get("inativos") in {"1", "true", "on", "sim"}
     page_size_key = f"list_page_size_{model._meta.model_name}"
     page_size_raw = request.GET.get("page_size")
     if page_size_raw is None:
@@ -1224,14 +1225,18 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
                 distinct=True,
             )
         )
+        if not show_inativos:
+            qs = qs.filter(status="ATIVO")
     if query:
         if model is models.Aluno:
             qs = qs.filter(
                 Q(dsNome__icontains=query)
                 | Q(dsCPF__icontains=query)
                 | Q(dsRg__icontains=query)
+                | Q(telefones__dsTelefone__icontains=query)
                 | Q(id__icontains=query)
             )
+            qs = qs.distinct()
         else:
             field_name = model._meta.fields[1].name
             qs = qs.filter(Q(**{f"{field_name}__icontains": query}) | Q(id__icontains=query))
@@ -1253,6 +1258,7 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
             {"name": "dsNome", "label": "Nome"},
             {"name": "dsCPF", "label": "CPF"},
             {"name": "dsRg", "label": "RG"},
+            {"name": "telefone", "label": "Telefone"},
             {"name": "status", "label": "Status"},
         ]
     if model is models.Plano:
@@ -1294,8 +1300,9 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         phones_map = {}
         for obj in page:
             address_map[obj.id] = obj.cdEndereco
-            phones_map[obj.id] = list(obj.telefones.values_list("dsTelefone", flat=True))
-        context.update({"address_map": address_map, "phones_map": phones_map})
+            phones = list(obj.telefones.values_list("dsTelefone", flat=True))
+            phones_map[obj.id] = ", ".join(phones) if phones else "-"
+        context.update({"address_map": address_map, "phones_map": phones_map, "show_inativos": show_inativos})
     if model is models.Contrato:
         context.update(
             {

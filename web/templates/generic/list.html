@@ -40,6 +40,14 @@
           <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
         </select>
       </div>
+      {% if model_name == 'aluno' %}
+        <div class="mayris-filter d-flex align-items-end">
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="show-inativos" name="inativos" value="1" {% if show_inativos %}checked{% endif %} />
+            <label class="form-check-label" for="show-inativos">Mostrar inativos</label>
+          </div>
+        </div>
+      {% endif %}
       <div class="mayris-filter mayris-filter--actions">
         <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
       </div>
@@ -154,6 +162,8 @@
                       {{ obj.get_status_display }}
                     </span>
                   </td>
+                {% elif model_name == 'aluno' and field.name == 'telefone' %}
+                  <td>{{ phones_map|get_item:obj.id|default:"-" }}</td>
                 {% elif model_name == 'modelocontrato' and field.name == 'conteudo_html' %}
                   <td>{{ obj|attr:field.name|striptags }}</td>
                 {% elif model_name == 'termouso' and field.name == 'dsTermoUso' %}
