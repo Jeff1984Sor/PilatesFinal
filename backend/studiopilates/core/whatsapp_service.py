@@ -186,6 +186,7 @@ class WhatsappService:
         filename: str,
         caption: str | None = None,
         contrato: models.Contrato | None = None,
+        tipo: models.WhatsappMessageType = models.WhatsappMessageType.CONTRACT_PDF,
     ) -> dict:
         cliente = self._get_client_for_unidade(getattr(aluno, "cdUnidade", None))
         resp = cliente.send_document(telefone, media_url, filename, caption=caption)
@@ -193,7 +194,7 @@ class WhatsappService:
         models.AlunoWhatsappMessage.objects.create(
             aluno=aluno,
             contrato=contrato,
-            tipo=models.WhatsappMessageType.CONTRACT_PDF,
+            tipo=tipo,
             telefone=telefone,
             mensagem=caption or "",
             status=status,

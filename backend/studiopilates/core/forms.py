@@ -25,6 +25,9 @@ class BaseAutoCdForm(forms.ModelForm):
             "dsEmail": "Email",
             "foto": "Foto",
             "autoriza_imagem": "Autoriza o uso da imagem?",
+            "titulo": "Titulo",
+            "arquivo": "Arquivo",
+            "descricao": "Descricao",
             "dsLogradouro": "Logradouro",
             "dsNumero": "Numero",
             "dsCEP": "CEP",
@@ -453,6 +456,12 @@ class MovimentoContaForm(BaseAutoCdForm):
     class Meta:
         model = models.MovimentoConta
         fields = ["conta", "tipo", "valor", "data", "descricao", "comprovante"]
+
+
+class AlunoDocumentoForm(BaseAutoCdForm):
+    class Meta:
+        model = models.AlunoDocumento
+        fields = ["cdDocumento", "titulo", "arquivo", "descricao"]
 
 
 class WhatsappMessageForm(forms.Form):

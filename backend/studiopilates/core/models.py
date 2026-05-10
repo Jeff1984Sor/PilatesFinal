@@ -137,6 +137,7 @@ class WhatsappMessageType(models.TextChoices):
     CONTRACT_LINK = "contract_link", "Link do contrato"
     CONTRACT_PDF = "contract_pdf", "Contrato em PDF"
     CONTRACT_RENEWAL = "contract_renewal", "Renovação de contrato"
+    STUDENT_DOCUMENT = "student_document", "Documento do aluno"
 
 
 class AlunoWhatsappMessage(models.Model):
@@ -151,6 +152,28 @@ class AlunoWhatsappMessage(models.Model):
 
     class Meta:
         ordering = ["-enviado_em"]
+
+
+class AlunoDocumento(models.Model):
+    ORIGEM_CHOICES = [
+        ("UPLOAD", "Enviado manualmente"),
+        ("CONTRATO_PDF", "Gerado pelo sistema"),
+    ]
+
+    cdDocumento = models.IntegerField(unique=True, db_index=True)
+    aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE, related_name="documentos")
+    contrato = models.ForeignKey("Contrato", null=True, blank=True, on_delete=models.SET_NULL, related_name="documentos")
+    titulo = models.CharField(max_length=150)
+    arquivo = models.FileField(upload_to="alunos/documentos")
+    descricao = models.TextField(blank=True)
+    origem = models.CharField(max_length=20, choices=ORIGEM_CHOICES, default="UPLOAD")
+    dtCadastro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-dtCadastro"]
+
+    def __str__(self):
+        return self.titulo
 
 
 class WhatsappAgendamentoLog(models.Model):

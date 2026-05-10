@@ -242,6 +242,12 @@
 
           <li class="nav-item" role="presentation">
 
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-documentos" type="button" role="tab">Documentos</button>
+
+          </li>
+
+          <li class="nav-item" role="presentation">
+
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-evolucao" type="button" role="tab">Evolucao</button>
 
           </li>
@@ -711,6 +717,111 @@
 
               {% endfor %}
 
+            </div>
+
+          </div>
+
+          <div class="tab-pane fade" id="tab-documentos" role="tabpanel">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+
+              <div>
+
+                <div class="fw-semibold">Documentos</div>
+
+                <p class="text-muted small mb-0">Suba arquivos, acompanhe os documentos gerados pelo sistema e envie tudo direto no WhatsApp.</p>
+
+              </div>
+
+            </div>
+
+            <div class="row g-3">
+              <div class="col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                  <div class="card-body">
+                    <div class="fw-semibold mb-3">Adicionar documento</div>
+                    <form method="post" action="{% url 'alunos_documento_create' aluno.id %}" enctype="multipart/form-data">
+                      {% csrf_token %}
+                      {% if documento_form.errors %}
+                        <div class="alert alert-danger py-2 small">Confira os campos do documento antes de salvar.</div>
+                      {% endif %}
+                      <div class="mb-3">
+                        {{ documento_form.titulo.label_tag }}
+                        {{ documento_form.titulo }}
+                      </div>
+                      <div class="mb-3">
+                        {{ documento_form.arquivo.label_tag }}
+                        {{ documento_form.arquivo }}
+                      </div>
+                      <div class="mb-3">
+                        {{ documento_form.descricao.label_tag }}
+                        {{ documento_form.descricao }}
+                      </div>
+                      <button class="btn btn-primary w-100" type="submit">Salvar documento</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-lg-8">
+                <div class="card border-0 shadow-sm h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
+                      <div class="fw-semibold">Documentos do aluno</div>
+                      <form class="d-flex gap-2 align-items-center flex-wrap" method="post" action="{% url 'alunos_documento_whatsapp' aluno.id %}">
+                        {% csrf_token %}
+                        <select class="form-select form-select-sm" name="documento_id" required {% if not documentos %}disabled{% endif %}>
+                          <option value="">Selecione um documento</option>
+                          {% for doc in documentos %}
+                            <option value="{{ doc.id }}">{{ doc.titulo }} {% if doc.origem == 'CONTRATO_PDF' %}(Sistema){% else %}(Manual){% endif %}</option>
+                          {% endfor %}
+                        </select>
+                        <button class="btn btn-sm btn-success" type="submit" {% if not documentos %}disabled{% endif %}>Enviar por WhatsApp</button>
+                      </form>
+                    </div>
+
+                    <div class="row g-3">
+                      {% for doc in documentos %}
+                        <div class="col-md-6">
+                          <div class="border rounded-4 p-3 h-100 {% if doc.origem == 'CONTRATO_PDF' %}bg-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                              <div>
+                                <div class="fw-semibold">{{ doc.titulo }}</div>
+                                <div class="small text-muted">{{ doc.dtCadastro|date:"d/m/Y H:i" }}</div>
+                              </div>
+                              <span class="badge {% if doc.origem == 'CONTRATO_PDF' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                {% if doc.origem == 'CONTRATO_PDF' %}Sistema{% else %}Manual{% endif %}
+                              </span>
+                            </div>
+                            <div class="small text-muted mb-3">
+                              {{ doc.descricao|default:"Sem descricao" }}
+                            </div>
+                            {% if doc.contrato %}
+                              <div class="small text-muted mb-3">Contrato #{{ doc.contrato.cdContrato }}</div>
+                            {% endif %}
+                            <div class="d-flex flex-wrap gap-2">
+                              <a class="btn btn-sm btn-outline-secondary" href="{{ doc.arquivo.url }}" target="_blank" rel="noopener">Abrir</a>
+                              <form method="post" action="{% url 'alunos_documento_whatsapp' aluno.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="documento_id" value="{{ doc.id }}" />
+                                <button class="btn btn-sm btn-outline-success" type="submit">Enviar WhatsApp</button>
+                              </form>
+                              <form method="post" action="{% url 'alunos_documento_delete' doc.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('Excluir este documento?');">Excluir</button>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
+                      {% empty %}
+                        <div class="col-12">
+                          <div class="text-muted">Nenhum documento cadastrado ainda.</div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
           </div>

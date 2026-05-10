@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 import calendar
 import json
 import re
+from pathlib import Path
 from urllib.parse import quote
 from io import BytesIO
 from django.contrib import messages
@@ -18,6 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
+from django.core.files.base import ContentFile
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
@@ -91,6 +93,7 @@ def _enviar_contrato_whatsapp(request, contrato, is_new=False):
     pdf_link = _contrato_pdf_link(contrato, request=request)
     mensagem = _mensagem_contrato_whatsapp(contrato, link, is_new=is_new)
     if pdf_link:
+        _salvar_documento_contrato(contrato)
         service.send_document(
             contrato.cdAluno,
             telefone,
@@ -113,6 +116,25 @@ def _contrato_pdf_link(contrato, request=None):
     if request and (not base_url or "localhost" in base_url):
         base_url = request.build_absolute_uri("/").rstrip("/")
     return f"{base_url}/contratos/pdf/{token}/"
+
+
+def _salvar_documento_contrato(contrato, pdf_bytes=None):
+    pdf_bytes = pdf_bytes or services.render_contrato_pdf(contrato)
+    documento, _ = models.AlunoDocumento.objects.update_or_create(
+        contrato=contrato,
+        origem="CONTRATO_PDF",
+        defaults={
+            "aluno": contrato.cdAluno,
+            "titulo": f"Contrato #{contrato.cdContrato}",
+            "descricao": f"Contrato gerado para {contrato.cdAluno.dsNome}.",
+        },
+    )
+    documento.arquivo.save(
+        f"contrato-{contrato.cdContrato}.pdf",
+        ContentFile(pdf_bytes),
+        save=True,
+    )
+    return documento
 
 
 def _contrato_precificacao(plano):
@@ -513,6 +535,8 @@ def aluno_detail(request, pk):
     profissionais = models.Profissional.objects.all()
     whatsapp_messages = aluno.whatsapp_messages.select_related("contrato").all()
     whatsapp_form = forms.WhatsappMessageForm()
+    documentos = aluno.documentos.select_related("contrato").all()
+    documento_form = forms.AlunoDocumentoForm()
     context = {
         "aluno": aluno,
         "endereco": endereco,
@@ -534,6 +558,8 @@ def aluno_detail(request, pk):
         "profissionais": profissionais,
         "whatsapp_messages": whatsapp_messages,
         "whatsapp_form": whatsapp_form,
+        "documentos": documentos,
+        "documento_form": documento_form,
         "edit_form": forms.AlunoForm(instance=aluno),
         "breadcrumbs": [("Home", reverse("dashboard")), ("Alunos", reverse("alunos_list")), ("Ficha", "#")],
         "active_menu": "cadastros",
@@ -577,6 +603,67 @@ def aluno_whatsapp_message(request, pk):
     else:
         messages.success(request, "Mensagem enviada e registrada.")
     return redirect(next_url or "alunos_detail", pk=aluno.pk) if not next_url else redirect(next_url)
+
+
+@login_required
+@require_POST
+def aluno_documento_create(request, pk):
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    data = request.POST.copy()
+    data = _inject_cd_value(models.AlunoDocumento, data)
+    form = forms.AlunoDocumentoForm(data, request.FILES)
+    if form.is_valid():
+        documento = form.save(commit=False)
+        documento.aluno = aluno
+        documento.origem = "UPLOAD"
+        documento.save()
+        messages.success(request, "Documento adicionado com sucesso.")
+    else:
+        messages.error(request, "Verifique os campos do documento.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=documentos")
+
+
+@login_required
+@require_POST
+def aluno_documento_whatsapp(request, pk):
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    documento_id = request.POST.get("documento_id")
+    documento = get_object_or_404(models.AlunoDocumento, pk=documento_id, aluno=aluno)
+    service = WhatsappService()
+    telefone = service.get_aluno_phone(aluno)
+    if not telefone:
+        messages.warning(request, "Aluno sem telefone valido cadastrado.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=documentos")
+    if not documento.arquivo:
+        messages.warning(request, "Documento sem arquivo disponivel.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=documentos")
+    media_url = request.build_absolute_uri(documento.arquivo.url)
+    resp = service.send_document(
+        aluno,
+        telefone,
+        media_url,
+        filename=Path(documento.arquivo.name).name,
+        caption=documento.titulo,
+        contrato=documento.contrato,
+        tipo=WhatsappMessageType.STUDENT_DOCUMENT,
+    )
+    if resp.get("error"):
+        messages.warning(request, "Nao foi possivel enviar o documento por WhatsApp.")
+    else:
+        messages.success(request, "Documento enviado por WhatsApp.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=documentos")
+
+
+@login_required
+@require_POST
+def aluno_documento_delete(request, pk):
+    documento = get_object_or_404(models.AlunoDocumento, pk=pk)
+    aluno_id = documento.aluno_id
+    if documento.arquivo:
+        documento.arquivo.delete(save=False)
+    documento.delete()
+    messages.success(request, "Documento removido.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno_id])}?tab=documentos")
 
 
 @login_required
@@ -3105,6 +3192,7 @@ def create_view(request, model, form_class, redirect_name):
                     "modo_pagamento": cleaned.get("modo_pagamento"),
                 }
                 obj = services.criar_contrato_e_contas(contrato_data, valor_parcela, recorrencia=recorrencia)
+                _salvar_documento_contrato(obj)
                 if services.enviar_contrato_para_assinatura(obj, request.build_absolute_uri("/")):
                     messages.success(request, "Contrato criado e enviado por email. Agende as aulas.")
                 else:
@@ -4257,6 +4345,7 @@ def contrato_pdf(request, token):
         return HttpResponse("Token invalido", status=404)
     contrato = get_object_or_404(models.Contrato, pk=contrato_id)
     pdf = services.render_contrato_pdf(contrato)
+    _salvar_documento_contrato(contrato, pdf_bytes=pdf)
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="contrato-{contrato.cdContrato}.pdf"'
     return response
