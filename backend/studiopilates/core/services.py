@@ -21,7 +21,8 @@ def gerar_parcelas(valor, inicio, fim, meses, recorrencia="MENSAL"):
     if recorrencia == "SEMANAL":
         vencimento = inicio
         while vencimento <= fim:
-            competencia = vencimento.strftime("%Y-%m-%d")
+            iso_year, iso_week, _ = vencimento.isocalendar()
+            competencia = f"{iso_year}-{iso_week:02d}"
             parcelas.append({"valor": valor, "vencimento": vencimento, "competencia": competencia})
             vencimento += timedelta(days=7)
     else:
