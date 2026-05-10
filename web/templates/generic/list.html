@@ -184,6 +184,12 @@
                       {{ obj.get_status_display }}
                     </span>
                   </td>
+                {% elif model_name == 'horariofuncionamento' and field.name == 'ativo' %}
+                  <td>
+                    <span class="badge {% if obj.ativo %}bg-success{% else %}bg-danger{% endif %}">
+                      {% if obj.ativo %}Ativo{% else %}Inativo{% endif %}
+                    </span>
+                  </td>
                 {% elif model_name == 'aluno' and field.name == 'telefone' %}
                   <td>{{ phones_map|get_item:obj.id|default:"-" }}</td>
                 {% elif model_name == 'modelocontrato' and field.name == 'conteudo_html' %}
@@ -307,13 +313,13 @@
                     </select>
                   </div>
                   <div class="hf-panel">
-                    <div class="hf-label">Tipo de Servico</div>
-                    <select class="form-select" name="tipoServico">
-                      <option value="">Todos</option>
+                    <div class="hf-label">Servicos</div>
+                    <select class="form-select" name="tipos_servico" multiple size="5">
                       {% for t in tipos_servico %}
                         <option value="{{ t.id }}">{{ t.dsTipoServico }}</option>
                       {% endfor %}
                     </select>
+                    <div class="text-muted small mt-1">Selecione um ou mais servicos. Deixe vazio para todos.</div>
                   </div>
                   <div class="hf-panel hf-days">
                     <div class="hf-label">Dias da semana</div>
@@ -760,13 +766,15 @@
                       </select>
                     </div>
                     <div class="hf-panel">
-                      <div class="hf-label">Tipo de Servico</div>
-                      <select class="form-select" name="tipoServico">
-                        <option value="" {% if not obj.tipoServico_id %}selected{% endif %}>Todos</option>
-                        {% for t in tipos_servico %}
-                          <option value="{{ t.id }}" {% if obj.tipoServico_id == t.id %}selected{% endif %}>{{ t.dsTipoServico }}</option>
-                        {% endfor %}
-                      </select>
+                      <div class="hf-label">Servicos</div>
+                      {% with selected_servicos=obj.tipos_servico_ids %}
+                        <select class="form-select" name="tipos_servico" multiple size="5">
+                          {% for t in tipos_servico %}
+                            <option value="{{ t.id }}" {% if t.id in selected_servicos or obj.tipoServico_id == t.id %}selected{% endif %}>{{ t.dsTipoServico }}</option>
+                          {% endfor %}
+                        </select>
+                      {% endwith %}
+                      <div class="text-muted small mt-1">Selecione um ou mais servicos. Deixe vazio para todos.</div>
                     </div>
                     <div class="hf-panel hf-days">
                       <div class="hf-label">Dias da semana</div>

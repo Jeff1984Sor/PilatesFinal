@@ -69,6 +69,7 @@ class BaseAutoCdForm(forms.ModelForm):
             "duracao": "Duracao",
             "duracao_aula_minutos": "Duracao da Aula (Min)",
             "is_avulso": "Aula avulsa",
+            "tipos_servico": "Servicos",
             "conteudo_html": "Conteudo HTML",
             "ativo": "Ativo",
             "valor_parcela": "Valor (Parcela)",
@@ -122,6 +123,9 @@ class BaseAutoCdForm(forms.ModelForm):
                 continue
             if isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs.setdefault("class", "form-check-input")
+                continue
+            if isinstance(field.widget, (forms.SelectMultiple, forms.CheckboxSelectMultiple)):
+                field.widget.attrs.setdefault("class", "form-select")
                 continue
             if is_fk:
                 field.widget.attrs.setdefault("class", "form-select")
@@ -260,7 +264,7 @@ class HorarioStudioForm(BaseAutoCdForm):
 class HorarioFuncionamentoForm(BaseAutoCdForm):
     class Meta:
         model = models.HorarioFuncionamento
-        fields = ["unidade", "tipoServico", "diaSemana", "horaInicio", "horaFim", "ativo"]
+        fields = ["unidade", "tipos_servico", "diaSemana", "horaInicio", "horaFim", "ativo"]
 
 
 class TermoUsoForm(BaseAutoCdForm):

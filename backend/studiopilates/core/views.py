@@ -286,15 +286,24 @@ AULA_INTERVALO_MINUTOS = 10
 def _load_funcionamento(unidade_id, tipo_servico_id=None):
     qs = models.HorarioFuncionamento.objects.filter(unidade_id=unidade_id, ativo=True)
     if tipo_servico_id:
-        qs = qs.filter(Q(tipoServico_id=tipo_servico_id) | Q(tipoServico__isnull=True))
+        qs = qs.filter(
+            Q(tipoServico_id=tipo_servico_id)
+            | Q(tipos_servico=tipo_servico_id)
+            | Q(tipoServico__isnull=True, tipos_servico__isnull=True)
+        )
     else:
-        qs = qs.filter(tipoServico__isnull=True)
+        qs = qs.filter(tipoServico__isnull=True, tipos_servico__isnull=True)
     horarios = list(qs.order_by("diaSemana", "horaInicio"))
     by_day = {}
     if tipo_servico_id:
         specific_days = {}
         for item in horarios:
-            if item.tipoServico_id == tipo_servico_id:
+            item_service_ids = {item.tipoServico_id} if item.tipoServico_id else set()
+            if hasattr(item, "_prefetched_objects_cache") and "tipos_servico" in item._prefetched_objects_cache:
+                item_service_ids.update(servico.id for servico in item.tipos_servico.all())
+            else:
+                item_service_ids.update(item.tipos_servico.values_list("id", flat=True))
+            if tipo_servico_id in item_service_ids:
                 specific_days.setdefault(item.diaSemana, []).append(item)
             else:
                 by_day.setdefault(item.diaSemana, []).append(item)
@@ -304,6 +313,24 @@ def _load_funcionamento(unidade_id, tipo_servico_id=None):
         for item in horarios:
             by_day.setdefault(item.diaSemana, []).append(item)
     return by_day
+
+
+def _parse_horario_servicos(post_data):
+    raw_ids = post_data.getlist("tipos_servico")
+    ids = []
+    for raw_id in raw_ids:
+        try:
+            ids.append(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+    if not ids:
+        raw_single = post_data.get("tipoServico") or ""
+        if raw_single:
+            try:
+                ids.append(int(raw_single))
+            except (TypeError, ValueError):
+                pass
+    return ids
 
 
 def _load_horarios_ativos(unidade_id, tipo_servico_id=None):
@@ -318,7 +345,7 @@ def _load_horarios_ativos(unidade_id, tipo_servico_id=None):
     by_day = {}
     for item in horarios:
         by_day.setdefault(item.diaSemana, []).append(item)
-    return by_day, False
+    return by_day, bool(by_day)
 
 
 def _load_bloqueios(unidade_id, tipo_servico_id, profissional_id, start_date, end_date):
@@ -1327,7 +1354,7 @@ def gerar_horarios_funcionamento(request):
     if request.method != "POST":
         return redirect("horarios_funcionamento_list")
     unidade_id = request.POST.get("unidade") or ""
-    tipo_id = request.POST.get("tipoServico") or ""
+    tipos_ids = _parse_horario_servicos(request.POST)
     dias = request.POST.getlist("dias")
     inicio = _to_time(request.POST.get("horaInicio"))
     fim = _to_time(request.POST.get("horaFim"))
@@ -1340,12 +1367,6 @@ def gerar_horarios_funcionamento(request):
     except ValueError:
         messages.error(request, "Unidade invalida.")
         return redirect("horarios_funcionamento_list")
-    tipo_servico_id = None
-    if tipo_id:
-        try:
-            tipo_servico_id = int(tipo_id)
-        except ValueError:
-            tipo_servico_id = None
     if fim <= inicio:
         messages.error(request, "Horario final deve ser maior que o inicial.")
         return redirect("horarios_funcionamento_list")
@@ -1355,23 +1376,33 @@ def gerar_horarios_funcionamento(request):
             dia_int = int(dia)
         except ValueError:
             continue
-        exists = models.HorarioFuncionamento.objects.filter(
+        qs = models.HorarioFuncionamento.objects.filter(
             unidade_id=unidade_id,
-            tipoServico_id=tipo_servico_id,
             diaSemana=dia_int,
             horaInicio=inicio,
             horaFim=fim,
-        ).exists()
+        )
+        if tipos_ids:
+            qs = qs.filter(
+                Q(tipoServico_id__in=tipos_ids)
+                | Q(tipos_servico__in=tipos_ids)
+                | Q(tipoServico__isnull=True, tipos_servico__isnull=True)
+            )
+        else:
+            qs = qs.filter(tipoServico__isnull=True, tipos_servico__isnull=True)
+        exists = qs.distinct().exists()
         if exists:
             continue
-        models.HorarioFuncionamento.objects.create(
+        obj = models.HorarioFuncionamento.objects.create(
             unidade_id=unidade_id,
-            tipoServico_id=tipo_servico_id,
+            tipoServico_id=tipos_ids[0] if tipos_ids else None,
             diaSemana=dia_int,
             horaInicio=inicio,
             horaFim=fim,
             ativo=ativo,
         )
+        if tipos_ids:
+            obj.tipos_servico.set(tipos_ids)
         created += 1
     if created:
         messages.success(request, f"{created} horarios criados.")
@@ -1386,7 +1417,7 @@ def atualizar_horario_funcionamento(request, pk):
     if request.method != "POST":
         return redirect("horarios_funcionamento_list")
     unidade_id = request.POST.get("unidade") or obj.unidade_id
-    tipo_id = request.POST.get("tipoServico") or ""
+    tipos_ids = _parse_horario_servicos(request.POST)
     dias = request.POST.getlist("dias")
     inicio = _to_time(request.POST.get("horaInicio")) or obj.horaInicio
     fim = _to_time(request.POST.get("horaFim")) or obj.horaFim
@@ -1396,12 +1427,6 @@ def atualizar_horario_funcionamento(request, pk):
     except ValueError:
         messages.error(request, "Unidade invalida.")
         return redirect("horarios_funcionamento_list")
-    tipo_servico_id = None
-    if tipo_id:
-        try:
-            tipo_servico_id = int(tipo_id)
-        except ValueError:
-            tipo_servico_id = None
     if fim <= inicio:
         messages.error(request, "Horario final deve ser maior que o inicial.")
         return redirect("horarios_funcionamento_list")
@@ -1417,32 +1442,46 @@ def atualizar_horario_funcionamento(request, pk):
         dias_int = [obj.diaSemana]
     primary_day = dias_int[0]
     obj.unidade_id = unidade_id
-    obj.tipoServico_id = tipo_servico_id
+    obj.tipoServico_id = tipos_ids[0] if tipos_ids else None
     obj.diaSemana = primary_day
     obj.horaInicio = inicio
     obj.horaFim = fim
     obj.ativo = ativo
     obj.save()
+    if tipos_ids:
+        obj.tipos_servico.set(tipos_ids)
+    else:
+        obj.tipos_servico.clear()
 
     created = 0
     for dia in dias_int[1:]:
-        exists = models.HorarioFuncionamento.objects.filter(
+        qs = models.HorarioFuncionamento.objects.filter(
             unidade_id=unidade_id,
-            tipoServico_id=tipo_servico_id,
             diaSemana=dia,
             horaInicio=inicio,
             horaFim=fim,
-        ).exists()
+        )
+        if tipos_ids:
+            qs = qs.filter(
+                Q(tipoServico_id__in=tipos_ids)
+                | Q(tipos_servico__in=tipos_ids)
+                | Q(tipoServico__isnull=True, tipos_servico__isnull=True)
+            )
+        else:
+            qs = qs.filter(tipoServico__isnull=True, tipos_servico__isnull=True)
+        exists = qs.distinct().exists()
         if exists:
             continue
-        models.HorarioFuncionamento.objects.create(
+        extra = models.HorarioFuncionamento.objects.create(
             unidade_id=unidade_id,
-            tipoServico_id=tipo_servico_id,
+            tipoServico_id=tipos_ids[0] if tipos_ids else None,
             diaSemana=dia,
             horaInicio=inicio,
             horaFim=fim,
             ativo=ativo,
         )
+        if tipos_ids:
+            extra.tipos_servico.set(tipos_ids)
         created += 1
     if created:
         messages.success(request, f"{created} horario(s) extras criados.")
@@ -1699,6 +1738,8 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         )
     if model is models.Contrato:
         qs = qs.select_related("cdAluno", "cdPlano", "cdUnidade")
+    if model is models.HorarioFuncionamento:
+        qs = qs.select_related("unidade", "tipoServico").prefetch_related("tipos_servico")
     if model is models.Aluno:
         qs = qs.annotate(
             aulas_reservadas_count=Count(
@@ -1765,6 +1806,15 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
             {"name": "valor_parcela", "label": "Valor (parcela)"},
             {"name": "valor_total", "label": "Valor total"},
             {"name": "status", "label": "Status"},
+        ]
+    if model is models.HorarioFuncionamento:
+        display_fields = [
+            {"name": "unidade", "label": "Unidade"},
+            {"name": "servicos_resumo", "label": "Servicos"},
+            {"name": "dia_semana_label", "label": "Dia"},
+            {"name": "horaInicio", "label": "Inicio"},
+            {"name": "horaFim", "label": "Fim"},
+            {"name": "ativo", "label": "Ativo"},
         ]
     edit_forms = {}
     if allow_modal:

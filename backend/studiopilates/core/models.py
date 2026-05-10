@@ -229,6 +229,7 @@ class HorarioStudio(models.Model):
 class HorarioFuncionamento(models.Model):
     unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT)
     tipoServico = models.ForeignKey(TipoServico, on_delete=models.PROTECT, null=True, blank=True)
+    tipos_servico = models.ManyToManyField(TipoServico, blank=True, related_name="horarios_funcionamento")
     diaSemana = models.IntegerField(choices=HorarioStudio.DIAS_SEMANA)
     horaInicio = models.TimeField()
     horaFim = models.TimeField()
@@ -239,7 +240,28 @@ class HorarioFuncionamento(models.Model):
         ordering = ["unidade", "diaSemana", "horaInicio"]
 
     def __str__(self):
-        return f"{self.unidade} {self.get_diaSemana_display()} {self.horaInicio} - {self.horaFim}"
+        return f"{self.unidade} {self.dia_semana_label} {self.horaInicio} - {self.horaFim} ({self.servicos_resumo})"
+
+    @property
+    def dia_semana_label(self):
+        return self.get_diaSemana_display()
+
+    @property
+    def servicos_resumo(self):
+        if not self.pk:
+            return "Todos"
+        servicos = list(self.tipos_servico.all())
+        if servicos:
+            return ", ".join(servico.dsTipoServico for servico in servicos)
+        if self.tipoServico_id:
+            return self.tipoServico.dsTipoServico if self.tipoServico else "Servico unico"
+        return "Todos"
+
+    @property
+    def tipos_servico_ids(self):
+        if not self.pk:
+            return []
+        return list(self.tipos_servico.values_list("id", flat=True))
 
 
 class Plano(models.Model):
