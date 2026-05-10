@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h3 class="mb-1">Agenda da Aula Avulsa</h3>
+    <div class="text-muted small">
+      {{ aluno.dsNome }} · {{ pacote.plano.dsPlano }} · {{ pacote.get_recorrencia_display }} · {{ pacote.quantidade }} aula(s)
+    </div>
+  </div>
+  <a class="btn btn-outline-secondary" href="{% url 'alunos_detail' aluno.id %}?tab=agenda">Voltar para ficha</a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="alert alert-info">
+      Selecione <strong>1</strong> horario para a aula avulsa. O sistema vai repetir essa reserva por <strong>{{ pacote.quantidade }}</strong> ocorrencia(s).
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-3">
+        <div class="border rounded-4 p-3 h-100">
+          <div class="small text-muted">Plano</div>
+          <div class="fw-semibold">{{ pacote.plano.dsPlano }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+      <div class="border rounded-4 p-3 h-100">
+          <div class="small text-muted">Valor por aula</div>
+          <div class="fw-semibold">R$ {{ pacote.valor_aula|floatformat:2 }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded-4 p-3 h-100">
+          <div class="small text-muted">Valor total</div>
+          <div class="fw-semibold">R$ {{ pacote.valor_total|floatformat:2 }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded-4 p-3 h-100">
+          <div class="small text-muted">Periodo</div>
+          <div class="fw-semibold">{{ pacote.dtInicio|date:"d/m/Y" }} a {{ pacote.dtFim|date:"d/m/Y" }}</div>
+        </div>
+      </div>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="alert alert-info">
+        {% if not horarios_configurados %}
+          Nenhum horario de funcionamento cadastrado. Cadastre em <a href="/cadastros/horarios-funcionamento/">Horario de Funcionamento</a>.
+        {% elif not slot_options %}
+          Sem horarios disponiveis com vaga para este periodo e unidade.
+        {% else %}
+          Escolha um dia e horario para travar as <strong>{{ pacote.quantidade }}</strong> aulas avulsas.
+        {% endif %}
+      </div>
+      <div class="row g-3">
+        {% for idx in slot_indices %}
+          <div class="col-md-6">
+            <div class="border rounded p-3 h-100">
+              <div class="fw-semibold mb-2">Aula {{ idx }}</div>
+              <div class="row g-2">
+                <div class="col-md-5">
+                  <label class="form-label">Dia da semana</label>
+                  <select class="form-select js-slot-day" name="slot_day_{{ idx }}" data-slot="{{ idx }}" required>
+                    <option value="">Selecione</option>
+                    {% for day, label in weekday_labels.items %}
+                      <option value="{{ day }}">{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Horario</label>
+                  <select class="form-select js-slot-time" name="slot_{{ idx }}" data-slot="{{ idx }}" required {% if not slot_options %}disabled{% endif %}>
+                    <option value="">Selecione um horario</option>
+                    {% for day, slots in slots_by_day.items %}
+                      {% for slot in slots %}
+                        <option value="{{ slot.value }}" data-day="{{ day }}" data-allowed-profs="{{ slot.allowed_profs }}">{{ slot.label }}</option>
+                      {% endfor %}
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-5">
+                  <label class="form-label">Professor</label>
+                  <select class="form-select js-prof-select" name="prof_for_{{ idx }}" required>
+                    <option value="">Selecione</option>
+                    {% for prof in profissionais %}
+                      <option value="{{ prof.id }}">{{ prof.profissional }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button class="btn btn-primary" type="submit">Salvar agenda</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

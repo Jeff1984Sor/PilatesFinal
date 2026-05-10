@@ -20,8 +20,8 @@ def list_aulas(start: date, end: date, unidade_id=None, tipo_servico_id=None):
     return qs
 
 
-def create_reserva(aluno, aula, status="RESERVADA"):
-    reserva = models.Reserva(aluno=aluno, aulaSessao=aula, status=status)
+def create_reserva(aluno, aula, status="RESERVADA", pacote_avulso=None):
+    reserva = models.Reserva(aluno=aluno, aulaSessao=aula, status=status, pacote_avulso=pacote_avulso)
     reserva.full_clean()
     reserva.save()
     return reserva

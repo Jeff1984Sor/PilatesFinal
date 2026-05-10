@@ -279,6 +279,70 @@ function setContratoFields(container) {
   syncContratoPricing(container);
 }
 
+function addRecurringDate(baseIso, recorrencia, quantityIndex) {
+  if (!baseIso) return "";
+  const base = new Date(`${baseIso}T00:00:00`);
+  if (Number.isNaN(base.getTime())) return "";
+  const index = Math.max(parseInt(quantityIndex || 0, 10), 0);
+  if ((recorrencia || "").toUpperCase() === "MENSAL") {
+    base.setMonth(base.getMonth() + index);
+  } else {
+    base.setDate(base.getDate() + index * 7);
+  }
+  const year = base.getFullYear();
+  const month = String(base.getMonth() + 1).padStart(2, "0");
+  const day = String(base.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function syncAulaAvulsaPricing(container) {
+  if (!container) return;
+  const plano = container.querySelector(".js-avulsa-plano, select[name='plano']");
+  const recorrencia = container.querySelector(".js-avulsa-recorrencia, input[name='recorrencia']");
+  const quantidade = container.querySelector(".js-avulsa-quantidade, input[name='quantidade']");
+  const valorAula = container.querySelector(".js-avulsa-valor-aula, input[name='valor_aula']");
+  const valorTotal = container.querySelector(".js-avulsa-valor-total, input[name='valor_total']");
+  const inicio = container.querySelector(".js-avulsa-inicio, input[name='dtInicio']");
+  const fim = container.querySelector(".js-avulsa-fim, input[name='dtFim']");
+  const selected = plano?.selectedOptions?.[0];
+  if (!selected || !selected.value) {
+    if (recorrencia) recorrencia.value = "";
+    if (fim) fim.value = "";
+    setCurrencyValue(valorTotal, "");
+    return;
+  }
+  const recorrenciaValor = (selected?.dataset?.recorrencia || "SEMANAL").toUpperCase();
+  const valorPlano = parseCurrencyValue(selected?.dataset?.valor || "0");
+  const quantidadeValor = Math.max(parseInt(quantidade?.value || "1", 10), 1);
+
+  if (recorrencia) {
+    recorrencia.value = recorrenciaValor;
+  }
+  if (valorAula && !valorAula.value) {
+    valorAula.value = valorPlano ? valorPlano.toFixed(2) : "";
+  }
+  const valorBase = parseCurrencyValue(valorAula?.value || valorPlano);
+  const total = valorBase * quantidadeValor;
+  setCurrencyValue(valorTotal, total);
+
+  if (inicio && fim) {
+    fim.value = addRecurringDate(inicio.value, recorrenciaValor, quantidadeValor - 1);
+  }
+}
+
+function setAulaAvulsaFields(container) {
+  if (!container) return;
+  const inicio = container.querySelector(".js-avulsa-inicio, input[name='dtInicio']");
+  if (inicio && !inicio.value) {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    inicio.value = `${year}-${month}-${day}`;
+  }
+  syncAulaAvulsaPricing(container);
+}
+
 document.addEventListener("shown.bs.modal", (event) => {
   const modal = event.target;
   if (!modal || !modal.querySelector) return;
@@ -303,6 +367,9 @@ document.addEventListener("shown.bs.modal", (event) => {
 
   if (modal.querySelector(".js-reserva-date")) {
     initReservaModal(modal);
+  }
+  if (modal.querySelector(".js-aula-avulsa-form")) {
+    setAulaAvulsaFields(modal);
   }
 });
 
@@ -363,6 +430,20 @@ document.addEventListener("input", (event) => {
   const total = parseCurrencyValue(valorAula.value) * 4;
   setCurrencyValue(valorParcela, total);
   setCurrencyValue(valorTotal, total);
+});
+
+document.addEventListener("change", (event) => {
+  const field = event.target.closest(".js-avulsa-plano, .js-avulsa-quantidade, .js-avulsa-inicio");
+  if (!field) return;
+  const container = field.closest(".js-aula-avulsa-form, .modal");
+  syncAulaAvulsaPricing(container);
+});
+
+document.addEventListener("input", (event) => {
+  const field = event.target.closest(".js-avulsa-valor-aula, .js-avulsa-quantidade");
+  if (!field) return;
+  const container = field.closest(".js-aula-avulsa-form, .modal");
+  syncAulaAvulsaPricing(container);
 });
 
 document.querySelectorAll(".js-plano").forEach((plano) => {
@@ -656,6 +737,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("novaAulaAvulsa");
+  const params = new URLSearchParams(window.location.search);
+  const tabName = params.get("tab");
+  if (tabName && window.bootstrap?.Tab) {
+    const tabButton = document.querySelector(`.nav-pills [data-bs-target="#tab-${tabName}"]`);
+    if (tabButton) {
+      window.bootstrap.Tab.getOrCreateInstance(tabButton).show();
+    }
+  }
+  if (modal && window.bootstrap?.Modal && params.get("avulsa") === "1") {
+    window.bootstrap.Modal.getOrCreateInstance(modal).show();
+  }
 });
 
 document.addEventListener("change", (event) => {
@@ -1258,10 +1354,14 @@ function initAulasOperacao() {
           indicators.push(item.confirmacao ? "Confirmado" : "Nao confirmado");
           if (!item.flags.tem_preliminares) indicators.push("Preliminares pendentes");
           if (item.flags.cobranca_pendente) indicators.push("Cobranca pendente");
+          const fichaUrl = item.aluno.ficha_url ? `${item.aluno.ficha_url}?tab=agenda&avulsa=1` : "#";
           card.innerHTML = `
             <div class="aulas-card__header">
               <div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                 <div class="aulas-card__meta">${formatTime(item.dt_inicio)}  ${item.unidade || "Unidade"}</div>
+                  <a class="btn btn-sm btn-outline-primary" href="${fichaUrl}" onclick="event.stopPropagation();">+ Aula Avulsa</a>
+                </div>
                 <div class="aulas-card__title">${item.aluno.nome}</div>
                 <div class="aulas-card__meta">${item.plano.descricao || "Plano nao informado"}</div>
               </div>

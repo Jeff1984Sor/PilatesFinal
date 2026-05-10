@@ -44,8 +44,11 @@ class BaseAutoCdForm(forms.ModelForm):
             "cdProfissao": "Profissao",
             "dtInicioContrato": "Inicio do Contrato",
             "dtFimContrato": "Fim do Contrato",
+            "dtInicio": "Inicio",
+            "dtFim": "Fim",
             "cdUnidade": "Unidade",
             "cdPlano": "Plano",
+            "plano": "Plano",
             "cdTipoServico": "Tipo de Servico",
             "cdProfissional": "Profissional",
             "cdAluno": "Aluno",
@@ -139,6 +142,8 @@ class BaseAutoCdForm(forms.ModelForm):
                 field.widget = forms.DateInput(attrs={"type": "date", "class": "form-control js-date", "placeholder": "dd/mm/aaaa"})
             if name == "dtVencimento":
                 field.widget = forms.DateInput(attrs={"type": "date", "class": "form-control"})
+            if name == "valor_total":
+                field.widget.attrs["readonly"] = "readonly"
             if name == "data":
                 field.widget = forms.DateInput(attrs={"type": "date", "class": "form-control"})
             if name in ("dataInicio", "dataFim"):
@@ -273,6 +278,9 @@ class TermoUsoForm(BaseAutoCdForm):
 class ContratoForm(BaseAutoCdForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        plano_field = self.fields.get("cdPlano")
+        if plano_field:
+            plano_field.queryset = models.Plano.objects.filter(is_avulso=False)
         for name in ("valor_aula", "valor_parcela", "valor_total"):
             field = self.fields.get(name)
             if field:
@@ -321,6 +329,34 @@ class ContratoForm(BaseAutoCdForm):
             "valor_total",
             "dtInicioContrato",
             "dtFimContrato",
+        ]
+
+
+class AulaAvulsaForm(BaseAutoCdForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        plano_field = self.fields.get("plano")
+        if plano_field:
+            plano_field.queryset = models.Plano.objects.filter(is_avulso=True)
+        for name in ("recorrencia", "valor_aula", "valor_total"):
+            field = self.fields.get(name)
+            if field:
+                field.required = False
+
+    class Meta:
+        model = models.AulaAvulsa
+        fields = [
+            "cdAulaAvulsa",
+            "aluno",
+            "plano",
+            "recorrencia",
+            "quantidade",
+            "valor_aula",
+            "valor_total",
+            "unidade",
+            "profissional",
+            "dtInicio",
+            "dtFim",
         ]
 
 

@@ -334,6 +334,29 @@ class Contrato(models.Model):
         return f"Contrato {self.cdContrato}"
 
 
+class AulaAvulsa(models.Model):
+    RECORRENCIA_CHOICES = [
+        ("SEMANAL", "Semanal"),
+        ("MENSAL", "Mensal"),
+    ]
+
+    cdAulaAvulsa = models.IntegerField(unique=True, db_index=True)
+    aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name="aulas_avulsas")
+    plano = models.ForeignKey(Plano, on_delete=models.PROTECT)
+    unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT)
+    profissional = models.ForeignKey(Profissional, on_delete=models.PROTECT)
+    recorrencia = models.CharField(max_length=10, choices=RECORRENCIA_CHOICES, default="SEMANAL")
+    quantidade = models.IntegerField(default=1)
+    valor_aula = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    valor_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    dtInicio = models.DateField()
+    dtFim = models.DateField()
+    dtCadastro = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Aula avulsa {self.cdAulaAvulsa}"
+
+
 class Fornecedor(models.Model):
     cdFornecedor = models.IntegerField(unique=True, db_index=True)
     dsFornecedor = models.CharField(max_length=120)
@@ -425,6 +448,7 @@ class Reserva(models.Model):
 
     aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT)
     aulaSessao = models.ForeignKey(AulaSessao, on_delete=models.PROTECT)
+    pacote_avulso = models.ForeignKey("AulaAvulsa", null=True, blank=True, on_delete=models.SET_NULL, related_name="reservas")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="RESERVADA")
     dtCadastro = models.DateTimeField(auto_now_add=True)
 
@@ -519,7 +543,8 @@ class ContasReceber(models.Model):
         ("CANCELADO", "CANCELADO"),
     ]
 
-    contrato = models.ForeignKey(Contrato, on_delete=models.PROTECT)
+    contrato = models.ForeignKey(Contrato, on_delete=models.PROTECT, null=True, blank=True)
+    reserva = models.ForeignKey("Reserva", on_delete=models.SET_NULL, null=True, blank=True, related_name="contas_receber")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="ABERTO")
     valor = models.DecimalField(max_digits=10, decimal_places=2)
     dtVencimento = models.DateField()
@@ -528,7 +553,11 @@ class ContasReceber(models.Model):
     dtCadastro = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"ContasReceber {self.contrato_id}"
+        if self.contrato_id:
+            return f"ContasReceber {self.contrato_id}"
+        if self.reserva_id:
+            return f"ContasReceber reserva {self.reserva_id}"
+        return f"ContasReceber {self.id}"
 
 
 class ContaBancaria(models.Model):

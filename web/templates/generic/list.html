@@ -132,6 +132,7 @@
             {% endif %}
             {% if model_name == 'contasreceber' %}
               <th>Cliente</th>
+              <th>Origem</th>
             {% endif %}
             {% if model_name == 'contrato' %}
               <th>Cliente</th>
@@ -150,7 +151,28 @@
                 <td>{{ obj.aulas_reservadas_count|default:0 }}</td>
               {% endif %}
               {% if model_name == 'contasreceber' %}
-                <td>{{ obj.contrato.cdAluno.dsNome|default:"-" }}</td>
+                <td>
+                  {% if obj.contrato %}
+                    {{ obj.contrato.cdAluno.dsNome|default:"-" }}
+                  {% elif obj.reserva %}
+                    {{ obj.reserva.aluno.dsNome|default:"-" }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  {% if obj.contrato %}
+                    Contrato #{{ obj.contrato.cdContrato }}
+                  {% elif obj.reserva %}
+                    {% if obj.reserva.pacote_avulso %}
+                      Aula avulsa #{{ obj.reserva.pacote_avulso.cdAulaAvulsa }}
+                    {% else %}
+                      Aula avulsa
+                    {% endif %}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
               {% endif %}
               {% if model_name == 'contrato' %}
                 <td>{{ obj.cdAluno.dsNome|default:"-" }}</td>

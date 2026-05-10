@@ -159,6 +159,39 @@ def _contrato_precificacao(plano, valor_aula=None):
     return recorrencia, valor_aula_decimal, valor_parcela, valor_total
 
 
+def _aula_avulsa_precificacao(plano, quantidade, valor_aula=None):
+    recorrencia = getattr(plano, "recorrencia", "SEMANAL") or "SEMANAL"
+    valor_plano = Decimal(str(getattr(plano, "valor", 0) or 0))
+    try:
+        quantidade = max(int(quantidade or 1), 1)
+    except (TypeError, ValueError):
+        quantidade = 1
+    try:
+        valor_base = Decimal(str(valor_aula)) if valor_aula not in (None, "") else valor_plano
+    except Exception:
+        valor_base = valor_plano
+    valor_total = valor_base * Decimal(str(quantidade))
+    return recorrencia, valor_base, valor_total, quantidade
+
+
+def _advance_recorrencia_date(base_date, recorrencia, idx):
+    if recorrencia == "MENSAL":
+        return _add_months(base_date, idx)
+    return base_date + timedelta(days=7 * idx)
+
+
+def _align_date_to_weekday(base_date, weekday):
+    delta = (weekday - base_date.weekday()) % 7
+    return base_date + timedelta(days=delta)
+
+
+def _competencia_avulsa(dt_value, recorrencia):
+    if recorrencia == "MENSAL":
+        return dt_value.strftime("%Y-%m")
+    iso_year, iso_week, _ = dt_value.isocalendar()
+    return f"{iso_year}-{iso_week:02d}"
+
+
 def _active_menu(path: str) -> str:
     if path.startswith("/cadastros/alunos") or path.startswith("/cadastros/profissionais"):
         return "pessoas"
@@ -525,9 +558,21 @@ def aluno_detail(request, pk):
     whatsapp_number = _format_whatsapp_number(telefones)
     contratos = models.Contrato.objects.filter(cdAluno=aluno).select_related("cdPlano", "cdUnidade")
     contrato_forms = {contrato.id: forms.ContratoForm(instance=contrato) for contrato in contratos}
+    aulas_avulsas = (
+        models.AulaAvulsa.objects.filter(aluno=aluno)
+        .select_related("plano", "unidade", "profissional")
+        .order_by("-dtCadastro")
+    )
     reservas = (
         models.Reserva.objects.filter(aluno=aluno)
-        .select_related("aulaSessao", "aulaSessao__profissional", "aulaSessao__unidade", "aulaSessao__tipoServico")
+        .select_related(
+            "aulaSessao",
+            "aulaSessao__profissional",
+            "aulaSessao__unidade",
+            "aulaSessao__tipoServico",
+            "pacote_avulso",
+            "pacote_avulso__plano",
+        )
         .order_by("aulaSessao__data", "aulaSessao__horaInicio")
     )
     reserva_forms = {reserva.id: forms.ReservaForm(instance=reserva) for reserva in reservas}
@@ -543,16 +588,33 @@ def aluno_detail(request, pk):
         .order_by("-dtAvaliacao")
     )
     contas_receber = _filtrar_contas_receber(
-        models.ContasReceber.objects.filter(contrato__cdAluno=aluno).select_related("contrato"),
+        models.ContasReceber.objects.filter(
+            Q(contrato__cdAluno=aluno) | Q(reserva__aluno=aluno)
+        ).select_related(
+            "contrato",
+            "contrato__cdPlano",
+            "contrato__cdPlano__subcategoria_receita",
+            "reserva",
+            "reserva__pacote_avulso",
+            "reserva__pacote_avulso__plano",
+        ),
         request,
     )
-    planos = models.Plano.objects.select_related("cdTipoServico").all()
+    planos = models.Plano.objects.select_related("cdTipoServico").filter(is_avulso=False)
+    planos_avulsos = models.Plano.objects.select_related("cdTipoServico").filter(is_avulso=True)
     unidades = models.Unidade.objects.all()
     profissionais = models.Profissional.objects.all()
     whatsapp_messages = aluno.whatsapp_messages.select_related("contrato").all()
     whatsapp_form = forms.WhatsappMessageForm()
     documentos = aluno.documentos.select_related("contrato").all()
     documento_form = forms.AlunoDocumentoForm()
+    aula_avulsa_form = forms.AulaAvulsaForm(
+        initial={
+            "unidade": aluno.cdUnidade_id,
+            "dtInicio": timezone.localdate(),
+            "quantidade": 1,
+        }
+    )
     context = {
         "aluno": aluno,
         "endereco": endereco,
@@ -560,6 +622,8 @@ def aluno_detail(request, pk):
         "whatsapp_number": whatsapp_number,
         "contratos": contratos,
         "contrato_forms": contrato_forms,
+        "aulas_avulsas": aulas_avulsas,
+        "aula_avulsa_form": aula_avulsa_form,
         "reservas": reservas,
         "reserva_forms": reserva_forms,
         "reserva_slots": reserva_slots,
@@ -570,6 +634,7 @@ def aluno_detail(request, pk):
         "today": timezone.now().date().strftime("%Y-%m-%d"),
         "today_date": timezone.now().date(),
         "planos": planos,
+        "planos_avulsos": planos_avulsos,
         "unidades": unidades,
         "profissionais": profissionais,
         "whatsapp_messages": whatsapp_messages,
@@ -680,6 +745,276 @@ def aluno_documento_delete(request, pk):
     documento.delete()
     messages.success(request, "Documento removido.")
     return redirect(f"{reverse('alunos_detail', args=[aluno_id])}?tab=documentos")
+
+
+@login_required
+@require_POST
+def aluno_aula_avulsa_create(request, aluno_id):
+    aluno = get_object_or_404(models.Aluno, pk=aluno_id)
+    data = request.POST.copy()
+    data = _inject_cd_value(models.AulaAvulsa, data)
+    data["aluno"] = aluno.pk
+    plano_id = data.get("plano")
+    plano = models.Plano.objects.filter(pk=plano_id, is_avulso=True).first() if plano_id else None
+    if not plano:
+        messages.error(request, "Selecione um plano de aula avulsa valido.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=agenda")
+    quantidade_raw = data.get("quantidade") or 1
+    valor_aula_input = data.get("valor_aula")
+    recorrencia, valor_aula, valor_total, quantidade = _aula_avulsa_precificacao(plano, quantidade_raw, valor_aula_input)
+    dt_inicio_raw = data.get("dtInicio") or timezone.now().date().strftime("%Y-%m-%d")
+    try:
+        dt_inicio = datetime.strptime(dt_inicio_raw, "%Y-%m-%d").date()
+    except ValueError:
+        dt_inicio = timezone.now().date()
+    if recorrencia == "MENSAL":
+        dt_fim = _add_months(dt_inicio, quantidade)
+    else:
+        dt_fim = dt_inicio + timedelta(days=7 * quantidade)
+    data.update(
+        {
+            "recorrencia": recorrencia,
+            "quantidade": quantidade,
+            "valor_aula": valor_aula,
+            "valor_total": valor_total,
+            "dtInicio": dt_inicio,
+            "dtFim": dt_fim,
+        }
+    )
+    form = forms.AulaAvulsaForm(data)
+    if not form.is_valid():
+        messages.error(request, "Nao foi possivel criar a aula avulsa. Verifique os campos.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=agenda")
+    pacote = form.save()
+    return redirect("alunos_aula_avulsa_agenda", aluno_id=aluno.pk, pk=pacote.pk)
+
+
+@login_required
+def aluno_aula_avulsa_agenda(request, aluno_id, pk):
+    pacote = get_object_or_404(
+        models.AulaAvulsa.objects.select_related("aluno", "plano", "unidade", "profissional"),
+        pk=pk,
+        aluno_id=aluno_id,
+    )
+    plano = pacote.plano
+    quantidade = max(pacote.quantidade or 1, 1)
+    agenda_fim = pacote.dtFim
+    aulas = models.AulaSessao.objects.filter(
+        unidade=pacote.unidade,
+        tipoServico=plano.cdTipoServico,
+        data__range=(pacote.dtInicio, agenda_fim),
+    ).select_related("unidade").order_by("data", "horaInicio")
+
+    profissionais = list(models.Profissional.objects.all())
+    duracao = pacote.unidade.duracao_aula_minutos or 50
+    funcionamento = _load_funcionamento(pacote.unidade_id, plano.cdTipoServico_id)
+    horarios_configurados = bool(funcionamento)
+
+    slots = {}
+    aulas_by_key = {(aula.data, aula.horaInicio, aula.horaFim, aula.profissional_id): aula for aula in aulas}
+    capacidade_padrao = pacote.unidade.capacidade or 0
+
+    dates_by_weekday = {i: [] for i in range(7)}
+    current = pacote.dtInicio
+    while current <= agenda_fim:
+        dates_by_weekday[current.weekday()].append(current)
+        current += timedelta(days=1)
+
+    blocks_by_prof = {}
+    for prof in profissionais:
+        blocks_by_prof[prof.id] = _load_bloqueios(
+            pacote.unidade_id,
+            plano.cdTipoServico_id,
+            prof.id,
+            pacote.dtInicio,
+            agenda_fim,
+        )
+
+    for weekday, windows in funcionamento.items():
+        if not dates_by_weekday.get(weekday):
+            continue
+        sample_date = dates_by_weekday[weekday][0]
+        time_slots = _generate_slots_for_date(sample_date, windows, duracao)
+        for inicio, fim in time_slots:
+            allowed_profs = []
+            for prof in profissionais:
+                prof_ok = True
+                blocks = blocks_by_prof.get(prof.id, [])
+                for day in dates_by_weekday[weekday]:
+                    if _is_slot_blocked(blocks, day, inicio, fim):
+                        prof_ok = False
+                        break
+                    aula = aulas_by_key.get((day, inicio, fim, prof.id))
+                    if aula:
+                        reservadas = models.Reserva.objects.filter(aulaSessao=aula, status="RESERVADA").count()
+                        cap = aula.capacidade_efetiva()
+                    else:
+                        reservadas = 0
+                        cap = capacidade_padrao
+                    if reservadas >= (cap or 0):
+                        prof_ok = False
+                        break
+                if prof_ok:
+                    allowed_profs.append(prof.id)
+            if allowed_profs:
+                slots[(weekday, inicio, fim)] = {
+                    "weekday": weekday,
+                    "inicio": inicio,
+                    "fim": fim,
+                    "allowed_profs": allowed_profs,
+                }
+
+    if not slots and not horarios_configurados:
+        slots = {}
+        for aula in aulas:
+            reservadas = models.Reserva.objects.filter(aulaSessao=aula, status="RESERVADA").count()
+            if reservadas >= aula.capacidade_efetiva():
+                continue
+            key = (aula.data.weekday(), aula.horaInicio, aula.horaFim)
+            slots[key] = {"weekday": key[0], "inicio": key[1], "fim": key[2], "allowed_profs": []}
+
+    if request.method == "POST":
+        slot_value = request.POST.get("slot_1") or ""
+        dia_raw = request.POST.get("slot_day_1") or ""
+        prof_id = request.POST.get("prof_for_1") or ""
+        if not slot_value:
+            messages.error(request, "Selecione um horario para a aula avulsa.")
+            return redirect("alunos_aula_avulsa_agenda", aluno_id=aluno.pk, pk=pacote.pk)
+        try:
+            weekday_raw, inicio, fim = slot_value.split("|")
+            weekday = int(weekday_raw)
+            inicio_time = datetime.strptime(inicio, "%H:%M").time()
+            fim_time = datetime.strptime(fim, "%H:%M").time()
+        except ValueError:
+            messages.error(request, "Horario invalido na selecao.")
+            return redirect("alunos_aula_avulsa_agenda", aluno_id=aluno.pk, pk=pacote.pk)
+        if dia_raw:
+            try:
+                dia_selected = int(dia_raw)
+            except ValueError:
+                messages.error(request, "Dia da semana invalido.")
+                return redirect("alunos_aula_avulsa_agenda", aluno_id=aluno.pk, pk=pacote.pk)
+            if dia_selected != weekday:
+                messages.error(request, "Dia e horario nao conferem.")
+                return redirect("alunos_aula_avulsa_agenda", aluno_id=aluno.pk, pk=pacote.pk)
+        try:
+            prof_id = int(prof_id)
+        except ValueError:
+            prof_id = None
+        if not prof_id:
+            messages.error(request, "Selecione o professor.")
+            return redirect("alunos_aula_avulsa_agenda", aluno_id=aluno.pk, pk=pacote.pk)
+        horario_key = (weekday, inicio_time, fim_time)
+        if horario_key not in slots:
+            messages.error(request, "Horario invalido para o dia selecionado.")
+            return redirect("alunos_aula_avulsa_agenda", aluno_id=aluno.pk, pk=pacote.pk)
+        slot_payload = slots.get(horario_key, {})
+        allowed = set(slot_payload.get("allowed_profs") or [])
+        if allowed and prof_id not in allowed:
+            messages.error(request, "Professor invalido para o horario selecionado.")
+            return redirect("alunos_aula_avulsa_agenda", aluno_id=aluno.pk, pk=pacote.pk)
+
+        conflitos = []
+        primeira_data = _align_date_to_weekday(pacote.dtInicio, weekday)
+        for idx in range(quantidade):
+            target_date = _advance_recorrencia_date(primeira_data, pacote.recorrencia, idx)
+            if target_date > agenda_fim:
+                conflitos.append(f"Fora do periodo em {target_date} {inicio}")
+                continue
+            blocks = blocks_by_prof.get(prof_id, [])
+            if _is_slot_blocked(blocks, target_date, inicio_time, fim_time):
+                conflitos.append(f"Bloqueio em {target_date} {inicio}")
+                continue
+            aula = models.AulaSessao.objects.filter(
+                unidade=pacote.unidade,
+                tipoServico=plano.cdTipoServico,
+                profissional_id=prof_id,
+                data=target_date,
+                horaInicio=inicio_time,
+                horaFim=fim_time,
+            ).first()
+            try:
+                if not aula:
+                    aula = models.AulaSessao.objects.create(
+                        unidade=pacote.unidade,
+                        tipoServico=plano.cdTipoServico,
+                        profissional_id=prof_id,
+                        data=target_date,
+                        horaInicio=inicio_time,
+                        horaFim=fim_time,
+                    )
+                else:
+                    aula.profissional_id = prof_id
+                    aula.save(update_fields=["profissional"])
+                if models.Reserva.objects.filter(aluno=pacote.aluno, aulaSessao=aula).exists():
+                    continue
+                reserva = services.create_reserva(pacote.aluno, aula, status="RESERVADA", pacote_avulso=pacote)
+                if not models.ContasReceber.objects.filter(reserva=reserva).exists():
+                    max_cd = models.ContasReceber.objects.order_by("-id").values_list("id", flat=True).first() or 0
+                    models.ContasReceber.objects.create(
+                        contrato=None,
+                        reserva=reserva,
+                        status="ABERTO",
+                        valor=pacote.valor_aula or 0,
+                        dtVencimento=target_date,
+                        competencia=_competencia_avulsa(target_date, pacote.recorrencia),
+                    )
+            except Exception:
+                conflitos.append(f"Sem vaga em {target_date} {inicio}")
+        if conflitos:
+            messages.warning(request, "Conflitos ao reservar: " + "; ".join(conflitos[:5]))
+        else:
+            messages.success(request, "Aulas avulsas agendadas com sucesso.")
+            return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=agenda")
+
+    weekday_labels = {
+        0: "Segunda",
+        1: "Terca",
+        2: "Quarta",
+        3: "Quinta",
+        4: "Sexta",
+        5: "Sabado",
+        6: "Domingo",
+    }
+    slots_by_day = {key: [] for key in weekday_labels}
+    seen_slots = set()
+    for item in sorted(slots.values(), key=lambda x: (x["weekday"], x["inicio"])):
+        key = (item["weekday"], item["inicio"], item["fim"])
+        if key in seen_slots:
+            continue
+        seen_slots.add(key)
+        slots_by_day[item["weekday"]].append(
+            {
+                "label": f'{item["inicio"].strftime("%H:%M")} - {item["fim"].strftime("%H:%M")}',
+                "value": f'{item["weekday"]}|{item["inicio"].strftime("%H:%M")}|{item["fim"].strftime("%H:%M")}',
+                "allowed_profs": ",".join([str(pid) for pid in (item.get("allowed_profs") or [])]),
+            }
+        )
+
+    slot_options = [
+        {
+            "label": f'{weekday_labels[item["weekday"]]} {item["inicio"].strftime("%H:%M")} - {item["fim"].strftime("%H:%M")}',
+            "value": f'{item["weekday"]}|{item["inicio"].strftime("%H:%M")}|{item["fim"].strftime("%H:%M")}',
+            "allowed_profs": item.get("allowed_profs") or [],
+        }
+        for item in sorted(slots.values(), key=lambda x: (x["weekday"], x["inicio"]))
+    ]
+
+    context = {
+        "pacote": pacote,
+        "aluno": pacote.aluno,
+        "aulas_por_semana": 1,
+        "agenda_semanas": quantidade if pacote.recorrencia == "SEMANAL" else None,
+        "slot_indices": [1],
+        "slots_by_day": slots_by_day,
+        "weekday_labels": weekday_labels,
+        "slot_options": slot_options,
+        "profissionais": profissionais,
+        "horarios_configurados": horarios_configurados,
+        "breadcrumbs": [("Home", reverse("dashboard")), ("Alunos", reverse("alunos_list")), ("Aula Avulsa", "#")],
+        "active_menu": "cadastros",
+    }
+    return render(request, "alunos/aula_avulsa_agenda.html", context)
 
 
 @login_required
@@ -1317,7 +1652,16 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         order = "dsNome"
     qs = model.objects.all()
     if model is models.ContasReceber:
-        qs = qs.select_related("contrato", "contrato__cdAluno")
+        qs = qs.select_related(
+            "contrato",
+            "contrato__cdAluno",
+            "contrato__cdPlano",
+            "contrato__cdPlano__subcategoria_receita",
+            "reserva",
+            "reserva__aluno",
+            "reserva__pacote_avulso",
+            "reserva__pacote_avulso__plano",
+        )
     if model is models.Contrato:
         qs = qs.select_related("cdAluno", "cdPlano", "cdUnidade")
     if model is models.Aluno:
@@ -1363,6 +1707,14 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
             {"name": "dsRg", "label": "RG"},
             {"name": "telefone", "label": "Telefone"},
             {"name": "status", "label": "Status"},
+        ]
+    if model is models.ContasReceber:
+        display_fields = [
+            {"name": "competencia", "label": "Competencia"},
+            {"name": "dtVencimento", "label": "Vencimento"},
+            {"name": "dtPagamento", "label": "Pagamento"},
+            {"name": "status", "label": "Status"},
+            {"name": "valor", "label": "Valor"},
         ]
     if model is models.Plano:
         display_fields = [
@@ -1410,7 +1762,7 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         context.update(
             {
                 "alunos": models.Aluno.objects.all(),
-                "planos": models.Plano.objects.all(),
+                "planos": models.Plano.objects.filter(is_avulso=False),
                 "unidades": models.Unidade.objects.all(),
                 "profissionais": models.Profissional.objects.all(),
             }
@@ -3904,7 +4256,16 @@ def aluno_reservas_delete_bulk(request, aluno_id):
 
 @login_required
 def baixar_conta_receber(request, pk):
-    conta = get_object_or_404(models.ContasReceber.objects.select_related("contrato__cdAluno"), pk=pk)
+    conta = get_object_or_404(
+        models.ContasReceber.objects.select_related(
+            "contrato",
+            "contrato__cdAluno",
+            "reserva",
+            "reserva__aluno",
+            "reserva__pacote_avulso",
+        ),
+        pk=pk,
+    )
     if request.method not in {"GET", "POST"}:
         return redirect("contas_receber_list")
     next_url = request.POST.get("next", "").strip() if request.method == "POST" else request.GET.get("next", "").strip()
@@ -3923,22 +4284,32 @@ def baixar_conta_receber(request, pk):
     conta.dtPagamento = pago_em
     conta.save(update_fields=["status", "dtPagamento"])
     messages.success(request, "Lancamento baixado com sucesso.")
-    fallback = f"{reverse('alunos_detail', args=[conta.contrato.cdAluno_id])}?tab=financeiro"
+    aluno = _conta_receber_aluno(conta)
+    fallback = f"{reverse('alunos_detail', args=[aluno.pk])}?tab=financeiro" if aluno else "contas_receber_list"
     return redirect(next_url or fallback)
 
 
 @login_required
 def excluir_conta_receber(request, pk):
-    conta = get_object_or_404(models.ContasReceber.objects.select_related("contrato__cdAluno"), pk=pk)
+    conta = get_object_or_404(
+        models.ContasReceber.objects.select_related(
+            "contrato",
+            "contrato__cdAluno",
+            "reserva",
+            "reserva__aluno",
+            "reserva__pacote_avulso",
+        ),
+        pk=pk,
+    )
     if request.method not in {"GET", "POST"}:
         return redirect("contas_receber_list")
     next_url = request.POST.get("next", "").strip() if request.method == "POST" else request.GET.get("next", "").strip()
     if next_url and not next_url.startswith("/"):
         next_url = ""
-    aluno_id = conta.contrato.cdAluno_id if conta.contrato_id else None
+    aluno = _conta_receber_aluno(conta)
     conta.delete()
     messages.success(request, "Lancamento excluido com sucesso.")
-    fallback = f"{reverse('alunos_detail', args=[aluno_id])}?tab=financeiro" if aluno_id else "contas_receber_list"
+    fallback = f"{reverse('alunos_detail', args=[aluno.pk])}?tab=financeiro" if aluno else "contas_receber_list"
     return redirect(next_url or fallback)
 
 
@@ -4040,14 +4411,36 @@ def _filtrar_contas_receber(qs, request):
     return qs.order_by("dtVencimento", "id")
 
 
+def _conta_receber_aluno(conta):
+    if getattr(conta, "contrato_id", None) and getattr(conta.contrato, "cdAluno_id", None):
+        return conta.contrato.cdAluno
+    if getattr(conta, "reserva_id", None) and getattr(conta.reserva, "aluno_id", None):
+        return conta.reserva.aluno
+    return None
+
+
+def _conta_receber_origem(conta):
+    if getattr(conta, "contrato_id", None):
+        return f"Contrato #{conta.contrato.cdContrato}"
+    if getattr(conta, "reserva_id", None):
+        pacote = getattr(conta.reserva, "pacote_avulso", None)
+        if pacote:
+            return f"Aula avulsa #{pacote.cdAulaAvulsa}"
+        return "Aula avulsa"
+    return "-"
+
+
 @login_required
 def exportar_contas_receber_excel(request, aluno_id):
     aluno = get_object_or_404(models.Aluno, pk=aluno_id)
     qs = _filtrar_contas_receber(
-        models.ContasReceber.objects.filter(contrato__cdAluno=aluno).select_related(
+        models.ContasReceber.objects.filter(Q(contrato__cdAluno=aluno) | Q(reserva__aluno=aluno)).select_related(
             "contrato",
             "contrato__cdPlano",
             "contrato__cdPlano__subcategoria_receita",
+            "reserva",
+            "reserva__pacote_avulso",
+            "reserva__pacote_avulso__plano",
         ),
         request,
     )
@@ -4056,15 +4449,20 @@ def exportar_contas_receber_excel(request, aluno_id):
     wb = Workbook()
     ws = wb.active
     ws.title = "Faturas"
-    ws.append(["Competencia", "Vencimento", "Pagamento", "Contrato", "Subcategoria", "Status", "Valor"])
+    ws.append(["Competencia", "Vencimento", "Pagamento", "Origem", "Subcategoria", "Status", "Valor"])
     for f in qs:
+        subcategoria = ""
+        if f.contrato_id and f.contrato.cdPlano and f.contrato.cdPlano.subcategoria_receita:
+            subcategoria = f.contrato.cdPlano.subcategoria_receita.dsSubcategoria
+        elif f.reserva_id and f.reserva.pacote_avulso and f.reserva.pacote_avulso.plano and f.reserva.pacote_avulso.plano.subcategoria_receita:
+            subcategoria = f.reserva.pacote_avulso.plano.subcategoria_receita.dsSubcategoria
         ws.append(
             [
                 f.competencia or "",
                 f.dtVencimento.strftime("%d/%m/%Y") if f.dtVencimento else "",
                 f.dtPagamento.strftime("%d/%m/%Y") if f.dtPagamento else "",
-                f.contrato.cdContrato if f.contrato_id else "",
-                f.contrato.cdPlano.subcategoria_receita.dsSubcategoria if f.contrato_id and f.contrato.cdPlano and f.contrato.cdPlano.subcategoria_receita else "",
+                _conta_receber_origem(f),
+                subcategoria,
                 f.status,
                 float(f.valor),
             ]
@@ -4084,10 +4482,13 @@ def exportar_contas_receber_excel(request, aluno_id):
 def exportar_contas_receber_pdf(request, aluno_id):
     aluno = get_object_or_404(models.Aluno, pk=aluno_id)
     qs = _filtrar_contas_receber(
-        models.ContasReceber.objects.filter(contrato__cdAluno=aluno).select_related(
+        models.ContasReceber.objects.filter(Q(contrato__cdAluno=aluno) | Q(reserva__aluno=aluno)).select_related(
             "contrato",
             "contrato__cdPlano",
             "contrato__cdPlano__subcategoria_receita",
+            "reserva",
+            "reserva__pacote_avulso",
+            "reserva__pacote_avulso__plano",
         ),
         request,
     )
@@ -4101,15 +4502,20 @@ def exportar_contas_receber_pdf(request, aluno_id):
     styles = getSampleStyleSheet()
     title = Paragraph(f"Faturas do aluno: {aluno.dsNome}", styles["Title"])
     subtitle = Paragraph("Resumo financeiro", styles["Normal"])
-    data = [["Competencia", "Vencimento", "Pagamento", "Contrato", "Subcategoria", "Status", "Valor"]]
+    data = [["Competencia", "Vencimento", "Pagamento", "Origem", "Subcategoria", "Status", "Valor"]]
     for f in qs:
+        subcategoria = ""
+        if f.contrato_id and f.contrato.cdPlano and f.contrato.cdPlano.subcategoria_receita:
+            subcategoria = f.contrato.cdPlano.subcategoria_receita.dsSubcategoria
+        elif f.reserva_id and f.reserva.pacote_avulso and f.reserva.pacote_avulso.plano and f.reserva.pacote_avulso.plano.subcategoria_receita:
+            subcategoria = f.reserva.pacote_avulso.plano.subcategoria_receita.dsSubcategoria
         data.append(
             [
                 f.competencia or "-",
                 f.dtVencimento.strftime("%d/%m/%Y") if f.dtVencimento else "-",
                 f.dtPagamento.strftime("%d/%m/%Y") if f.dtPagamento else "-",
-                str(f.contrato.cdContrato) if f.contrato_id else "-",
-                f.contrato.cdPlano.subcategoria_receita.dsSubcategoria if f.contrato_id and f.contrato.cdPlano and f.contrato.cdPlano.subcategoria_receita else "-",
+                _conta_receber_origem(f),
+                subcategoria or "-",
                 f.status,
                 f"R$ {f.valor}",
             ]
@@ -4138,8 +4544,17 @@ def exportar_contas_receber_pdf(request, aluno_id):
 
 @login_required
 def recibo_conta_receber_pdf(request, pk):
-    conta = get_object_or_404(models.ContasReceber, pk=pk)
-    aluno = conta.contrato.cdAluno if conta.contrato_id else None
+    conta = get_object_or_404(
+        models.ContasReceber.objects.select_related(
+            "contrato",
+            "contrato__cdAluno",
+            "reserva",
+            "reserva__aluno",
+            "reserva__pacote_avulso",
+        ),
+        pk=pk,
+    )
+    aluno = _conta_receber_aluno(conta)
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet
@@ -4153,7 +4568,7 @@ def recibo_conta_receber_pdf(request, pk):
     pago_em = conta.dtPagamento.strftime("%d/%m/%Y") if conta.dtPagamento else "-"
     data = [
         ["Aluno", aluno_nome],
-        ["Contrato", str(conta.contrato.cdContrato) if conta.contrato_id else "-"],
+        ["Origem", _conta_receber_origem(conta)],
         ["Competencia", conta.competencia or "-"],
         ["Vencimento", conta.dtVencimento.strftime("%d/%m/%Y") if conta.dtVencimento else "-"],
         ["Pagamento", pago_em],

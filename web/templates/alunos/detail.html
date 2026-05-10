@@ -407,18 +407,54 @@
 
               <div class="fw-semibold">Aulas do aluno</div>
 
-              {% if reservas %}
-                <button
-                  class="btn btn-sm btn-outline-danger"
-                  type="submit"
-                  form="bulkDeleteReservasForm"
-                  onclick="return confirm('Excluir as aulas selecionadas?');"
-                >
-                  Excluir selecionadas
+              <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#novaAulaAvulsa">
+                  + Aula Avulsa
                 </button>
-              {% endif %}
+                {% if reservas %}
+                  <button
+                    class="btn btn-sm btn-outline-danger"
+                    type="submit"
+                    form="bulkDeleteReservasForm"
+                    onclick="return confirm('Excluir as aulas selecionadas?');"
+                  >
+                    Excluir selecionadas
+                  </button>
+                {% endif %}
+              </div>
 
             </div>
+
+            {% if aulas_avulsas %}
+              <div class="row g-3 mb-3">
+                {% for pacote in aulas_avulsas %}
+                  <div class="col-md-6">
+                    <div class="border rounded-4 p-3 h-100">
+                      <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                          <div class="fw-semibold">{{ pacote.plano.dsPlano }}</div>
+                          <div class="small text-muted">Criado em {{ pacote.dtCadastro|date:"d/m/Y H:i" }}</div>
+                        </div>
+                        <span class="badge bg-primary">{{ pacote.get_recorrencia_display }}</span>
+                      </div>
+                      <div class="small text-muted mb-2">
+                        {{ pacote.quantidade }} aula(s) | Unidade {{ pacote.unidade }} | Professor {{ pacote.profissional }}
+                      </div>
+                      <div class="small text-muted mb-3">
+                        Valor por aula: R$ {{ pacote.valor_aula|floatformat:2 }}<br />
+                        Total: R$ {{ pacote.valor_total|floatformat:2 }}<br />
+                        Período: {{ pacote.dtInicio|date:"d/m/Y" }} a {{ pacote.dtFim|date:"d/m/Y" }}
+                      </div>
+                      <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'alunos_aula_avulsa_agenda' aluno.id pacote.id %}">Agendar aulas</a>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-muted mb-3">Nenhuma aula avulsa cadastrada ainda.</div>
+            {% endif %}
 
             {% if reservas %}
 
@@ -507,6 +543,84 @@
 
           </div>
 
+          <div class="modal fade" id="novaAulaAvulsa" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <div>
+                    <h5 class="modal-title">Nova aula avulsa</h5>
+                    <div class="small text-muted">Escolha o plano, a quantidade e depois confirme a agenda.</div>
+                  </div>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <form class="modal-form js-aula-avulsa-form" method="post" action="{% url 'alunos_aula_avulsa_create' aluno.id %}">
+                    {% csrf_token %}
+                    <div class="alert alert-info py-2 small">
+                      O valor total e o periodo final sao calculados automaticamente.
+                    </div>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Plano avulso</label>
+                        <select class="form-select js-avulsa-plano" name="plano" required>
+                          <option value="">Selecione</option>
+                          {% for plano in planos_avulsos %}
+                            <option value="{{ plano.id }}" data-recorrencia="{{ plano.recorrencia }}" data-valor="{{ plano.valor }}">{{ plano.dsPlano }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label">Quantidade</label>
+                        <input class="form-control js-avulsa-quantidade" type="number" name="quantidade" min="1" value="1" required />
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label">Recorrencia</label>
+                        <input class="form-control js-avulsa-recorrencia" type="text" name="recorrencia" readonly />
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label">Valor por aula</label>
+                        <input class="form-control js-avulsa-valor-aula" type="text" name="valor_aula" inputmode="decimal" placeholder="0,00" />
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Unidade</label>
+                        <select class="form-select js-avulsa-unidade" name="unidade" required>
+                          {% for unidade in unidades %}
+                            <option value="{{ unidade.id }}" {% if unidade.id == aluno.cdUnidade_id %}selected{% endif %}>{{ unidade.dsUnidade }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Profissional</label>
+                        <select class="form-select js-avulsa-profissional" name="profissional" required>
+                          <option value="">Selecione</option>
+                          {% for prof in profissionais %}
+                            <option value="{{ prof.id }}">{{ prof.profissional }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Inicio</label>
+                        <input class="form-control js-avulsa-inicio" type="date" name="dtInicio" value="{{ today_date|date:'Y-m-d' }}" required />
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Fim</label>
+                        <input class="form-control js-avulsa-fim" type="date" name="dtFim" readonly />
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Valor total</label>
+                        <input class="form-control js-avulsa-valor-total" type="text" name="valor_total" readonly />
+                      </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-3">
+                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <button class="btn btn-primary" type="submit">Salvar e agendar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {% if can_view_financeiro %}
           <div class="tab-pane fade" id="tab-financeiro" role="tabpanel">
 
@@ -516,9 +630,9 @@
 
               <div class="d-flex gap-2">
 
-                <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_excel' aluno.id %}-{{ request.GET.urlencode }}">Exportar Excel</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_excel' aluno.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">Exportar Excel</a>
 
-                <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_pdf' aluno.id %}-{{ request.GET.urlencode }}">Exportar PDF</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_pdf' aluno.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">Exportar PDF</a>
 
               </div>
 
@@ -586,7 +700,7 @@
 
                       <th>Pagamento</th>
 
-                      <th>Contrato</th>
+                      <th>Origem</th>
 
                       <th>Status</th>
 
@@ -610,7 +724,19 @@
 
                         <td>{{ f.dtPagamento|date:"d/m/Y"|default:"-" }}</td>
 
-                        <td>{{ f.contrato.cdContrato }}</td>
+                        <td>
+                          {% if f.contrato %}
+                            Contrato #{{ f.contrato.cdContrato }}
+                          {% elif f.reserva %}
+                            {% if f.reserva.pacote_avulso %}
+                              Aula avulsa #{{ f.reserva.pacote_avulso.cdAulaAvulsa }}
+                            {% else %}
+                              Aula avulsa
+                            {% endif %}
+                          {% else %}
+                            -
+                          {% endif %}
+                        </td>
 
                         <td>{{ f.status }}</td>
 
