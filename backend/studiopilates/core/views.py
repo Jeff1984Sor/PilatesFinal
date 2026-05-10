@@ -861,15 +861,16 @@ def aluno_aula_avulsa_agenda(request, aluno_id, pk):
     agenda_fim = pacote.dtFim
     aulas = models.AulaSessao.objects.filter(
         unidade=pacote.unidade,
+        tipoServico=plano.cdTipoServico,
         data__range=(pacote.dtInicio, agenda_fim),
-    ).select_related("unidade", "tipoServico").order_by("data", "horaInicio", "tipoServico_id")
+    ).select_related("unidade", "tipoServico").order_by("data", "horaInicio")
 
     profissionais = list(models.Profissional.objects.all())
     duracao = pacote.unidade.duracao_aula_minutos or 50
     funcionamento, horarios_configurados = _load_horarios_ativos(pacote.unidade_id)
 
     slots = {}
-    aulas_by_key = {(aula.data, aula.horaInicio, aula.horaFim, aula.profissional_id): aula for aula in aulas}
+    aulas_by_key = {(aula.data, aula.horaInicio, aula.horaFim, aula.profissional_id, aula.tipoServico_id): aula for aula in aulas}
     capacidade_padrao = pacote.unidade.capacidade or 0
 
     dates_by_weekday = {i: [] for i in range(7)}
@@ -902,7 +903,7 @@ def aluno_aula_avulsa_agenda(request, aluno_id, pk):
                     if _is_slot_blocked(blocks, day, inicio, fim):
                         prof_ok = False
                         break
-                    aula = aulas_by_key.get((day, inicio, fim, prof.id))
+                    aula = aulas_by_key.get((day, inicio, fim, prof.id, plano.cdTipoServico_id))
                     if aula:
                         reservadas = models.Reserva.objects.filter(aulaSessao=aula, status="RESERVADA").count()
                         cap = aula.capacidade_efetiva()
@@ -985,6 +986,7 @@ def aluno_aula_avulsa_agenda(request, aluno_id, pk):
                 continue
             aula = models.AulaSessao.objects.filter(
                 unidade=pacote.unidade,
+                tipoServico=plano.cdTipoServico,
                 profissional_id=prof_id,
                 data=target_date,
                 horaInicio=inicio_time,
@@ -4946,8 +4948,9 @@ def contrato_agenda(request, pk):
         agenda_fim = min(agenda_fim, contrato.dtInicioContrato + timedelta(days=27))
     aulas = models.AulaSessao.objects.filter(
         unidade=contrato.cdUnidade,
+        tipoServico=plano.cdTipoServico,
         data__range=(contrato.dtInicioContrato, agenda_fim),
-    ).select_related("unidade", "tipoServico").order_by("data", "horaInicio", "tipoServico_id")
+    ).select_related("unidade", "tipoServico").order_by("data", "horaInicio")
 
     profissionais = list(models.Profissional.objects.all())
     prof_ids = [prof.id for prof in profissionais]
@@ -4955,7 +4958,7 @@ def contrato_agenda(request, pk):
     funcionamento, horarios_configurados = _load_horarios_ativos(contrato.cdUnidade_id)
 
     slots = {}
-    aulas_by_key = {(aula.data, aula.horaInicio, aula.horaFim, aula.profissional_id): aula for aula in aulas}
+    aulas_by_key = {(aula.data, aula.horaInicio, aula.horaFim, aula.profissional_id, aula.tipoServico_id): aula for aula in aulas}
     capacidade_padrao = contrato.cdUnidade.capacidade or 0
 
     dates_by_weekday = {i: [] for i in range(7)}
@@ -4988,7 +4991,7 @@ def contrato_agenda(request, pk):
                     if _is_slot_blocked(blocks, day, inicio, fim):
                         prof_ok = False
                         break
-                    aula = aulas_by_key.get((day, inicio, fim, prof.id))
+                    aula = aulas_by_key.get((day, inicio, fim, prof.id, plano.cdTipoServico_id))
                     if aula:
                         reservadas = models.Reserva.objects.filter(aulaSessao=aula, status="RESERVADA").count()
                         cap = aula.capacidade_efetiva()
@@ -5089,6 +5092,7 @@ def contrato_agenda(request, pk):
                             continue
                         aula = models.AulaSessao.objects.filter(
                             unidade=contrato.cdUnidade,
+                            tipoServico=plano.cdTipoServico,
                             profissional_id=prof_id,
                             data=current,
                             horaInicio=inicio_time,
