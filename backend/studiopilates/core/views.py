@@ -859,6 +859,7 @@ def aluno_aula_avulsa_agenda(request, aluno_id, pk):
         pk=pk,
         aluno_id=aluno_id,
     )
+    aluno = pacote.aluno
     plano = pacote.plano
     quantidade = max(pacote.quantidade or 1, 1)
     agenda_fim = pacote.dtFim
