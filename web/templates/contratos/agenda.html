@@ -14,13 +14,21 @@
 <div class="card shadow-sm">
   <div class="card-body">
     <div class="alert alert-info">
-      Selecione exatamente <strong>{{ aulas_por_semana }}</strong> horarios por semana para travar a agenda durante todo o contrato.
+      {% if agenda_semanas %}
+        Selecione exatamente <strong>{{ aulas_por_semana }}</strong> horario por semana para travar a agenda nas <strong>{{ agenda_semanas }}</strong> proximas semanas.
+      {% else %}
+        Selecione exatamente <strong>{{ aulas_por_semana }}</strong> horarios por semana para travar a agenda durante todo o contrato.
+      {% endif %}
     </div>
 
     <form method="post">
       {% csrf_token %}
       <div class="alert alert-info">
-        Selecione <strong>{{ aulas_por_semana }}</strong> dia(s) e horario(s) por semana.
+        {% if agenda_semanas %}
+          Selecione <strong>1</strong> dia e horario por semana. O sistema vai repetir a reserva por <strong>4 semanas</strong>.
+        {% else %}
+          Selecione <strong>{{ aulas_por_semana }}</strong> dia(s) e horario(s) por semana.
+        {% endif %}
       </div>
       {% if not horarios_configurados %}
         <div class="alert alert-warning mb-3">

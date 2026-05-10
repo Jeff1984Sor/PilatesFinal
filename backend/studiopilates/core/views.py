@@ -4372,11 +4372,15 @@ def wizard_step5(request):
 def contrato_agenda(request, pk):
     contrato = get_object_or_404(models.Contrato, pk=pk)
     plano = contrato.cdPlano
-    aulas_por_semana = plano.aulas_por_semana or 1
+    agenda_semanas = 4 if contrato.recorrencia == "SEMANAL" else None
+    aulas_por_semana = 1 if contrato.recorrencia == "SEMANAL" else (plano.aulas_por_semana or 1)
+    agenda_fim = contrato.dtFimContrato
+    if agenda_semanas:
+        agenda_fim = min(agenda_fim, contrato.dtInicioContrato + timedelta(days=27))
     aulas = models.AulaSessao.objects.filter(
         unidade=contrato.cdUnidade,
         tipoServico=plano.cdTipoServico,
-        data__range=(contrato.dtInicioContrato, contrato.dtFimContrato),
+        data__range=(contrato.dtInicioContrato, agenda_fim),
     ).select_related("unidade").order_by("data", "horaInicio")
 
     profissionais = list(models.Profissional.objects.all())
@@ -4391,7 +4395,7 @@ def contrato_agenda(request, pk):
 
     dates_by_weekday = {i: [] for i in range(7)}
     current = contrato.dtInicioContrato
-    while current <= contrato.dtFimContrato:
+    while current <= agenda_fim:
         dates_by_weekday[current.weekday()].append(current)
         current += timedelta(days=1)
 
@@ -4402,7 +4406,7 @@ def contrato_agenda(request, pk):
             plano.cdTipoServico_id,
             prof.id,
             contrato.dtInicioContrato,
-            contrato.dtFimContrato,
+            agenda_fim,
         )
 
     for weekday, windows in funcionamento.items():
@@ -4511,7 +4515,7 @@ def contrato_agenda(request, pk):
                     messages.error(request, "Professor invalido para o horario selecionado.")
                     return redirect("contratos_agenda", pk=contrato.id)
                 current = contrato.dtInicioContrato
-                while current <= contrato.dtFimContrato:
+                while current <= agenda_fim:
                     if current.weekday() == weekday:
                         blocks = blocks_by_prof.get(prof_id, [])
                         if _is_slot_blocked(blocks, current, inicio_time, fim_time):
@@ -4596,6 +4600,7 @@ def contrato_agenda(request, pk):
         "contrato": contrato,
         "aluno": contrato.cdAluno,
         "aulas_por_semana": aulas_por_semana,
+        "agenda_semanas": agenda_semanas,
         "slot_indices": list(range(1, aulas_por_semana + 1)),
         "slots_by_day": slots_by_day,
         "weekday_labels": weekday_labels,
