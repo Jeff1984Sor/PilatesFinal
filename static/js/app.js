@@ -1367,6 +1367,7 @@ function initAulasOperacao() {
                 </div>
                 <div class="aulas-card__title">${item.aluno.nome}</div>
                 <div class="aulas-card__meta">${item.plano.descricao || "Plano nao informado"}</div>
+                <div class="aulas-card__meta">${item.servicos_resumo ? `Servicos: ${item.servicos_resumo}` : `Servico: ${item.servico || "Nao informado"}`}</div>
               </div>
               <span class="${statusBadgeClass(item.status_aula)}">${item.status_aula.replace("_", " ")}</span>
             </div>

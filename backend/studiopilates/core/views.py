@@ -3357,6 +3357,34 @@ def _map_status(reserva_status: str, inicio: datetime, fim: datetime) -> str:
     return mapped
 
 
+def _horario_servicos_resumo(unidade_id, data_value, hora_inicio, hora_fim, fallback=None):
+    if not unidade_id or not data_value or not hora_inicio or not hora_fim:
+        return fallback or []
+    horarios = (
+        models.HorarioFuncionamento.objects.filter(
+            unidade_id=unidade_id,
+            diaSemana=data_value.weekday(),
+            horaInicio=hora_inicio,
+            horaFim=hora_fim,
+            ativo=True,
+        )
+        .prefetch_related("tipos_servico")
+        .select_related("tipoServico")
+    )
+    servicos = []
+    seen = set()
+    for horario in horarios:
+        if horario.tipoServico_id and horario.tipoServico_id not in seen:
+            seen.add(horario.tipoServico_id)
+            servicos.append(horario.tipoServico.dsTipoServico if horario.tipoServico else str(horario.tipoServico_id))
+        for servico in horario.tipos_servico.all():
+            if servico.id in seen:
+                continue
+            seen.add(servico.id)
+            servicos.append(servico.dsTipoServico)
+    return servicos or (fallback or [])
+
+
 @login_required
 def aulas_operacao_api(request):
     target = _parse_date(request.GET.get("data", "").strip())
@@ -3423,6 +3451,13 @@ def aulas_operacao_api(request):
         inicio = timezone.make_aware(inicio)
         fim = timezone.make_aware(fim)
         status_calc = _map_status(reserva.status, inicio, fim)
+        servicos = _horario_servicos_resumo(
+            reserva.aulaSessao.unidade_id if reserva.aulaSessao else None,
+            reserva.aulaSessao.data if reserva.aulaSessao else None,
+            reserva.aulaSessao.horaInicio if reserva.aulaSessao else None,
+            reserva.aulaSessao.horaFim if reserva.aulaSessao else None,
+            fallback=[reserva.aulaSessao.tipoServico.dsTipoServico] if reserva.aulaSessao and reserva.aulaSessao.tipoServico else [],
+        )
         if status_filter and status_calc != status_filter:
             continue
         items.append(
@@ -3446,6 +3481,8 @@ def aulas_operacao_api(request):
                     "ficha_url": reverse("alunos_detail", args=[reserva.aluno_id]),
                 },
                 "plano": {"id": reserva.plano_id, "descricao": reserva.plano_descricao},
+                "servicos": servicos,
+                "servicos_resumo": ", ".join(servicos) if servicos else None,
                 "status_aula": status_calc,
                 "confirmacao": reserva.status != "PENDENTE",
                 "flags": {
