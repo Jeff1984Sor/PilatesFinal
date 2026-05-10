@@ -68,6 +68,10 @@ class Aluno(models.Model):
         ("UNIAO_ESTAVEL", "Uniao estavel"),
         ("OUTRO", "Outro"),
     ]
+    STATUS_CHOICES = [
+        ("ATIVO", "Ativo"),
+        ("INATIVO", "Inativo"),
+    ]
 
     cdAluno = models.IntegerField(unique=True, db_index=True)
     dsNome = models.CharField(max_length=150)
@@ -77,6 +81,7 @@ class Aluno(models.Model):
     dsEmail = models.EmailField(blank=True)
     foto = models.ImageField(upload_to="alunos", null=True, blank=True)
     autoriza_imagem = models.BooleanField(default=False)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="ATIVO", db_index=True)
     dtNascimento = models.DateField(null=True, blank=True)
     estado_civil = models.CharField(max_length=20, choices=ESTADO_CIVIL_CHOICES, blank=True)
     cdProfissao = models.ForeignKey(Profissao, on_delete=models.SET_NULL, null=True, blank=True)

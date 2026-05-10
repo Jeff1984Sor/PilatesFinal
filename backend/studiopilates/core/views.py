@@ -1248,6 +1248,13 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         for field in model._meta.fields
         if not field.primary_key and not field.name.startswith("cd")
     ][:3]
+    if model is models.Aluno:
+        display_fields = [
+            {"name": "dsNome", "label": "Nome"},
+            {"name": "dsCPF", "label": "CPF"},
+            {"name": "dsRg", "label": "RG"},
+            {"name": "status", "label": "Status"},
+        ]
     if model is models.Plano:
         display_fields = [
             {"name": "dsPlano", "label": "Plano"},

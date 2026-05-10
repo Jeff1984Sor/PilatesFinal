@@ -64,6 +64,13 @@
 
         <div class="mb-2"><strong>Termo:</strong> {{ aluno.cdTermoUso|default:"-" }}</div>
 
+        <div class="mt-3 p-3 rounded-4 border {% if aluno.status == 'ATIVO' %}border-success bg-success-subtle{% else %}border-danger bg-danger-subtle{% endif %}">
+          <div class="small text-muted">Status do cliente</div>
+          <div class="fw-bold {% if aluno.status == 'ATIVO' %}text-success{% else %}text-danger{% endif %}">
+            {{ aluno.get_status_display }}
+          </div>
+        </div>
+
         <div class="mt-3 p-3 rounded-4 border {% if aluno.autoriza_imagem %}border-success bg-success-subtle{% else %}border-danger bg-danger-subtle{% endif %}">
           <div class="d-flex justify-content-between align-items-center gap-3">
             <div>
@@ -1318,6 +1325,10 @@
                 {{ edit_form.autoriza_imagem }}
                 {{ edit_form.autoriza_imagem.label_tag }}
               </div>
+            </div>
+
+            <div class="col-md-4">
+              {{ edit_form.status.label_tag }} {{ edit_form.status }}
             </div>
 
             <div class="col-md-4">

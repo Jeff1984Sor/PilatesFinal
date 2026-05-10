@@ -159,6 +159,7 @@ class AlunoForm(BaseAutoCdForm):
             "dsEmail",
             "foto",
             "autoriza_imagem",
+            "status",
             "dtNascimento",
             "estado_civil",
             "cdProfissao",

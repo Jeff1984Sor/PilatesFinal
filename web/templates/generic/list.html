@@ -148,7 +148,13 @@
                 <td>{{ obj.cdAluno.dsNome|default:"-" }}</td>
               {% endif %}
               {% for field in display_fields %}
-                {% if model_name == 'modelocontrato' and field.name == 'conteudo_html' %}
+                {% if model_name == 'aluno' and field.name == 'status' %}
+                  <td>
+                    <span class="badge {% if obj.status == 'ATIVO' %}bg-success{% else %}bg-danger{% endif %}">
+                      {{ obj.get_status_display }}
+                    </span>
+                  </td>
+                {% elif model_name == 'modelocontrato' and field.name == 'conteudo_html' %}
                   <td>{{ obj|attr:field.name|striptags }}</td>
                 {% elif model_name == 'termouso' and field.name == 'dsTermoUso' %}
                   <td>{{ obj|attr:field.name|striptags }}</td>
