@@ -142,7 +142,11 @@ def _salvar_documento_contrato(contrato, pdf_bytes=None):
 def _contrato_precificacao(plano):
     recorrencia = getattr(plano, "recorrencia", "MENSAL") or "MENSAL"
     valor = float(getattr(plano, "valor", 0) or 0)
-    return recorrencia, valor, valor
+    if recorrencia == "SEMANAL":
+        valor_total = valor * 4
+    else:
+        valor_total = valor
+    return recorrencia, valor, valor_total
 
 
 def _active_menu(path: str) -> str:
