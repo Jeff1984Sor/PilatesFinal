@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from . import models
 
@@ -56,6 +58,7 @@ class BaseAutoCdForm(forms.ModelForm):
             "dtVencimento": "Vencimento",
             "valor": "Valor",
             "valor": "Valor",
+            "valor_aula": "Valor por aula",
             "recorrencia": "Recorrencia",
             "recorrencia_quantidade": "Quantidade",
             "aulas_por_semana": "Aulas por semana",
@@ -268,6 +271,41 @@ class TermoUsoForm(BaseAutoCdForm):
 
 
 class ContratoForm(BaseAutoCdForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("valor_aula", "valor_parcela", "valor_total"):
+            field = self.fields.get(name)
+            if field:
+                field.required = False
+        field = self.fields.get("recorrencia")
+        if field:
+            field.required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        plano = cleaned.get("cdPlano")
+        if not plano:
+            return cleaned
+
+        recorrencia = getattr(plano, "recorrencia", "MENSAL") or "MENSAL"
+        valor_plano = Decimal(str(getattr(plano, "valor", 0) or 0))
+        cleaned["recorrencia"] = recorrencia
+
+        if recorrencia == "SEMANAL":
+            valor_aula_raw = cleaned.get("valor_aula")
+            try:
+                valor_aula = Decimal(str(valor_aula_raw)) if valor_aula_raw not in (None, "") else valor_plano
+            except Exception:
+                valor_aula = valor_plano
+            cleaned["valor_aula"] = valor_aula
+            cleaned["valor_parcela"] = valor_aula * Decimal("4")
+            cleaned["valor_total"] = cleaned["valor_parcela"]
+        else:
+            cleaned["valor_aula"] = None
+            cleaned["valor_parcela"] = valor_plano
+            cleaned["valor_total"] = valor_plano
+        return cleaned
+
     class Meta:
         model = models.Contrato
         fields = [
@@ -275,6 +313,7 @@ class ContratoForm(BaseAutoCdForm):
             "cdAluno",
             "cdPlano",
             "recorrencia",
+            "valor_aula",
             "cdUnidade",
             "cdProfissional",
             "modo_pagamento",

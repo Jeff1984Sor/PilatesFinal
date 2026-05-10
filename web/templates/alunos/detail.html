@@ -1685,6 +1685,10 @@
                 <div class="col-md-4">
                   {{ form.recorrencia.label_tag }} {{ form.recorrencia }}
                 </div>
+                <div class="col-md-4 js-valor-aula-group d-none">
+                  <label>Valor por aula</label>
+                  <input class="form-control js-valor-aula" name="valor_aula" type="number" step="0.01" />
+                </div>
 
             <div class="col-md-6">
 
@@ -1748,7 +1752,7 @@
 
               <label>Valor (parcela)</label>
 
-              <input class="form-control js-valor-parcela" name="valor_parcela" type="number" step="0.01" required />
+              <input class="form-control js-valor-parcela" name="valor_parcela" type="number" step="0.01" readonly />
 
             </div>
 
@@ -1858,6 +1862,10 @@
                 <div class="col-md-4">
                   {{ edit_form.recorrencia.label_tag }} {{ edit_form.recorrencia }}
                 </div>
+                <div class="col-md-4 js-valor-aula-group d-none">
+                  <label>Valor por aula</label>
+                  <input class="form-control js-valor-aula" name="valor_aula" type="number" step="0.01" value="{{ c.valor_aula }}" />
+                </div>
 
                 <div class="col-md-6">
 
@@ -1921,7 +1929,7 @@
 
                   <label>Valor (parcela)</label>
 
-                  <input class="form-control js-valor-parcela" name="valor_parcela" type="number" step="0.01" value="{{ c.valor_parcela }}" required />
+                  <input class="form-control js-valor-parcela" name="valor_parcela" type="number" step="0.01" value="{{ c.valor_parcela }}" readonly />
 
                 </div>
 

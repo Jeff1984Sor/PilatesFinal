@@ -139,14 +139,22 @@ def _salvar_documento_contrato(contrato, pdf_bytes=None):
     return documento
 
 
-def _contrato_precificacao(plano):
+def _contrato_precificacao(plano, valor_aula=None):
     recorrencia = getattr(plano, "recorrencia", "MENSAL") or "MENSAL"
-    valor = float(getattr(plano, "valor", 0) or 0)
+    valor_plano = Decimal(str(getattr(plano, "valor", 0) or 0))
     if recorrencia == "SEMANAL":
-        valor_total = valor * 4
+        try:
+            valor_base = Decimal(str(valor_aula)) if valor_aula not in (None, "") else valor_plano
+        except Exception:
+            valor_base = valor_plano
+        valor_aula_decimal = valor_base
+        valor_parcela = valor_base * Decimal("4")
+        valor_total = valor_parcela
     else:
-        valor_total = valor
-    return recorrencia, valor, valor_total
+        valor_aula_decimal = None
+        valor_parcela = valor_plano
+        valor_total = valor_plano
+    return recorrencia, valor_aula_decimal, valor_parcela, valor_total
 
 
 def _active_menu(path: str) -> str:
@@ -3637,8 +3645,10 @@ def create_view(request, model, form_class, redirect_name):
             plano_id = data.get("cdPlano")
             plano = models.Plano.objects.filter(pk=plano_id).first() if plano_id else None
             if plano:
-                recorrencia, valor_parcela, valor_total = _contrato_precificacao(plano)
+                valor_aula_input = data.get("valor_aula")
+                recorrencia, valor_aula, valor_parcela, valor_total = _contrato_precificacao(plano, valor_aula_input)
                 data["recorrencia"] = recorrencia
+                data["valor_aula"] = valor_aula if valor_aula is not None else ""
                 data["valor_parcela"] = valor_parcela
                 data["valor_total"] = valor_total
         form = form_class(data, files=request.FILES or None)
@@ -3646,13 +3656,14 @@ def create_view(request, model, form_class, redirect_name):
             if model is models.Contrato:
                 cleaned = form.cleaned_data
                 plano = cleaned.get("cdPlano")
-                recorrencia, valor_parcela, valor_total = _contrato_precificacao(plano)
+                recorrencia, valor_aula, valor_parcela, valor_total = _contrato_precificacao(plano, cleaned.get("valor_aula"))
                 is_avulso = bool(getattr(plano, "is_avulso", False))
                 contrato_data = {
                     "cdContrato": cleaned["cdContrato"],
                     "cdAluno": cleaned["cdAluno"],
                     "cdPlano": cleaned["cdPlano"],
                     "recorrencia": recorrencia,
+                    "valor_aula": valor_aula,
                     "cdUnidade": cleaned["cdUnidade"],
                     "cdProfissional": cleaned["cdProfissional"],
                     "valor_parcela": valor_parcela,
@@ -3754,19 +3765,24 @@ def edit_view(request, model, form_class, redirect_name, pk):
             plano_id = data.get("cdPlano")
             plano = models.Plano.objects.filter(pk=plano_id).first() if plano_id else None
             if plano:
-                recorrencia, valor_parcela, valor_total = _contrato_precificacao(plano)
+                valor_aula_input = data.get("valor_aula") or getattr(obj, "valor_aula", None)
+                recorrencia, valor_aula, valor_parcela, valor_total = _contrato_precificacao(plano, valor_aula_input)
                 data["recorrencia"] = recorrencia
+                data["valor_aula"] = valor_aula if valor_aula is not None else ""
                 data["valor_parcela"] = valor_parcela
                 data["valor_total"] = valor_total
         form = form_class(data, files=request.FILES or None, instance=obj)
         if form.is_valid():
             obj = form.save()
             if model is models.Contrato:
-                recorrencia, valor_parcela, valor_total = _contrato_precificacao(obj.cdPlano)
+                recorrencia, valor_aula, valor_parcela, valor_total = _contrato_precificacao(obj.cdPlano, obj.valor_aula)
                 updates = []
                 if obj.recorrencia != recorrencia:
                     obj.recorrencia = recorrencia
                     updates.append("recorrencia")
+                if obj.valor_aula != valor_aula:
+                    obj.valor_aula = valor_aula
+                    updates.append("valor_aula")
                 if obj.valor_parcela != valor_parcela:
                     obj.valor_parcela = valor_parcela
                     updates.append("valor_parcela")
@@ -4356,12 +4372,13 @@ def wizard_step5(request):
         data = request.session.get("wizard_contrato", {})
         aluno = models.Aluno.objects.get(pk=int(data.get("cdAluno")))
         plano = models.Plano.objects.get(pk=int(data.get("cdPlano")))
-        recorrencia, valor_parcela, valor_total = _contrato_precificacao(plano)
+        recorrencia, valor_aula, valor_parcela, valor_total = _contrato_precificacao(plano, data.get("valor_aula"))
         contrato_data = {
             "cdContrato": int(data.get("cdContrato")),
             "cdAluno": aluno,
             "cdPlano": plano,
             "recorrencia": recorrencia,
+            "valor_aula": valor_aula,
             "cdUnidade": models.Unidade.objects.get(pk=int(data.get("cdUnidade"))),
             "cdProfissional": models.Profissional.objects.get(pk=int(data.get("cdProfissional"))),
             "valor_parcela": valor_parcela,

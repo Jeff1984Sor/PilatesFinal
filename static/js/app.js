@@ -197,42 +197,86 @@ function getContratoContainer(element) {
   return element.closest(".modal") || element.closest("form") || element.closest("body");
 }
 
+function parseCurrencyValue(value) {
+  const parsed = parseFloat(String(value || "").replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function setCurrencyValue(input, value) {
+  if (!input) return;
+  const numeric = parseCurrencyValue(value);
+  input.value = numeric ? numeric.toFixed(2) : "";
+}
+
+function syncValorAulaVisibility(container, recorrenciaValor) {
+  const groups = container.querySelectorAll(".js-valor-aula-group");
+  const isSemanal = recorrenciaValor === "SEMANAL";
+  groups.forEach((group) => group.classList.toggle("d-none", !isSemanal));
+  const valorAula = container.querySelector(".js-valor-aula, input[name='valor_aula']");
+  if (valorAula) {
+    valorAula.required = isSemanal;
+    if (!isSemanal) {
+      valorAula.value = "";
+    }
+  }
+}
+
+function syncContratoPricing(container) {
+  if (!container) return;
+  const plano = container.querySelector(".js-plano, select[name='cdPlano']");
+  const valorAula = container.querySelector(".js-valor-aula, input[name='valor_aula']");
+  const valorParcela = container.querySelector(".js-valor-parcela, input[name='valor_parcela']");
+  const valorTotal = container.querySelector(".js-valor-total, input[name='valor_total']");
+  const recorrencia = container.querySelector(".js-contrato-recorrencia, select[name='recorrencia'], input[name='recorrencia']");
+  const selected = plano?.selectedOptions?.[0];
+
+  if (!selected || !selected.value) {
+    syncValorAulaVisibility(container, "");
+    if (recorrencia) recorrencia.value = "";
+    if (valorAula) valorAula.value = "";
+    if (valorParcela) valorParcela.value = "";
+    if (valorTotal) valorTotal.value = "";
+    return;
+  }
+
+  const recorrenciaValor = (selected.dataset.recorrencia || "MENSAL").toUpperCase();
+  const valorPlano = parseCurrencyValue(selected.dataset.valor || "0");
+  syncValorAulaVisibility(container, recorrenciaValor);
+
+  if (recorrencia) {
+    recorrencia.value = recorrenciaValor;
+  }
+
+  if (recorrenciaValor === "SEMANAL") {
+    if (valorAula && !valorAula.value) {
+      valorAula.value = valorPlano ? valorPlano.toFixed(2) : "";
+    }
+    const valorBase = parseCurrencyValue(valorAula?.value || valorPlano);
+    const total = valorBase * 4;
+    setCurrencyValue(valorParcela, total);
+    setCurrencyValue(valorTotal, total);
+  } else {
+    setCurrencyValue(valorAula, "");
+    setCurrencyValue(valorParcela, valorPlano);
+    setCurrencyValue(valorTotal, valorPlano);
+  }
+
+  const inicio = container.querySelector(".js-contrato-inicio, input[name='dtInicioContrato']");
+  const fim = container.querySelector(".js-contrato-fim, input[name='dtFimContrato']");
+  const duracao = parseInt(selected.dataset.duracao || "0", 10);
+  if (inicio && fim && !fim.value) {
+    fim.value = calcFimContrato(inicio.value, duracao || 1);
+  }
+}
+
 function setContratoFields(container) {
   if (!container) return;
   const inicio = container.querySelector(".js-contrato-inicio, input[name='dtInicioContrato']");
-  const fim = container.querySelector(".js-contrato-fim, input[name='dtFimContrato']");
-  const plano = container.querySelector(".js-plano, select[name='cdPlano']");
-  const valorParcela = container.querySelector(".js-valor-parcela, input[name='valor_parcela'], input[name='valor']");
-  const valorTotal = container.querySelector(".js-valor-total, input[name='valor_total']");
-  const recorrencia = container.querySelector(".js-contrato-recorrencia, select[name='recorrencia'], input[name='recorrencia']");
   if (inicio && !inicio.value) {
     const today = new Date();
     inicio.value = today.toISOString().slice(0, 10);
   }
-  const selected = plano?.selectedOptions?.[0];
-  if (selected && selected.value) {
-    const valor = parseFloat(selected.dataset.valor || "0");
-    const duracao = parseInt(selected.dataset.duracao || "0", 10);
-    const recorrenciaValor = selected.dataset.recorrencia || "";
-    const total = recorrenciaValor === "SEMANAL" ? valor * 4 : valor;
-    if (recorrencia) {
-      recorrencia.value = recorrenciaValor;
-    }
-    if (valorParcela) {
-      valorParcela.value = valor ? valor.toFixed(2) : "";
-    }
-    if (valorTotal) {
-      valorTotal.value = total ? total.toFixed(2) : "";
-    }
-    if (inicio && fim && !fim.value) {
-      fim.value = calcFimContrato(inicio.value, duracao || 1);
-    }
-  } else {
-    if (fim) fim.value = "";
-    if (valorParcela) valorParcela.value = "";
-    if (valorTotal) valorTotal.value = "";
-    if (recorrencia) recorrencia.value = "";
-  }
+  syncContratoPricing(container);
 }
 
 document.addEventListener("shown.bs.modal", (event) => {
@@ -306,17 +350,19 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("input", (event) => {
-  const valorParcela = event.target.closest(".js-valor-parcela, input[name='valor']");
-  if (!valorParcela) return;
-  const container = getContratoContainer(valorParcela);
-  const plano = container?.querySelector(".js-plano, select[name='cdPlano']");
+  const valorAula = event.target.closest(".js-valor-aula, input[name='valor_aula']");
+  if (!valorAula) return;
+  const container = getContratoContainer(valorAula);
+  if (!container) return;
+  const plano = container.querySelector(".js-plano, select[name='cdPlano']");
   const selected = plano?.selectedOptions?.[0];
-  const recorrencia = selected?.dataset?.recorrencia || container?.querySelector(".js-contrato-recorrencia, select[name='recorrencia'], input[name='recorrencia']")?.value || "MENSAL";
-  const valorTotal = container?.querySelector(".js-valor-total, input[name='valor_total']");
-  if (!valorTotal) return;
-  const valor = parseFloat(valorParcela.value || "0");
-  const total = recorrencia === "SEMANAL" ? valor * 4 : valor;
-  valorTotal.value = total ? total.toFixed(2) : "";
+  const recorrencia = (selected?.dataset?.recorrencia || container.querySelector(".js-contrato-recorrencia, select[name='recorrencia'], input[name='recorrencia']")?.value || "MENSAL").toUpperCase();
+  if (recorrencia !== "SEMANAL") return;
+  const valorParcela = container.querySelector(".js-valor-parcela, input[name='valor_parcela']");
+  const valorTotal = container.querySelector(".js-valor-total, input[name='valor_total']");
+  const total = parseCurrencyValue(valorAula.value) * 4;
+  setCurrencyValue(valorParcela, total);
+  setCurrencyValue(valorTotal, total);
 });
 
 document.querySelectorAll(".js-plano").forEach((plano) => {

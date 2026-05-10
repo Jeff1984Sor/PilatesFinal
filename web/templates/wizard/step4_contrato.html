@@ -9,8 +9,14 @@
         <div class="col-md-3">
           <input class="form-control" name="cdContrato" placeholder="Codigo" required />
         </div>
+        <div class="col-md-3 js-valor-aula-group d-none">
+          <input class="form-control js-valor-aula" name="valor_aula" placeholder="Valor por aula" type="number" step="0.01" />
+        </div>
         <div class="col-md-3">
-          <input class="form-control" name="valor" placeholder="Valor parcela" required />
+          <input class="form-control js-valor-parcela" name="valor_parcela" placeholder="Valor parcela" type="number" step="0.01" readonly />
+        </div>
+        <div class="col-md-3">
+          <input class="form-control js-valor-total" name="valor_total" placeholder="Valor total" type="text" readonly />
         </div>
         <div class="col-md-3">
           <input class="form-control" name="dtInicioContrato" type="date" required />

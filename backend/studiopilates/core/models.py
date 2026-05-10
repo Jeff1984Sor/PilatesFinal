@@ -317,6 +317,7 @@ class Contrato(models.Model):
     cdUnidade = models.ForeignKey(Unidade, on_delete=models.PROTECT)
     cdProfissional = models.ForeignKey(Profissional, on_delete=models.PROTECT)
     modo_pagamento = models.CharField(max_length=20, choices=PAGAMENTO_CHOICES, blank=True)
+    valor_aula = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     valor_parcela = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     valor_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     dtCadastro = models.DateTimeField(auto_now_add=True)
