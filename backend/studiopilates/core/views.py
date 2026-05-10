@@ -3364,8 +3364,8 @@ def _horario_servicos_resumo(unidade_id, data_value, hora_inicio, hora_fim, fall
         models.HorarioFuncionamento.objects.filter(
             unidade_id=unidade_id,
             diaSemana=data_value.weekday(),
-            horaInicio=hora_inicio,
-            horaFim=hora_fim,
+            horaInicio__lte=hora_fim,
+            horaFim__gte=hora_inicio,
             ativo=True,
         )
         .prefetch_related("tipos_servico")
