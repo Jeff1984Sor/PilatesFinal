@@ -4,6 +4,41 @@
   <div class="card-body">
     <h3 class="mb-2">Configurações de WhatsApp</h3>
     <p class="text-muted mb-4">Defina o acesso ao Evolution, os templates e os eventos que serão disparados automaticamente.</p>
+    {% if batch_summary %}
+      <div class="alert alert-info mb-4">
+        <strong>Último envio em lote:</strong>
+        {{ batch_summary.sent }} enviado(s),
+        {{ batch_summary.eligible_students }} elegível(is),
+        {{ batch_summary.without_phone }} sem telefone,
+        {{ batch_summary.failed }} falha(s).
+      </div>
+    {% endif %}
+    {% if batch_log %}
+      <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="mb-0">Log do último envio</h5>
+            <span class="text-muted small">1 a 1, em ordem de processamento</span>
+          </div>
+          <div class="list-group">
+            {% for item in batch_log %}
+              <div class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="me-3">
+                  <div class="fw-semibold">{{ item.ordem }}/{{ item.total }} - {{ item.aluno }}</div>
+                  <div class="text-muted small">
+                    {% if item.telefone %}{{ item.telefone }}{% endif %}
+                    {% if item.error %} · {{ item.error }}{% endif %}
+                  </div>
+                </div>
+                <span class="badge {% if item.status == 'sent' %}bg-success{% elif item.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+                  {{ item.status_label }}
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
     <form method="get" class="mb-4">
       <div class="row g-3 align-items-center">
         <div class="col-md-4">

@@ -5262,6 +5262,11 @@ def whatsapp_config_view(request):
     if not unidade:
         unidade = unidades.first()
     configuracao = models.WhatsappConfiguracao.objects.filter(unidade=unidade).first()
+    batch_log = []
+    batch_summary = None
+    if request.method == "GET":
+        batch_log = request.session.pop("whatsapp_batch_log", [])
+        batch_summary = request.session.pop("whatsapp_batch_summary", None)
     if request.method == "POST":
         action = request.POST.get("action", "").strip()
         if action in {"send_aluno_now", "send_professor_now", "send_renovacao_now"}:
@@ -5273,6 +5278,14 @@ def whatsapp_config_view(request):
             if action == "send_aluno_now":
                 resumo = _send_class_reminders(service, configuracao, hoje + timedelta(days=1), force=True)
                 qtd = resumo.get("sent", 0)
+                request.session["whatsapp_batch_log"] = resumo.get("entries", [])
+                request.session["whatsapp_batch_summary"] = {
+                    "sent": resumo.get("sent", 0),
+                    "eligible_students": resumo.get("eligible_students", 0),
+                    "without_phone": resumo.get("without_phone", 0),
+                    "failed": resumo.get("failed", 0),
+                    "already_sent": resumo.get("already_sent", 0),
+                }
                 if qtd:
                     messages.success(
                         request,
@@ -5319,12 +5332,14 @@ def whatsapp_config_view(request):
           request,
           "configuracoes/whatsapp.html",
           {
-              "form": form,
-              "unidades": unidades,
-              "unidade": unidade,
-              "title": "Configuracao de WhatsApp",
-              "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
-              "active_menu": "configuracoes",
+            "form": form,
+            "unidades": unidades,
+            "unidade": unidade,
+            "batch_log": batch_log,
+            "batch_summary": batch_summary,
+            "title": "Configuracao de WhatsApp",
+            "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("WhatsApp", "#")],
+            "active_menu": "configuracoes",
           },
       )
 
