@@ -8,13 +8,22 @@
       <div class="text-muted">Projeção de entradas, saídas e saldo bancário consolidado no período.</div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-      <a class="btn btn-outline-secondary" href="{% url 'fluxo_caixa_exportar_excel' %}?inicio={{ inicio }}&fim={{ fim }}">Exportar Excel</a>
-      <a class="btn btn-outline-secondary" href="{% url 'fluxo_caixa_exportar_pdf' %}?inicio={{ inicio }}&fim={{ fim }}">Exportar PDF</a>
+      <a class="btn btn-outline-secondary" href="{% url 'fluxo_caixa_exportar_excel' %}?inicio={{ inicio }}&fim={{ fim }}&conta={{ conta_filtro }}">Exportar Excel</a>
+      <a class="btn btn-outline-secondary" href="{% url 'fluxo_caixa_exportar_pdf' %}?inicio={{ inicio }}&fim={{ fim }}&conta={{ conta_filtro }}">Exportar PDF</a>
     </div>
   </div>
 
   <div class="mayris-card mb-3">
     <form class="mayris-filter-bar" method="get">
+      <div class="col-md-3">
+        <label class="form-label">Conta bancária</label>
+        <select class="form-select" name="conta">
+          <option value="all" {% if conta_filtro == "all" %}selected{% endif %}>Todas as contas</option>
+          {% for conta in contas_ativas %}
+            <option value="{{ conta.id }}" {% if conta_filtro == conta.id|stringformat:"s" %}selected{% endif %}>{{ conta.banco }} - {{ conta.agencia }}/{{ conta.conta }}</option>
+          {% endfor %}
+        </select>
+      </div>
       <div class="col-md-3">
         <label class="form-label">Data inicial</label>
         <input class="form-control" type="date" name="inicio" value="{{ inicio }}" />
@@ -60,6 +69,45 @@
     </div>
   </div>
 
+  <div class="mayris-card mb-3">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <div>
+        <h5 class="mb-1">Comparativo com o mês anterior</h5>
+        <div class="text-muted small">Baseado no mesmo intervalo deslocado um mês para trás.</div>
+      </div>
+      <div class="text-muted small">Conta: {{ conta_label }}</div>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small">Receitas</div>
+          <div class="fs-4 fw-bold">R$ {{ comparativo_mes_anterior.receitas }}</div>
+          <div class="small {% if comparativo_mes_anterior.delta_receitas >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {% if comparativo_mes_anterior.delta_receitas >= 0 %}+{% endif %}R$ {{ comparativo_mes_anterior.delta_receitas }} vs. mês anterior
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small">Despesas</div>
+          <div class="fs-4 fw-bold">R$ {{ comparativo_mes_anterior.despesas }}</div>
+          <div class="small {% if comparativo_mes_anterior.delta_despesas <= 0 %}text-success{% else %}text-danger{% endif %}">
+            {% if comparativo_mes_anterior.delta_despesas >= 0 %}+{% endif %}R$ {{ comparativo_mes_anterior.delta_despesas }} vs. mês anterior
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small">Saldo</div>
+          <div class="fs-4 fw-bold {% if comparativo_mes_anterior.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">R$ {{ comparativo_mes_anterior.saldo }}</div>
+          <div class="small {% if comparativo_mes_anterior.delta_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {% if comparativo_mes_anterior.delta_saldo >= 0 %}+{% endif %}R$ {{ comparativo_mes_anterior.delta_saldo }} vs. mês anterior
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="row g-3 mb-3">
     <div class="col-lg-9">
       <div class="mayris-card h-100">
@@ -99,6 +147,47 @@
         {% else %}
           <div class="text-muted">Nenhuma conta ativa encontrada.</div>
         {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-lg-9">
+      <div class="mayris-card h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="mb-1">Saldo semanal</h5>
+            <div class="text-muted small">Agrupamento em blocos de 7 dias com fechamento acumulado.</div>
+          </div>
+        </div>
+        <div style="height: 320px;">
+          <canvas id="fluxoCaixaSemanalChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="mayris-card h-100">
+        <h5 class="mb-3">Resumo semanal</h5>
+        <div class="table-responsive" style="max-height: 320px;">
+          <table class="table table-sm mayris-table">
+            <thead>
+              <tr>
+                <th>Semana</th>
+                <th class="text-end">Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in saldo_semanal %}
+                <tr>
+                  <td>{{ item.inicio|date:"d/m" }} - {{ item.fim|date:"d/m" }}</td>
+                  <td class="text-end {% if item.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">R$ {{ item.saldo }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="2" class="text-muted">Sem dados.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -159,6 +248,10 @@
     const receitas = JSON.parse('{{ chart_receitas|escapejs }}');
     const despesas = JSON.parse('{{ chart_despesas|escapejs }}');
     const saldo = JSON.parse('{{ chart_saldo|escapejs }}');
+    const weeklyLabels = JSON.parse('{{ weekly_labels|escapejs }}');
+    const weeklyReceitas = JSON.parse('{{ weekly_receitas|escapejs }}');
+    const weeklyDespesas = JSON.parse('{{ weekly_despesas|escapejs }}');
+    const weeklySaldo = JSON.parse('{{ weekly_saldo|escapejs }}');
     const canvas = document.getElementById("fluxoCaixaChart");
     if (!canvas) return;
     new Chart(canvas, {
@@ -213,6 +306,62 @@
         },
       },
     });
+
+    const weeklyCanvas = document.getElementById("fluxoCaixaSemanalChart");
+    if (weeklyCanvas) {
+      new Chart(weeklyCanvas, {
+        data: {
+          labels: weeklyLabels,
+          datasets: [
+            {
+              type: "bar",
+              label: "Receitas",
+              data: weeklyReceitas,
+              backgroundColor: "rgba(25, 135, 84, 0.7)",
+              borderRadius: 8,
+            },
+            {
+              type: "bar",
+              label: "Despesas",
+              data: weeklyDespesas,
+              backgroundColor: "rgba(220, 53, 69, 0.7)",
+              borderRadius: 8,
+            },
+            {
+              type: "line",
+              label: "Saldo acumulado",
+              data: weeklySaldo,
+              borderColor: "rgba(13, 110, 253, 1)",
+              backgroundColor: "rgba(13, 110, 253, 0.15)",
+              tension: 0.35,
+              fill: false,
+              pointRadius: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: "index",
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              position: "bottom",
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              ticks: {
+                callback: (value) => `R$ ${value}`,
+              },
+            },
+          },
+        },
+      });
+    }
   })();
 </script>
 {% endblock %}

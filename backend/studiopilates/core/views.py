@@ -1695,9 +1695,28 @@ def _parse_fluxo_caixa_periodo(request):
     return inicio, fim, inicio_dt, fim_dt
 
 
-def _build_fluxo_caixa_data(request):
-    inicio, fim, inicio_dt, fim_dt = _parse_fluxo_caixa_periodo(request)
-    today = timezone.now().date()
+def _shift_month_clamped(base_date, months):
+    year = base_date.year + (base_date.month - 1 + months) // 12
+    month = (base_date.month - 1 + months) % 12 + 1
+    day = min(base_date.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+def _build_fluxo_caixa_data_for_period(inicio_dt, fim_dt, conta_filtro="all"):
+    contas_ativas = models.ContaBancaria.objects.filter(ativo=True).order_by("banco")
+    conta_selecionada = None
+    conta_filtro = (str(conta_filtro or "all")).strip() or "all"
+    if conta_filtro != "all":
+        conta_selecionada = contas_ativas.filter(pk=conta_filtro).first()
+        if not conta_selecionada:
+            conta_filtro = "all"
+
+    if conta_filtro == "all":
+        contas_base = contas_ativas
+        movimentos_anteriores = models.MovimentoConta.objects.filter(conta__ativo=True, data__lt=inicio_dt)
+    else:
+        contas_base = contas_ativas.filter(pk=conta_selecionada.pk)
+        movimentos_anteriores = models.MovimentoConta.objects.filter(conta=conta_selecionada, data__lt=inicio_dt)
 
     receitas_qs = (
         models.ContasReceber.objects.select_related("contrato", "contrato__cdAluno", "contrato__cdPlano", "contrato__cdUnidade")
@@ -1712,9 +1731,7 @@ def _build_fluxo_caixa_data(request):
         .order_by("dtVencimento", "id")
     )
 
-    contas_ativas = models.ContaBancaria.objects.filter(ativo=True).order_by("banco")
-    saldo_inicial_total = contas_ativas.aggregate(total=Sum("saldo_inicial"))["total"] or Decimal("0")
-    movimentos_anteriores = models.MovimentoConta.objects.filter(conta__ativo=True, data__lt=inicio_dt)
+    saldo_inicial_total = contas_base.aggregate(total=Sum("saldo_inicial"))["total"] or Decimal("0")
     entradas_anteriores = movimentos_anteriores.filter(tipo="ENTRADA").aggregate(total=Sum("valor"))["total"] or Decimal("0")
     saidas_anteriores = movimentos_anteriores.filter(tipo="SAIDA").aggregate(total=Sum("valor"))["total"] or Decimal("0")
     saldo_bancario_base = saldo_inicial_total + entradas_anteriores - saidas_anteriores
@@ -1763,7 +1780,6 @@ def _build_fluxo_caixa_data(request):
 
     lancamentos.sort(key=lambda row: (row["data"], row["sort_tipo"], row["sort_id"]))
 
-    dias = []
     saldo_diario = []
     saldo_acumulado = saldo_bancario_base
     total_receitas = Decimal("0")
@@ -1775,7 +1791,6 @@ def _build_fluxo_caixa_data(request):
         total_receitas += receita_dia
         total_despesas += despesa_dia
         saldo_acumulado += receita_dia - despesa_dia
-        dias.append(cursor)
         saldo_diario.append(
             {
                 "data": cursor,
@@ -1788,12 +1803,32 @@ def _build_fluxo_caixa_data(request):
 
     saldo_projetado_final = saldo_bancario_base + total_receitas - total_despesas
 
+    saldo_semanal = []
+    semana_inicio = inicio_dt
+    saldo_semana_acumulado = saldo_bancario_base
+    while semana_inicio <= fim_dt:
+        semana_fim = min(semana_inicio + timedelta(days=6), fim_dt)
+        receitas_semana = sum(
+            item["receitas"] for item in saldo_diario if semana_inicio <= item["data"] <= semana_fim
+        )
+        despesas_semana = sum(
+            item["despesas"] for item in saldo_diario if semana_inicio <= item["data"] <= semana_fim
+        )
+        saldo_semana_acumulado += receitas_semana - despesas_semana
+        saldo_semanal.append(
+            {
+                "inicio": semana_inicio,
+                "fim": semana_fim,
+                "receitas": receitas_semana,
+                "despesas": despesas_semana,
+                "saldo": saldo_semana_acumulado,
+            }
+        )
+        semana_inicio = semana_fim + timedelta(days=1)
+
     return {
-        "inicio": inicio,
-        "fim": fim,
-        "inicio_dt": inicio_dt,
-        "fim_dt": fim_dt,
-        "today": today,
+        "conta_filtro": conta_filtro,
+        "conta_selecionada": conta_selecionada,
         "contas_ativas": contas_ativas,
         "saldo_bancario_base": saldo_bancario_base,
         "saldo_projetado_final": saldo_projetado_final,
@@ -1801,7 +1836,51 @@ def _build_fluxo_caixa_data(request):
         "total_despesas": total_despesas,
         "lancamentos": lancamentos,
         "saldo_diario": saldo_diario,
-        "dias": dias,
+        "saldo_semanal": saldo_semanal,
+    }
+
+
+def _build_fluxo_caixa_data(request):
+    inicio, fim, inicio_dt, fim_dt = _parse_fluxo_caixa_periodo(request)
+    conta_filtro = request.GET.get("conta", "all").strip() or "all"
+    today = timezone.now().date()
+    periodo_atual = _build_fluxo_caixa_data_for_period(inicio_dt, fim_dt, conta_filtro=conta_filtro)
+    prev_inicio_dt = _shift_month_clamped(inicio_dt, -1)
+    prev_fim_dt = _shift_month_clamped(fim_dt, -1)
+    periodo_anterior = _build_fluxo_caixa_data_for_period(prev_inicio_dt, prev_fim_dt, conta_filtro=conta_filtro)
+    if conta_filtro == "all":
+        conta_label = "Todas as contas"
+    else:
+        conta_label = periodo_atual["conta_selecionada"].__str__() if periodo_atual["conta_selecionada"] else "Todas as contas"
+
+    comparativo_mes_anterior = {
+        "periodo": f"{prev_inicio_dt.strftime('%d/%m/%Y')} a {prev_fim_dt.strftime('%d/%m/%Y')}",
+        "receitas": periodo_anterior["total_receitas"],
+        "despesas": periodo_anterior["total_despesas"],
+        "saldo": periodo_anterior["saldo_projetado_final"],
+        "delta_receitas": periodo_atual["total_receitas"] - periodo_anterior["total_receitas"],
+        "delta_despesas": periodo_atual["total_despesas"] - periodo_anterior["total_despesas"],
+        "delta_saldo": periodo_atual["saldo_projetado_final"] - periodo_anterior["saldo_projetado_final"],
+    }
+
+    return {
+        "inicio": inicio,
+        "fim": fim,
+        "inicio_dt": inicio_dt,
+        "fim_dt": fim_dt,
+        "today": today,
+        "conta_filtro": conta_filtro,
+        "conta_label": conta_label,
+        "conta_selecionada": periodo_atual["conta_selecionada"],
+        "contas_ativas": periodo_atual["contas_ativas"],
+        "saldo_bancario_base": periodo_atual["saldo_bancario_base"],
+        "saldo_projetado_final": periodo_atual["saldo_projetado_final"],
+        "total_receitas": periodo_atual["total_receitas"],
+        "total_despesas": periodo_atual["total_despesas"],
+        "lancamentos": periodo_atual["lancamentos"],
+        "saldo_diario": periodo_atual["saldo_diario"],
+        "saldo_semanal": periodo_atual["saldo_semanal"],
+        "comparativo_mes_anterior": comparativo_mes_anterior,
     }
 
 
@@ -1874,20 +1953,32 @@ def fluxo_caixa_view(request):
     chart_receitas = [float(item["receitas"]) for item in data["saldo_diario"]]
     chart_despesas = [float(item["despesas"]) for item in data["saldo_diario"]]
     chart_saldo = [float(item["saldo"]) for item in data["saldo_diario"]]
+    weekly_labels = [f"{item['inicio'].strftime('%d/%m')} - {item['fim'].strftime('%d/%m')}" for item in data["saldo_semanal"]]
+    weekly_receitas = [float(item["receitas"]) for item in data["saldo_semanal"]]
+    weekly_despesas = [float(item["despesas"]) for item in data["saldo_semanal"]]
+    weekly_saldo = [float(item["saldo"]) for item in data["saldo_semanal"]]
 
     context = {
         "title": "Fluxo de Caixa",
         "inicio": data["inicio"],
         "fim": data["fim"],
+        "conta_filtro": data["conta_filtro"],
+        "conta_label": data["conta_label"],
         "saldo_bancario_base": data["saldo_bancario_base"],
         "saldo_projetado_final": data["saldo_projetado_final"],
         "total_receitas": data["total_receitas"],
         "total_despesas": data["total_despesas"],
         "lancamentos": data["lancamentos"],
+        "saldo_semanal": data["saldo_semanal"],
+        "comparativo_mes_anterior": data["comparativo_mes_anterior"],
         "chart_labels": json.dumps(chart_labels),
         "chart_receitas": json.dumps(chart_receitas),
         "chart_despesas": json.dumps(chart_despesas),
         "chart_saldo": json.dumps(chart_saldo),
+        "weekly_labels": json.dumps(weekly_labels),
+        "weekly_receitas": json.dumps(weekly_receitas),
+        "weekly_despesas": json.dumps(weekly_despesas),
+        "weekly_saldo": json.dumps(weekly_saldo),
         "contas_ativas": data["contas_ativas"],
         "breadcrumbs": [("Home", reverse("dashboard")), ("Financeiro", "#"), ("Fluxo de Caixa", "#")],
         "active_menu": "financeiro",
@@ -1905,10 +1996,21 @@ def exportar_fluxo_caixa_excel(request):
     ws.title = "Resumo"
     ws.append(["Periodo inicio", data["inicio"]])
     ws.append(["Periodo fim", data["fim"]])
+    ws.append(["Conta", data["conta_label"]])
     ws.append(["Saldo bancario base", float(data["saldo_bancario_base"])])
     ws.append(["Receitas previstas", float(data["total_receitas"])])
     ws.append(["Despesas previstas", float(data["total_despesas"])])
     ws.append(["Saldo projetado final", float(data["saldo_projetado_final"])])
+
+    ws_comp = wb.create_sheet("Comparativo")
+    comp = data["comparativo_mes_anterior"]
+    ws_comp.append(["Periodo anterior", comp["periodo"]])
+    ws_comp.append(["Receitas anteriores", float(comp["receitas"])])
+    ws_comp.append(["Despesas anteriores", float(comp["despesas"])])
+    ws_comp.append(["Saldo anterior", float(comp["saldo"])])
+    ws_comp.append(["Delta receitas", float(comp["delta_receitas"])])
+    ws_comp.append(["Delta despesas", float(comp["delta_despesas"])])
+    ws_comp.append(["Delta saldo", float(comp["delta_saldo"])])
 
     ws_lanc = wb.create_sheet("Lancamentos")
     ws_lanc.append(["Data", "Tipo", "Origem", "Descricao", "Detalhe", "Status", "Valor"])
@@ -1921,6 +2023,16 @@ def exportar_fluxo_caixa_excel(request):
             item["detalhe"],
             item["status"],
             float(item["valor"]),
+        ])
+
+    ws_sem = wb.create_sheet("Saldo semanal")
+    ws_sem.append(["Semana", "Receitas", "Despesas", "Saldo acumulado"])
+    for item in data["saldo_semanal"]:
+        ws_sem.append([
+            f"{item['inicio'].strftime('%d/%m/%Y')} - {item['fim'].strftime('%d/%m/%Y')}",
+            float(item["receitas"]),
+            float(item["despesas"]),
+            float(item["saldo"]),
         ])
 
     ws_diario = wb.create_sheet("Diario")
@@ -1961,6 +2073,7 @@ def exportar_fluxo_caixa_pdf(request):
     story = [
         Paragraph("Fluxo de Caixa", styles["Title"]),
         Paragraph(f"Periodo {datetime.strptime(data['inicio'], '%Y-%m-%d').strftime('%d/%m/%Y')} a {datetime.strptime(data['fim'], '%Y-%m-%d').strftime('%d/%m/%Y')}", styles["Normal"]),
+        Paragraph(f"Conta: {data['conta_label']}", styles["Normal"]),
         Spacer(1, 10),
     ]
 
@@ -2013,6 +2126,59 @@ def exportar_fluxo_caixa_pdf(request):
     )
     story.append(Paragraph("Lancamentos", styles["Heading2"]))
     story.append(tabela)
+    story.append(Spacer(1, 12))
+
+    comp = data["comparativo_mes_anterior"]
+    resumo_comp = Table(
+        [
+            ["Periodo anterior", comp["periodo"]],
+            ["Receitas anteriores", f"R$ {comp['receitas']}"],
+            ["Despesas anteriores", f"R$ {comp['despesas']}"],
+            ["Saldo anterior", f"R$ {comp['saldo']}"],
+            ["Delta receitas", f"R$ {comp['delta_receitas']}"],
+            ["Delta despesas", f"R$ {comp['delta_despesas']}"],
+            ["Delta saldo", f"R$ {comp['delta_saldo']}"],
+        ],
+        colWidths=[180, 120],
+    )
+    resumo_comp.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f5f5f5")),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    story.append(Paragraph("Comparativo com o mes anterior", styles["Heading2"]))
+    story.append(resumo_comp)
+    story.append(Spacer(1, 12))
+
+    linhas_sem = [["Semana", "Receitas", "Despesas", "Saldo"]]
+    for item in data["saldo_semanal"]:
+        linhas_sem.append([
+            f"{item['inicio'].strftime('%d/%m/%Y')} - {item['fim'].strftime('%d/%m/%Y')}",
+            f"R$ {item['receitas']}",
+            f"R$ {item['despesas']}",
+            f"R$ {item['saldo']}",
+        ])
+    tabela_sem = Table(linhas_sem, repeatRows=1, colWidths=[160, 90, 90, 90])
+    tabela_sem.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ]
+        )
+    )
+    story.append(Paragraph("Saldo semanal", styles["Heading2"]))
+    story.append(tabela_sem)
 
     doc.build(story)
     buffer.seek(0)
