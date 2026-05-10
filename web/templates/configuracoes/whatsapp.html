@@ -3,7 +3,7 @@
 <div class="card shadow-sm">
   <div class="card-body">
     <h3 class="mb-2">Configurações de WhatsApp</h3>
-    <p class="text-muted mb-4">Defina o acesso ao Evolution, os templates e os eventos que serão disparados automaticamente.</p>
+    <p class="text-muted mb-4">Defina o acesso à WasenderAPI, os templates e os eventos que serão disparados automaticamente.</p>
     {% if batch_summary %}
       <div class="alert alert-info mb-4">
         <strong>Último envio em lote:</strong>
@@ -149,13 +149,13 @@
         <div class="col-md-6">
           <label class="form-label" for="{{ form.evolution_url.id_for_label }}">{{ form.evolution_url.label }}</label>
           {{ form.evolution_url }}
-          <small class="text-muted d-block mt-1">URL fixa do endpoint de envio do Wasender.</small>
+          <small class="text-muted d-block mt-1">URL fixa do endpoint de envio da WasenderAPI.</small>
           {% if form.evolution_url.errors %}<div class="invalid-feedback d-block">{{ form.evolution_url.errors|striptags }}</div>{% endif %}
         </div>
         <div class="col-md-6">
           <label class="form-label" for="{{ form.evolution_senha.id_for_label }}">{{ form.evolution_senha.label }}</label>
           {{ form.evolution_senha }}
-          <small class="text-muted d-block mt-1">Cole o token gerado no painel do Wasender.</small>
+          <small class="text-muted d-block mt-1">Cole o token gerado no painel da WasenderAPI.</small>
           {% if form.evolution_senha.errors %}<div class="invalid-feedback d-block">{{ form.evolution_senha.errors|striptags }}</div>{% endif %}
         </div>
       </div>

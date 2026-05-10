@@ -87,7 +87,7 @@ class EvolutionClient:
             logger.exception("Failed to send WhatsApp message to %s", to)
             return _extract_error_payload(exc=exc) | {"error": str(exc)}
         except httpx.HTTPStatusError as exc:
-            logger.exception("Evolution returned bad status for %s", to)
+            logger.exception("WasenderAPI returned bad status for %s", to)
             return _extract_error_payload(resp=exc.response, exc=exc) | {"error": str(exc)}
 
     def send_document(self, to: str, media_url: str, filename: str, caption: str | None = None) -> dict:
@@ -133,7 +133,7 @@ class EvolutionClient:
             logger.exception("Failed to send WhatsApp document to %s", to)
             return {"error": str(exc)}
         except httpx.HTTPStatusError as exc:
-            logger.exception("Evolution returned bad status for %s", to)
+            logger.exception("WasenderAPI returned bad status for %s", to)
             return {"error": str(exc)}
 
 

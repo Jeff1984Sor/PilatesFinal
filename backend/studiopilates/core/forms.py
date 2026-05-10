@@ -459,7 +459,7 @@ class WhatsappConfiguracaoForm(BaseAutoCdForm):
         super().__init__(*args, **kwargs)
         url_field = self.fields.get("evolution_url")
         if url_field:
-            url_field.label = "URL do Wasender"
+            url_field.label = "URL da WasenderAPI"
             url_field.widget.attrs["readonly"] = True
             if not url_field.initial and self.instance and getattr(self.instance, "evolution_url", ""):
                 url_field.initial = self.instance.evolution_url
@@ -468,7 +468,7 @@ class WhatsappConfiguracaoForm(BaseAutoCdForm):
         token_field = self.fields.get("evolution_senha")
         if token_field:
             token_field.label = "Token (API Key)"
-            token_field.widget.attrs["placeholder"] = "Cole aqui o token do Wasender"
+            token_field.widget.attrs["placeholder"] = "Cole aqui o token da WasenderAPI"
         usuario_field = self.fields.get("evolution_usuario")
         if usuario_field:
             usuario_field.label = "Usuario (nao usado)"
