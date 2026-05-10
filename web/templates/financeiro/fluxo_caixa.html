@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Financeiro</div>
+      <h2 class="mayris-title">Fluxo de Caixa</h2>
+      <div class="text-muted">Projeção de entradas, saídas e saldo bancário consolidado no período.</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a class="btn btn-outline-secondary" href="{% url 'fluxo_caixa_exportar_excel' %}?inicio={{ inicio }}&fim={{ fim }}">Exportar Excel</a>
+      <a class="btn btn-outline-secondary" href="{% url 'fluxo_caixa_exportar_pdf' %}?inicio={{ inicio }}&fim={{ fim }}">Exportar PDF</a>
+    </div>
+  </div>
+
+  <div class="mayris-card mb-3">
+    <form class="mayris-filter-bar" method="get">
+      <div class="col-md-3">
+        <label class="form-label">Data inicial</label>
+        <input class="form-control" type="date" name="inicio" value="{{ inicio }}" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Data final</label>
+        <input class="form-control" type="date" name="fim" value="{{ fim }}" />
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-outline-secondary w-100" type="submit">Aplicar</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="mayris-card h-100">
+        <div class="text-muted small">Saldo bancário base</div>
+        <div class="display-6 fw-bold">R$ {{ saldo_bancario_base }}</div>
+        <div class="small text-muted">Consolidado das contas ativas antes do período.</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="mayris-card h-100">
+        <div class="text-muted small">Receitas previstas</div>
+        <div class="display-6 fw-bold text-success">R$ {{ total_receitas }}</div>
+        <div class="small text-muted">Lançamentos de contas a receber no intervalo.</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="mayris-card h-100">
+        <div class="text-muted small">Despesas previstas</div>
+        <div class="display-6 fw-bold text-danger">R$ {{ total_despesas }}</div>
+        <div class="small text-muted">Lançamentos de contas a pagar no intervalo.</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="mayris-card h-100">
+        <div class="text-muted small">Saldo projetado final</div>
+        <div class="display-6 fw-bold {% if saldo_projetado_final >= 0 %}text-success{% else %}text-danger{% endif %}">R$ {{ saldo_projetado_final }}</div>
+        <div class="small text-muted">Saldo base + receitas - despesas.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-lg-9">
+      <div class="mayris-card h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="mb-1">Projeção diária</h5>
+            <div class="text-muted small">Receitas, despesas e saldo acumulado no período.</div>
+          </div>
+        </div>
+        <div style="height: 360px;">
+          <canvas id="fluxoCaixaChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="mayris-card h-100">
+        <h5 class="mb-3">Contas ativas</h5>
+        {% if contas_ativas %}
+          <div class="table-responsive">
+            <table class="table table-sm mayris-table">
+              <thead>
+                <tr>
+                  <th>Banco</th>
+                  <th>Saldo inicial</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for conta in contas_ativas %}
+                  <tr>
+                    <td>{{ conta.banco }}</td>
+                    <td>R$ {{ conta.saldo_inicial }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-muted">Nenhuma conta ativa encontrada.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="mayris-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h5 class="mb-1">Lançamentos</h5>
+        <div class="text-muted small">Entradas e saídas já cadastradas no período selecionado.</div>
+      </div>
+      <div class="text-muted small">{{ lancamentos|length }} itens</div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mayris-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Origem</th>
+            <th>Descrição</th>
+            <th>Detalhe</th>
+            <th>Status</th>
+            <th class="text-end">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in lancamentos %}
+            <tr>
+              <td>{{ item.data|date:"d/m/Y" }}</td>
+              <td>
+                {% if item.tipo == "Receita" %}
+                  <span class="badge text-bg-success">Receita</span>
+                {% else %}
+                  <span class="badge text-bg-danger">Despesa</span>
+                {% endif %}
+              </td>
+              <td>{{ item.origem }}</td>
+              <td>{{ item.descricao }}</td>
+              <td>{{ item.detalhe }}</td>
+              <td>{{ item.status }}</td>
+              <td class="text-end">R$ {{ item.valor }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-muted">Nenhum lançamento encontrado para o período.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+  (() => {
+    const labels = JSON.parse('{{ chart_labels|escapejs }}');
+    const receitas = JSON.parse('{{ chart_receitas|escapejs }}');
+    const despesas = JSON.parse('{{ chart_despesas|escapejs }}');
+    const saldo = JSON.parse('{{ chart_saldo|escapejs }}');
+    const canvas = document.getElementById("fluxoCaixaChart");
+    if (!canvas) return;
+    new Chart(canvas, {
+      data: {
+        labels,
+        datasets: [
+          {
+            type: "bar",
+            label: "Receitas",
+            data: receitas,
+            backgroundColor: "rgba(25, 135, 84, 0.7)",
+            borderRadius: 8,
+          },
+          {
+            type: "bar",
+            label: "Despesas",
+            data: despesas,
+            backgroundColor: "rgba(220, 53, 69, 0.7)",
+            borderRadius: 8,
+          },
+          {
+            type: "line",
+            label: "Saldo acumulado",
+            data: saldo,
+            borderColor: "rgba(13, 110, 253, 1)",
+            backgroundColor: "rgba(13, 110, 253, 0.15)",
+            tension: 0.35,
+            fill: false,
+            pointRadius: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: "index",
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            position: "bottom",
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            ticks: {
+              callback: (value) => `R$ ${value}`,
+            },
+          },
+        },
+      },
+    });
+  })();
+</script>
+{% endblock %}

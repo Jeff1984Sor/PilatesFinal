@@ -3,6 +3,8 @@ from datetime import date, datetime, timedelta
 import calendar
 import json
 import re
+from collections import defaultdict
+from decimal import Decimal
 from pathlib import Path
 from urllib.parse import quote
 from io import BytesIO
@@ -1667,6 +1669,142 @@ def _filtrar_contas_pagar(request):
     return qs.order_by("dtVencimento", "id")
 
 
+def _parse_fluxo_caixa_periodo(request):
+    today = timezone.now().date()
+    inicio = request.GET.get("inicio", "").strip()
+    fim = request.GET.get("fim", "").strip()
+    if not inicio or not fim:
+        first, last = _first_last_day_month(today)
+        if not inicio:
+            inicio = first.strftime("%Y-%m-%d")
+        if not fim:
+            fim = last.strftime("%Y-%m-%d")
+    try:
+        inicio_dt = datetime.strptime(inicio, "%Y-%m-%d").date()
+    except ValueError:
+        inicio_dt = today.replace(day=1)
+        inicio = inicio_dt.strftime("%Y-%m-%d")
+    try:
+        fim_dt = datetime.strptime(fim, "%Y-%m-%d").date()
+    except ValueError:
+        fim_dt = today
+        fim = fim_dt.strftime("%Y-%m-%d")
+    if fim_dt < inicio_dt:
+        fim_dt = inicio_dt
+        fim = fim_dt.strftime("%Y-%m-%d")
+    return inicio, fim, inicio_dt, fim_dt
+
+
+def _build_fluxo_caixa_data(request):
+    inicio, fim, inicio_dt, fim_dt = _parse_fluxo_caixa_periodo(request)
+    today = timezone.now().date()
+
+    receitas_qs = (
+        models.ContasReceber.objects.select_related("contrato", "contrato__cdAluno", "contrato__cdPlano", "contrato__cdUnidade")
+        .exclude(status="CANCELADO")
+        .filter(dtVencimento__range=(inicio_dt, fim_dt))
+        .order_by("dtVencimento", "id")
+    )
+    despesas_qs = (
+        models.ContasPagar.objects.select_related("cdFornecedor", "cdCategoria", "cdSubcategoria")
+        .exclude(status="CANCELADO")
+        .filter(dtVencimento__range=(inicio_dt, fim_dt))
+        .order_by("dtVencimento", "id")
+    )
+
+    contas_ativas = models.ContaBancaria.objects.filter(ativo=True).order_by("banco")
+    saldo_inicial_total = contas_ativas.aggregate(total=Sum("saldo_inicial"))["total"] or Decimal("0")
+    movimentos_anteriores = models.MovimentoConta.objects.filter(conta__ativo=True, data__lt=inicio_dt)
+    entradas_anteriores = movimentos_anteriores.filter(tipo="ENTRADA").aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    saidas_anteriores = movimentos_anteriores.filter(tipo="SAIDA").aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    saldo_bancario_base = saldo_inicial_total + entradas_anteriores - saidas_anteriores
+
+    receita_por_dia = defaultdict(Decimal)
+    despesa_por_dia = defaultdict(Decimal)
+    lancamentos = []
+
+    for item in receitas_qs:
+        valor = item.valor or Decimal("0")
+        receita_por_dia[item.dtVencimento] += valor
+        cliente = item.contrato.cdAluno.dsNome if item.contrato_id and item.contrato.cdAluno_id else "Sem aluno"
+        plano = item.contrato.cdPlano.dsPlano if item.contrato_id and item.contrato.cdPlano_id else "Sem plano"
+        lancamentos.append(
+            {
+                "data": item.dtVencimento,
+                "tipo": "Receita",
+                "origem": "Contas a Receber",
+                "descricao": f"Contrato #{item.contrato.cdContrato} - {cliente}",
+                "detalhe": plano,
+                "status": item.status,
+                "valor": valor,
+                "sort_tipo": 0,
+                "sort_id": item.id,
+            }
+        )
+
+    for item in despesas_qs:
+        valor = item.valor or Decimal("0")
+        despesa_por_dia[item.dtVencimento] += valor
+        fornecedor = str(item.cdFornecedor) if item.cdFornecedor_id else "Sem fornecedor"
+        categoria = str(item.cdCategoria) if item.cdCategoria_id else "Sem categoria"
+        lancamentos.append(
+            {
+                "data": item.dtVencimento,
+                "tipo": "Despesa",
+                "origem": "Contas a Pagar",
+                "descricao": fornecedor,
+                "detalhe": categoria if not item.cdSubcategoria_id else f"{categoria} / {item.cdSubcategoria}",
+                "status": item.status,
+                "valor": valor,
+                "sort_tipo": 1,
+                "sort_id": item.id,
+            }
+        )
+
+    lancamentos.sort(key=lambda row: (row["data"], row["sort_tipo"], row["sort_id"]))
+
+    dias = []
+    saldo_diario = []
+    saldo_acumulado = saldo_bancario_base
+    total_receitas = Decimal("0")
+    total_despesas = Decimal("0")
+    cursor = inicio_dt
+    while cursor <= fim_dt:
+        receita_dia = receita_por_dia.get(cursor, Decimal("0"))
+        despesa_dia = despesa_por_dia.get(cursor, Decimal("0"))
+        total_receitas += receita_dia
+        total_despesas += despesa_dia
+        saldo_acumulado += receita_dia - despesa_dia
+        dias.append(cursor)
+        saldo_diario.append(
+            {
+                "data": cursor,
+                "receitas": receita_dia,
+                "despesas": despesa_dia,
+                "saldo": saldo_acumulado,
+            }
+        )
+        cursor += timedelta(days=1)
+
+    saldo_projetado_final = saldo_bancario_base + total_receitas - total_despesas
+
+    return {
+        "inicio": inicio,
+        "fim": fim,
+        "inicio_dt": inicio_dt,
+        "fim_dt": fim_dt,
+        "today": today,
+        "contas_ativas": contas_ativas,
+        "saldo_bancario_base": saldo_bancario_base,
+        "saldo_projetado_final": saldo_projetado_final,
+        "total_receitas": total_receitas,
+        "total_despesas": total_despesas,
+        "lancamentos": lancamentos,
+        "saldo_diario": saldo_diario,
+        "dias": dias,
+    }
+
+
 @login_required
 def conta_bancaria_view(request):
     today = timezone.now().date()
@@ -1727,6 +1865,160 @@ def conta_bancaria_view(request):
         "active_menu": "financeiro",
     }
     return render(request, "financeiro/conta_bancaria.html", context)
+
+
+@login_required
+def fluxo_caixa_view(request):
+    data = _build_fluxo_caixa_data(request)
+    chart_labels = [item["data"].strftime("%d/%m") for item in data["saldo_diario"]]
+    chart_receitas = [float(item["receitas"]) for item in data["saldo_diario"]]
+    chart_despesas = [float(item["despesas"]) for item in data["saldo_diario"]]
+    chart_saldo = [float(item["saldo"]) for item in data["saldo_diario"]]
+
+    context = {
+        "title": "Fluxo de Caixa",
+        "inicio": data["inicio"],
+        "fim": data["fim"],
+        "saldo_bancario_base": data["saldo_bancario_base"],
+        "saldo_projetado_final": data["saldo_projetado_final"],
+        "total_receitas": data["total_receitas"],
+        "total_despesas": data["total_despesas"],
+        "lancamentos": data["lancamentos"],
+        "chart_labels": json.dumps(chart_labels),
+        "chart_receitas": json.dumps(chart_receitas),
+        "chart_despesas": json.dumps(chart_despesas),
+        "chart_saldo": json.dumps(chart_saldo),
+        "contas_ativas": data["contas_ativas"],
+        "breadcrumbs": [("Home", reverse("dashboard")), ("Financeiro", "#"), ("Fluxo de Caixa", "#")],
+        "active_menu": "financeiro",
+    }
+    return render(request, "financeiro/fluxo_caixa.html", context)
+
+
+@login_required
+def exportar_fluxo_caixa_excel(request):
+    data = _build_fluxo_caixa_data(request)
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Resumo"
+    ws.append(["Periodo inicio", data["inicio"]])
+    ws.append(["Periodo fim", data["fim"]])
+    ws.append(["Saldo bancario base", float(data["saldo_bancario_base"])])
+    ws.append(["Receitas previstas", float(data["total_receitas"])])
+    ws.append(["Despesas previstas", float(data["total_despesas"])])
+    ws.append(["Saldo projetado final", float(data["saldo_projetado_final"])])
+
+    ws_lanc = wb.create_sheet("Lancamentos")
+    ws_lanc.append(["Data", "Tipo", "Origem", "Descricao", "Detalhe", "Status", "Valor"])
+    for item in data["lancamentos"]:
+        ws_lanc.append([
+            item["data"].strftime("%d/%m/%Y"),
+            item["tipo"],
+            item["origem"],
+            item["descricao"],
+            item["detalhe"],
+            item["status"],
+            float(item["valor"]),
+        ])
+
+    ws_diario = wb.create_sheet("Diario")
+    ws_diario.append(["Data", "Receitas", "Despesas", "Saldo acumulado"])
+    for item in data["saldo_diario"]:
+        ws_diario.append([
+            item["data"].strftime("%d/%m/%Y"),
+            float(item["receitas"]),
+            float(item["despesas"]),
+            float(item["saldo"]),
+        ])
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    response = HttpResponse(
+        buffer.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="fluxo-de-caixa.xlsx"'
+    return response
+
+
+@login_required
+def exportar_fluxo_caixa_pdf(request):
+    data = _build_fluxo_caixa_data(request)
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.enums import TA_LEFT
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), title="Fluxo de Caixa")
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="SmallLeft", parent=styles["BodyText"], alignment=TA_LEFT, fontSize=8, leading=10))
+
+    story = [
+        Paragraph("Fluxo de Caixa", styles["Title"]),
+        Paragraph(f"Periodo {datetime.strptime(data['inicio'], '%Y-%m-%d').strftime('%d/%m/%Y')} a {datetime.strptime(data['fim'], '%Y-%m-%d').strftime('%d/%m/%Y')}", styles["Normal"]),
+        Spacer(1, 10),
+    ]
+
+    resumo = Table(
+        [
+            ["Saldo bancario base", f"R$ {data['saldo_bancario_base']}"],
+            ["Receitas previstas", f"R$ {data['total_receitas']}"],
+            ["Despesas previstas", f"R$ {data['total_despesas']}"],
+            ["Saldo projetado final", f"R$ {data['saldo_projetado_final']}"],
+        ],
+        colWidths=[180, 120],
+    )
+    resumo.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f5f5f5")),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    story.append(resumo)
+    story.append(Spacer(1, 12))
+
+    linhas = [["Data", "Tipo", "Origem", "Descricao", "Status", "Valor"]]
+    for item in data["lancamentos"][:120]:
+        linhas.append([
+            item["data"].strftime("%d/%m/%Y"),
+            item["tipo"],
+            item["origem"],
+            item["descricao"][:40],
+            item["status"],
+            f"R$ {item['valor']}",
+        ])
+    tabela = Table(linhas, repeatRows=1, colWidths=[60, 55, 95, 220, 70, 70])
+    tabela.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ]
+        )
+    )
+    story.append(Paragraph("Lancamentos", styles["Heading2"]))
+    story.append(tabela)
+
+    doc.build(story)
+    buffer.seek(0)
+    response = HttpResponse(buffer.read(), content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="fluxo-de-caixa.pdf"'
+    return response
 
 
 @login_required
