@@ -51,27 +51,22 @@ def extract_address_from_proof(file_bytes: bytes, filename: str) -> Dict:
 
 
 def improve_evolution_text(texto: str) -> Dict:
+    if not GEMINI_API_KEY:
+        raise GeminiError("GEMINI_API_KEY nao configurado")
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-1.5-flash")
     prompt = (
-        "Voce e um assistente de fisioterapia/Pilates. Melhore a evolucao abaixo em portugues do Brasil, "
-        "mantendo os fatos informados, sem inventar sintomas, condutas ou diagnosticos. "
-        "Deixe o texto claro, profissional, objetivo e pronto para prontuario. "
-        "Responda somente JSON estrito com a chave texto.\n\n"
-        f"Evolucao original:\n{texto}"
+        "Melhore a evolucao abaixo em portugues do Brasil, mantendo somente os fatos informados, "
+        "sem inventar sintomas, condutas, diagnosticos ou exercicios. "
+        "Deixe claro, profissional e objetivo para prontuario. "
+        "Retorne apenas o texto final, sem markdown.\n\n"
+        f"{texto}"
     )
     try:
-        return _call_gemini(prompt)
-    except GeminiError:
-        if not GEMINI_API_KEY:
-            raise
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        fallback_prompt = (
-            "Melhore a evolucao abaixo em portugues do Brasil, mantendo somente os fatos informados, "
-            "sem inventar dados. Retorne apenas o texto final, sem markdown.\n\n"
-            f"{texto}"
-        )
-        response = model.generate_content(fallback_prompt)
-        clean_text = re.sub(r"^```(?:text|markdown)?|```$", "", (response.text or "").strip()).strip()
-        if not clean_text:
-            raise GeminiError("Falha ao processar resposta")
-        return {"texto": clean_text}
+        response = model.generate_content(prompt)
+    except Exception as exc:
+        raise GeminiError(f"Falha na chamada da IA: {exc}") from exc
+    clean_text = re.sub(r"^```(?:text|markdown)?|```$", "", (response.text or "").strip()).strip()
+    if not clean_text:
+        raise GeminiError("A IA retornou resposta vazia")
+    return {"texto": clean_text}

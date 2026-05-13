@@ -3851,10 +3851,11 @@ def _enriquecer_evolucao_response(request):
     try:
         data = improve_evolution_text(texto)
     except GeminiError as exc:
+        logger.warning("Falha ao enriquecer evolucao por IA: %s", exc)
         return JsonResponse({"error": str(exc)}, status=503)
-    except Exception:
+    except Exception as exc:
         logger.exception("Falha ao enriquecer evolucao por IA.")
-        return JsonResponse({"error": "Nao foi possivel enriquecer a evolucao agora."}, status=503)
+        return JsonResponse({"error": f"Nao foi possivel enriquecer a evolucao agora: {exc}"}, status=503)
     enriched = (data.get("texto") or "").strip()
     if not enriched:
         return JsonResponse({"error": "A IA nao retornou um texto valido."}, status=503)
