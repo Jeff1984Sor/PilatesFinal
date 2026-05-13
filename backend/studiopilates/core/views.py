@@ -2199,14 +2199,28 @@ def _build_fluxo_caixa_data_for_period(inicio_dt, fim_dt, conta_filtro="all"):
     for item in receitas_qs:
         valor = item.valor or Decimal("0")
         receita_por_dia[item.dtVencimento] += valor
-        cliente = item.contrato.cdAluno.dsNome if item.contrato_id and item.contrato.cdAluno_id else "Sem aluno"
-        plano = item.contrato.cdPlano.dsPlano if item.contrato_id and item.contrato.cdPlano_id else "Sem plano"
+        contrato = item.contrato if item.contrato_id else None
+        reserva = item.reserva if item.reserva_id else None
+        if contrato:
+            cliente = contrato.cdAluno.dsNome if contrato.cdAluno_id else "Sem aluno"
+            plano = contrato.cdPlano.dsPlano if contrato.cdPlano_id else "Sem plano"
+            descricao = f"Contrato #{contrato.cdContrato} - {cliente}"
+        elif reserva:
+            cliente = reserva.aluno.dsNome if reserva.aluno_id else "Sem aluno"
+            aula = reserva.aulaSessao
+            horario = aula.horaInicio.strftime("%H:%M") if aula and aula.horaInicio else ""
+            servico = aula.tipoServico.dsTipoServico if aula and aula.tipoServico_id else "Aula"
+            plano = servico
+            descricao = f"Aula avulsa - {cliente}" + (f" ({horario})" if horario else "")
+        else:
+            plano = "Lancamento manual"
+            descricao = f"Receita #{item.id}"
         lancamentos.append(
             {
                 "data": item.dtVencimento,
                 "tipo": "Receita",
                 "origem": "Contas a Receber",
-                "descricao": f"Contrato #{item.contrato.cdContrato} - {cliente}",
+                "descricao": descricao,
                 "detalhe": plano,
                 "status": item.status,
                 "valor": valor,
