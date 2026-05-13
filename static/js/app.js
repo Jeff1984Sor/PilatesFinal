@@ -1183,6 +1183,7 @@ function initAulasOperacao() {
 
   const url = root.dataset.operacaoUrl || "";
   const evolucaoTemplate = root.dataset.evolucaoUrlTemplate || "";
+  const evolucaoAiUrl = root.dataset.evolucaoAiUrl || "";
   const evolucaoAiTemplate = root.dataset.evolucaoAiUrlTemplate || "";
   const avaliacaoTemplate = root.dataset.avaliacaoUrlTemplate || "";
   const cobrancaTemplate = root.dataset.cobrancaUrlTemplate || "";
@@ -1658,15 +1659,11 @@ function initAulasOperacao() {
   }
 
   function enrichEvolucaoWithAi() {
-    if (!selected) {
-      setEvolucaoHelper("Abra uma aula antes de usar a IA.");
-      return;
-    }
     if (!evolucaoText) {
       window.alert("Campo de evolucao indisponivel nesta tela.");
       return;
     }
-    if (!evolucaoAiTemplate) {
+    if (!evolucaoAiUrl && (!selected || !evolucaoAiTemplate)) {
       setEvolucaoHelper("Endpoint de IA nao configurado nesta tela.");
       return;
     }
@@ -1676,7 +1673,7 @@ function initAulasOperacao() {
       return;
     }
     const csrf = getCookie("csrftoken");
-    const urlAction = evolucaoAiTemplate.replace("/0/", `/${selected.id}/`);
+    const urlAction = evolucaoAiUrl || evolucaoAiTemplate.replace("/0/", `/${selected.id}/`);
     if (evolucaoAiBtn) {
       evolucaoAiBtn.disabled = true;
       evolucaoAiBtn.textContent = "Enriquecendo...";

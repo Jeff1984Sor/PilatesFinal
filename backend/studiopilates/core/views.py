@@ -3834,6 +3834,16 @@ def aula_evolucao_api(request, reserva_id):
 @require_POST
 def aula_evolucao_enriquecer_api(request, reserva_id):
     get_object_or_404(models.Reserva, pk=reserva_id)
+    return _enriquecer_evolucao_response(request)
+
+
+@login_required
+@require_POST
+def evolucao_enriquecer_api(request):
+    return _enriquecer_evolucao_response(request)
+
+
+def _enriquecer_evolucao_response(request):
     payload = _parse_json_body(request)
     texto = (payload.get("texto") or "").strip()
     if not texto:
