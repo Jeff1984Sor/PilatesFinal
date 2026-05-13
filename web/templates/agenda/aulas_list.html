@@ -165,6 +165,137 @@
   </aside>
 </div>
 
+<script>
+  (function () {
+    let recognition = null;
+    let recording = false;
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(";").shift();
+      return "";
+    }
+
+    function helper(message) {
+      const el = document.querySelector(".js-evolucao-helper");
+      if (el) el.textContent = message || "";
+      if (message && !el) window.alert(message);
+    }
+
+    function appendText(text) {
+      const textarea = document.querySelector(".js-evolucao-text");
+      const clean = (text || "").trim();
+      if (!textarea || !clean) return;
+      textarea.value = `${textarea.value}${textarea.value.trim() ? "\n" : ""}${clean}`;
+      textarea.focus();
+    }
+
+    function stopRecording() {
+      if (recognition) recognition.stop();
+    }
+
+    function startRecording(button) {
+      const textarea = document.querySelector(".js-evolucao-text");
+      if (!textarea) {
+        window.alert("Campo de evolucao indisponivel.");
+        return;
+      }
+      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Recognition) {
+        helper("Este navegador nao oferece transcricao de voz. Use Chrome ou Edge atualizado em HTTPS.");
+        return;
+      }
+      if (recording) {
+        stopRecording();
+        return;
+      }
+      recognition = new Recognition();
+      recognition.lang = "pt-BR";
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.onstart = function () {
+        recording = true;
+        button.textContent = "Parar gravacao";
+        button.classList.remove("btn-outline-secondary");
+        button.classList.add("btn-danger");
+        helper("Gravando... fale a evolucao da aula.");
+      };
+      recognition.onresult = function (event) {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          if (event.results[i].isFinal) transcript += event.results[i][0].transcript + " ";
+        }
+        appendText(transcript);
+      };
+      recognition.onerror = function (event) {
+        helper("Nao foi possivel gravar o audio: " + (event.error || "erro desconhecido") + ".");
+      };
+      recognition.onend = function () {
+        recording = false;
+        button.textContent = "Gravar audio";
+        button.classList.add("btn-outline-secondary");
+        button.classList.remove("btn-danger");
+        if (textarea.value.trim()) helper("Transcricao adicionada ao campo Evolucao.");
+      };
+      recognition.start();
+    }
+
+    function enrichWithAi(button) {
+      const root = document.querySelector("[data-operacao-root]");
+      const textarea = document.querySelector(".js-evolucao-text");
+      const reservaId = root?.dataset.currentReservaId || "";
+      const template = root?.dataset.evolucaoAiUrlTemplate || "";
+      const text = (textarea?.value || "").trim();
+      if (!textarea || !text) {
+        helper("Escreva ou grave uma evolucao antes de usar a IA.");
+        return;
+      }
+      if (!reservaId || !template) {
+        helper("Abra novamente a aula antes de usar a IA.");
+        return;
+      }
+      const url = template.replace("/0/", "/" + reservaId + "/");
+      button.disabled = true;
+      button.textContent = "Enriquecendo...";
+      helper("IA trabalhando no texto da evolucao...");
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCookie("csrftoken")
+        },
+        body: JSON.stringify({ texto: text })
+      }).then(async function (resp) {
+        const data = await resp.json().catch(function () { return {}; });
+        if (!resp.ok || data.error) throw new Error(data.error || "Nao foi possivel enriquecer a evolucao.");
+        textarea.value = data.texto || text;
+        textarea.focus();
+        helper("Texto enriquecido pela IA.");
+      }).catch(function (error) {
+        helper(error.message || "Nao foi possivel enriquecer a evolucao.");
+      }).finally(function () {
+        button.disabled = false;
+        button.textContent = "Enriquecimento com IA";
+      });
+    }
+
+    document.addEventListener("click", function (event) {
+      const recordButton = event.target.closest(".js-evolucao-record");
+      if (recordButton) {
+        event.preventDefault();
+        startRecording(recordButton);
+        return;
+      }
+      const aiButton = event.target.closest(".js-evolucao-ai");
+      if (aiButton) {
+        event.preventDefault();
+        enrichWithAi(aiButton);
+      }
+    });
+  })();
+</script>
+
 <div class="modal fade" id="remarcarModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">

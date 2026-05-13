@@ -1490,6 +1490,7 @@ function initAulasOperacao() {
   function openDrawer(item) {
     selected = item;
     selectedId = item.id;
+    root.dataset.currentReservaId = item.id;
     if (!drawer) return;
     drawer.classList.add("is-open");
     drawer.setAttribute("aria-hidden", "false");
@@ -1542,6 +1543,7 @@ function initAulasOperacao() {
     drawer.setAttribute("aria-hidden", "true");
     selected = null;
     selectedId = null;
+    root.dataset.currentReservaId = "";
   }
 
   function updateStatus(item, action) {
