@@ -1492,6 +1492,7 @@ function initAulasOperacao() {
     selectedId = item.id;
     root.dataset.currentReservaId = item.id;
     if (!drawer) return;
+    drawer.dataset.currentReservaId = item.id;
     drawer.classList.add("is-open");
     drawer.setAttribute("aria-hidden", "false");
     applyStatusTheme(drawer, item.status_aula);
@@ -1544,6 +1545,7 @@ function initAulasOperacao() {
     selected = null;
     selectedId = null;
     root.dataset.currentReservaId = "";
+    drawer.dataset.currentReservaId = "";
   }
 
   function updateStatus(item, action) {

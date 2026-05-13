@@ -85,7 +85,7 @@
     <div class="aulas-operacao__content js-operacao-content"></div>
   </section>
 
-  <aside class="aulas-drawer js-aulas-drawer" aria-hidden="true">
+  <aside class="aulas-drawer js-aulas-drawer" aria-hidden="true" data-current-reserva-id="">
     <div class="aulas-drawer__header">
       <button class="btn btn-light js-close-drawer aulas-close" aria-label="Fechar">×</button>
       <div class="aulas-drawer__title">
@@ -243,8 +243,9 @@
 
     function enrichWithAi(button) {
       const root = document.querySelector("[data-operacao-root]");
+      const drawer = document.querySelector(".js-aulas-drawer");
       const textarea = document.querySelector(".js-evolucao-text");
-      const reservaId = root?.dataset.currentReservaId || "";
+      const reservaId = drawer?.dataset.currentReservaId || root?.dataset.currentReservaId || "";
       const template = root?.dataset.evolucaoAiUrlTemplate || "";
       const text = (textarea?.value || "").trim();
       if (!textarea || !text) {
