@@ -13,6 +13,8 @@ class GeminiError(Exception):
 
 GEMINI_MODEL_CANDIDATES = [
     os.getenv("GEMINI_MODEL", "").strip(),
+    "gemini-3-flash-preview",
+    "gemini-3-pro-preview",
     "gemini-2.0-flash",
     "gemini-2.5-flash",
     "gemini-flash-latest",
