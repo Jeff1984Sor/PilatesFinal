@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import time
 from typing import Dict
@@ -10,14 +11,42 @@ class GeminiError(Exception):
     pass
 
 
-def _call_gemini(prompt: str) -> Dict:
+GEMINI_MODEL_CANDIDATES = [
+    os.getenv("GEMINI_MODEL", "").strip(),
+    "gemini-2.0-flash",
+    "gemini-2.5-flash",
+    "gemini-flash-latest",
+]
+
+
+def _model_names():
+    names = []
+    for name in GEMINI_MODEL_CANDIDATES:
+        if name and name not in names:
+            names.append(name)
+    return names
+
+
+def _generate_content(prompt: str):
     if not GEMINI_API_KEY:
         raise GeminiError("GEMINI_API_KEY nao configurado")
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    last_error = None
+    for model_name in _model_names():
+        try:
+            model = genai.GenerativeModel(model_name)
+            return model.generate_content(prompt)
+        except Exception as exc:
+            last_error = exc
+            if "is not found" not in str(exc) and "not supported for generateContent" not in str(exc):
+                break
+    raise GeminiError(f"Falha na chamada da IA: {last_error}") from last_error
+
+
+def _call_gemini(prompt: str) -> Dict:
     for attempt in range(3):
         try:
-            response = model.generate_content(prompt)
+            response = _generate_content(prompt)
             response_text = (response.text or "").strip()
             if response_text.startswith("```"):
                 response_text = response_text.strip("`").strip()
@@ -51,10 +80,6 @@ def extract_address_from_proof(file_bytes: bytes, filename: str) -> Dict:
 
 
 def improve_evolution_text(texto: str) -> Dict:
-    if not GEMINI_API_KEY:
-        raise GeminiError("GEMINI_API_KEY nao configurado")
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash")
     prompt = (
         "Melhore a evolucao abaixo em portugues do Brasil, mantendo somente os fatos informados, "
         "sem inventar sintomas, condutas, diagnosticos ou exercicios. "
@@ -63,9 +88,9 @@ def improve_evolution_text(texto: str) -> Dict:
         f"{texto}"
     )
     try:
-        response = model.generate_content(prompt)
-    except Exception as exc:
-        raise GeminiError(f"Falha na chamada da IA: {exc}") from exc
+        response = _generate_content(prompt)
+    except GeminiError:
+        raise
     clean_text = re.sub(r"^```(?:text|markdown)?|```$", "", (response.text or "").strip()).strip()
     if not clean_text:
         raise GeminiError("A IA retornou resposta vazia")
