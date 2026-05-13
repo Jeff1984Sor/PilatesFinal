@@ -1183,6 +1183,7 @@ function initAulasOperacao() {
 
   const url = root.dataset.operacaoUrl || "";
   const evolucaoTemplate = root.dataset.evolucaoUrlTemplate || "";
+  const evolucaoAiTemplate = root.dataset.evolucaoAiUrlTemplate || "";
   const avaliacaoTemplate = root.dataset.avaliacaoUrlTemplate || "";
   const cobrancaTemplate = root.dataset.cobrancaUrlTemplate || "";
   const historicoTemplate = root.dataset.historicoUrlTemplate || "";
@@ -1210,6 +1211,9 @@ function initAulasOperacao() {
   const drawerCobranca = root.querySelector(".js-drawer-cobranca");
   const evolucaoText = root.querySelector(".js-evolucao-text");
   const evolucaoList = root.querySelector(".js-evolucao-list");
+  const evolucaoRecordBtn = root.querySelector(".js-evolucao-record");
+  const evolucaoAiBtn = root.querySelector(".js-evolucao-ai");
+  const evolucaoHelper = root.querySelector(".js-evolucao-helper");
   const avaliacaoText = root.querySelector(".js-avaliacao-text");
   const avaliacaoList = root.querySelector(".js-avaliacao-list");
   const cobrancaList = root.querySelector(".js-cobranca-list");
@@ -1227,6 +1231,8 @@ function initAulasOperacao() {
   let debounceTimer = null;
   let selectedStatus = "";
   let selectedPeriod = "hoje";
+  let speechRecognition = null;
+  let isRecordingEvolution = false;
 
   if (dateInput && !dateInput.value) {
     const now = new Date();
@@ -1321,6 +1327,19 @@ function initAulasOperacao() {
       return digits;
     }
     return "";
+  }
+
+  function setEvolucaoHelper(message) {
+    if (evolucaoHelper) evolucaoHelper.textContent = message || "";
+  }
+
+  function appendEvolucaoText(text) {
+    if (!evolucaoText || !text) return;
+    const clean = text.trim();
+    if (!clean) return;
+    const separator = evolucaoText.value.trim() ? "\n" : "";
+    evolucaoText.value = `${evolucaoText.value}${separator}${clean}`;
+    evolucaoText.focus();
   }
 
   function render() {
@@ -1506,6 +1525,7 @@ function initAulasOperacao() {
       drawerCobranca.textContent = item.flags.cobranca_pendente ? "Ha cobrancas pendentes." : "Sem cobrancas pendentes.";
     }
     if (evolucaoText) evolucaoText.value = item.ultima_evolucao?.texto || "";
+    setEvolucaoHelper("");
     if (avaliacaoText) avaliacaoText.value = "";
     applyActionButtons(item.status_aula);
     loadEvolucoes();
@@ -1516,6 +1536,7 @@ function initAulasOperacao() {
 
   function closeDrawer() {
     if (!drawer) return;
+    if (isRecordingEvolution) stopEvolutionRecording();
     drawer.classList.remove("is-open");
     drawer.setAttribute("aria-hidden", "true");
     selected = null;
@@ -1570,6 +1591,96 @@ function initAulasOperacao() {
       evolucaoText.value = "";
       loadEvolucoes();
       loadData();
+    });
+  }
+
+  function stopEvolutionRecording() {
+    if (speechRecognition) {
+      speechRecognition.stop();
+    }
+  }
+
+  function startEvolutionRecording() {
+    if (!evolucaoText || !evolucaoRecordBtn) return;
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setEvolucaoHelper("Seu navegador nao liberou transcricao por voz. Use Chrome ou Edge atualizado.");
+      return;
+    }
+    if (isRecordingEvolution) {
+      stopEvolutionRecording();
+      return;
+    }
+    speechRecognition = new Recognition();
+    speechRecognition.lang = "pt-BR";
+    speechRecognition.continuous = true;
+    speechRecognition.interimResults = false;
+    speechRecognition.onstart = () => {
+      isRecordingEvolution = true;
+      evolucaoRecordBtn.textContent = "Parar gravacao";
+      evolucaoRecordBtn.classList.remove("btn-outline-secondary");
+      evolucaoRecordBtn.classList.add("btn-danger");
+      setEvolucaoHelper("Gravando... fale a evolucao da aula.");
+    };
+    speechRecognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        if (event.results[i].isFinal) transcript += `${event.results[i][0].transcript} `;
+      }
+      appendEvolucaoText(transcript);
+    };
+    speechRecognition.onerror = (event) => {
+      const error = event?.error || "erro desconhecido";
+      setEvolucaoHelper(`Nao foi possivel gravar o audio: ${error}.`);
+    };
+    speechRecognition.onend = () => {
+      isRecordingEvolution = false;
+      evolucaoRecordBtn.textContent = "Gravar audio";
+      evolucaoRecordBtn.classList.add("btn-outline-secondary");
+      evolucaoRecordBtn.classList.remove("btn-danger");
+      if (evolucaoText.value.trim()) {
+        setEvolucaoHelper("Transcricao adicionada ao campo Evolucao.");
+      }
+    };
+    speechRecognition.start();
+  }
+
+  function enrichEvolucaoWithAi() {
+    if (!selected || !evolucaoText || !evolucaoAiTemplate) return;
+    const text = evolucaoText.value.trim();
+    if (!text) {
+      setEvolucaoHelper("Escreva ou grave uma evolucao antes de usar a IA.");
+      return;
+    }
+    const csrf = getCookie("csrftoken");
+    const urlAction = evolucaoAiTemplate.replace("/0/", `/${selected.id}/`);
+    if (evolucaoAiBtn) {
+      evolucaoAiBtn.disabled = true;
+      evolucaoAiBtn.textContent = "Enriquecendo...";
+    }
+    setEvolucaoHelper("IA trabalhando no texto da evolucao...");
+    fetch(urlAction, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrf
+      },
+      body: JSON.stringify({ texto: text })
+    }).then(async (resp) => {
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.error) {
+        throw new Error(data.error || "Nao foi possivel enriquecer a evolucao.");
+      }
+      evolucaoText.value = data.texto || text;
+      evolucaoText.focus();
+      setEvolucaoHelper("Texto enriquecido pela IA.");
+    }).catch((error) => {
+      setEvolucaoHelper(error.message || "Nao foi possivel enriquecer a evolucao.");
+    }).finally(() => {
+      if (evolucaoAiBtn) {
+        evolucaoAiBtn.disabled = false;
+        evolucaoAiBtn.textContent = "Enriquecimento com IA";
+      }
     });
   }
 
@@ -1871,6 +1982,8 @@ function initAulasOperacao() {
   const saveAvaliacaoBtn = root.querySelector(".js-avaliacao-save");
   if (saveBtn) saveBtn.addEventListener("click", () => saveEvolucao(false));
   if (saveFinalBtn) saveFinalBtn.addEventListener("click", () => saveEvolucao(true));
+  if (evolucaoRecordBtn) evolucaoRecordBtn.addEventListener("click", startEvolutionRecording);
+  if (evolucaoAiBtn) evolucaoAiBtn.addEventListener("click", enrichEvolucaoWithAi);
   if (saveAvaliacaoBtn) saveAvaliacaoBtn.addEventListener("click", saveAvaliacao);
   if (remarcarSave) remarcarSave.addEventListener("click", saveRemarcar);
 

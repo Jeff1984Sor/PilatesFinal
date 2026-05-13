@@ -27,7 +27,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from . import forms, models, services, totalpass_service
 from .signals import ensure_profissional_for_user
-from shared.ai.gemini_client import extract_address_from_proof, extract_student_from_document
+from shared.ai.gemini_client import GeminiError, extract_address_from_proof, extract_student_from_document, improve_evolution_text
 from .whatsapp_service import WhatsappService, WhatsappMessageType
 from .whatsapp_scheduler import _send_class_reminders, _send_professor_schedule, _send_contract_renewals
 
@@ -3828,6 +3828,27 @@ def aula_evolucao_api(request, reserva_id):
             ]
         }
     )
+
+
+@login_required
+@require_POST
+def aula_evolucao_enriquecer_api(request, reserva_id):
+    get_object_or_404(models.Reserva, pk=reserva_id)
+    payload = _parse_json_body(request)
+    texto = (payload.get("texto") or "").strip()
+    if not texto:
+        return JsonResponse({"error": "Informe a evolucao antes de enriquecer."}, status=400)
+    try:
+        data = improve_evolution_text(texto)
+    except GeminiError as exc:
+        return JsonResponse({"error": str(exc)}, status=503)
+    except Exception:
+        logger.exception("Falha ao enriquecer evolucao por IA.")
+        return JsonResponse({"error": "Nao foi possivel enriquecer a evolucao agora."}, status=503)
+    enriched = (data.get("texto") or "").strip()
+    if not enriched:
+        return JsonResponse({"error": "A IA nao retornou um texto valido."}, status=503)
+    return JsonResponse({"texto": enriched})
 
 
 @login_required

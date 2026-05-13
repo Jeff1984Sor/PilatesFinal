@@ -17,7 +17,12 @@ def _call_gemini(prompt: str) -> Dict:
     for attempt in range(3):
         try:
             response = model.generate_content(prompt)
-            data = json.loads(response.text)
+            response_text = (response.text or "").strip()
+            if response_text.startswith("```"):
+                response_text = response_text.strip("`").strip()
+                if response_text.lower().startswith("json"):
+                    response_text = response_text[4:].strip()
+            data = json.loads(response_text)
             return data
         except Exception as exc:
             if attempt == 2:
@@ -38,5 +43,16 @@ def extract_address_from_proof(file_bytes: bytes, filename: str) -> Dict:
     prompt = (
         "Extraia logradouro, numero, cep, cidade, bairro de um comprovante de endereco. "
         "Responda somente JSON estrito com chaves logradouro, numero, cep, cidade, bairro."
+    )
+    return _call_gemini(prompt)
+
+
+def improve_evolution_text(texto: str) -> Dict:
+    prompt = (
+        "Voce e um assistente de fisioterapia/Pilates. Melhore a evolucao abaixo em portugues do Brasil, "
+        "mantendo os fatos informados, sem inventar sintomas, condutas ou diagnosticos. "
+        "Deixe o texto claro, profissional, objetivo e pronto para prontuario. "
+        "Responda somente JSON estrito com a chave texto.\n\n"
+        f"Evolucao original:\n{texto}"
     )
     return _call_gemini(prompt)
