@@ -1593,10 +1593,21 @@ function initAulasOperacao() {
         "X-CSRFToken": csrf
       },
       body: JSON.stringify({ texto: text, profissional_id: selected.profissional?.id, finalizar: finalizar })
-    }).then(() => {
-      evolucaoText.value = "";
+    }).then(async (resp) => {
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.error) {
+        throw new Error(data.error || "Nao foi possivel salvar a evolucao.");
+      }
+      selected.ultima_evolucao = {
+        texto: data.texto || text,
+        dt_evolucao: data.dt_evolucao || new Date().toISOString(),
+      };
+      evolucaoText.value = data.texto || text;
+      setEvolucaoHelper("Evolucao salva com sucesso.");
       loadEvolucoes();
       loadData();
+    }).catch((error) => {
+      setEvolucaoHelper(error.message || "Nao foi possivel salvar a evolucao.");
     });
   }
 
