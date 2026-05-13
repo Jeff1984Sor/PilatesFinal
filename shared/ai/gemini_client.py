@@ -1,4 +1,5 @@
 import json
+import re
 import time
 from typing import Dict
 import google.generativeai as genai
@@ -22,6 +23,8 @@ def _call_gemini(prompt: str) -> Dict:
                 response_text = response_text.strip("`").strip()
                 if response_text.lower().startswith("json"):
                     response_text = response_text[4:].strip()
+            if "{" in response_text and "}" in response_text:
+                response_text = response_text[response_text.find("{") : response_text.rfind("}") + 1]
             data = json.loads(response_text)
             return data
         except Exception as exc:
@@ -55,4 +58,20 @@ def improve_evolution_text(texto: str) -> Dict:
         "Responda somente JSON estrito com a chave texto.\n\n"
         f"Evolucao original:\n{texto}"
     )
-    return _call_gemini(prompt)
+    try:
+        return _call_gemini(prompt)
+    except GeminiError:
+        if not GEMINI_API_KEY:
+            raise
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        fallback_prompt = (
+            "Melhore a evolucao abaixo em portugues do Brasil, mantendo somente os fatos informados, "
+            "sem inventar dados. Retorne apenas o texto final, sem markdown.\n\n"
+            f"{texto}"
+        )
+        response = model.generate_content(fallback_prompt)
+        clean_text = re.sub(r"^```(?:text|markdown)?|```$", "", (response.text or "").strip()).strip()
+        if not clean_text:
+            raise GeminiError("Falha ao processar resposta")
+        return {"texto": clean_text}
