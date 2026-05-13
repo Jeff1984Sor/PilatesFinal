@@ -1331,6 +1331,7 @@ function initAulasOperacao() {
 
   function setEvolucaoHelper(message) {
     if (evolucaoHelper) evolucaoHelper.textContent = message || "";
+    if (message && !evolucaoHelper) window.alert(message);
   }
 
   function appendEvolucaoText(text) {
@@ -1601,7 +1602,14 @@ function initAulasOperacao() {
   }
 
   function startEvolutionRecording() {
-    if (!evolucaoText || !evolucaoRecordBtn) return;
+    if (!selected) {
+      setEvolucaoHelper("Abra uma aula antes de gravar a evolucao.");
+      return;
+    }
+    if (!evolucaoText || !evolucaoRecordBtn) {
+      window.alert("Campo de evolucao indisponivel nesta tela.");
+      return;
+    }
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
       setEvolucaoHelper("Seu navegador nao liberou transcricao por voz. Use Chrome ou Edge atualizado.");
@@ -1646,7 +1654,18 @@ function initAulasOperacao() {
   }
 
   function enrichEvolucaoWithAi() {
-    if (!selected || !evolucaoText || !evolucaoAiTemplate) return;
+    if (!selected) {
+      setEvolucaoHelper("Abra uma aula antes de usar a IA.");
+      return;
+    }
+    if (!evolucaoText) {
+      window.alert("Campo de evolucao indisponivel nesta tela.");
+      return;
+    }
+    if (!evolucaoAiTemplate) {
+      setEvolucaoHelper("Endpoint de IA nao configurado nesta tela.");
+      return;
+    }
     const text = evolucaoText.value.trim();
     if (!text) {
       setEvolucaoHelper("Escreva ou grave uma evolucao antes de usar a IA.");
@@ -1982,10 +2001,22 @@ function initAulasOperacao() {
   const saveAvaliacaoBtn = root.querySelector(".js-avaliacao-save");
   if (saveBtn) saveBtn.addEventListener("click", () => saveEvolucao(false));
   if (saveFinalBtn) saveFinalBtn.addEventListener("click", () => saveEvolucao(true));
-  if (evolucaoRecordBtn) evolucaoRecordBtn.addEventListener("click", startEvolutionRecording);
-  if (evolucaoAiBtn) evolucaoAiBtn.addEventListener("click", enrichEvolucaoWithAi);
   if (saveAvaliacaoBtn) saveAvaliacaoBtn.addEventListener("click", saveAvaliacao);
   if (remarcarSave) remarcarSave.addEventListener("click", saveRemarcar);
+
+  root.addEventListener("click", (event) => {
+    const recordBtn = event.target.closest(".js-evolucao-record");
+    if (recordBtn && root.contains(recordBtn)) {
+      event.preventDefault();
+      startEvolutionRecording();
+      return;
+    }
+    const aiBtn = event.target.closest(".js-evolucao-ai");
+    if (aiBtn && root.contains(aiBtn)) {
+      event.preventDefault();
+      enrichEvolucaoWithAi();
+    }
+  });
 
   root.querySelectorAll(".js-evolucao-chip").forEach((btn) => {
     btn.addEventListener("click", () => {
