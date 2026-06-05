@@ -19,6 +19,7 @@ from app.modules.financeiro.router import router as financeiro_router
 from app.modules.agenda.router import router as agenda_router
 from app.modules.aulas.router import router as aulas_router
 from app.modules.integracoes.router import router as integracoes_router
+from app.modules.comissoes.router import router as comissoes_router
 
 configure_logging()
 
@@ -59,6 +60,7 @@ app.include_router(financeiro_router)
 app.include_router(agenda_router)
 app.include_router(aulas_router)
 app.include_router(integracoes_router)
+app.include_router(comissoes_router)
 
 
 @app.get("/health", tags=["health"])

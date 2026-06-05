@@ -64,6 +64,7 @@ class ContasPagarOut(ORMModel):
 class ContasReceberCreate(BaseModel):
     aluno_id: int
     contrato_id: int | None = None
+    profissional_id: int | None = None
     vencimento: date
     valor: float
     status: str = "aberto"
@@ -77,6 +78,7 @@ class ContasReceberOut(ORMModel):
     id: int
     aluno_id: int
     contrato_id: int | None
+    profissional_id: int | None
     vencimento: date
     valor: float
     status: str

@@ -11,6 +11,7 @@ type Profissional = {
   perfil_acesso_id: number;
   data_nascimento?: string | null;
   crefito?: string | null;
+  comissao_percentual?: number | null;
 };
 
 type Perfil = {
@@ -34,7 +35,8 @@ export default function Page() {
     nome: "",
     perfil_acesso_id: "",
     data_nascimento: "",
-    crefito: ""
+    crefito: "",
+    comissao_percentual: ""
   });
 
   const profissionaisQuery = useQuery({
@@ -61,12 +63,13 @@ export default function Page() {
         nome: form.nome,
         perfil_acesso_id: Number(form.perfil_acesso_id),
         data_nascimento: form.data_nascimento || null,
-        crefito: form.crefito || null
+        crefito: form.crefito || null,
+        comissao_percentual: form.comissao_percentual === "" ? null : Number(form.comissao_percentual)
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profissionais"] });
-      setForm({ nome: "", perfil_acesso_id: "", data_nascimento: "", crefito: "" });
+      setForm({ nome: "", perfil_acesso_id: "", data_nascimento: "", crefito: "", comissao_percentual: "" });
       setShowModal(false);
       setEditingId(null);
     }
@@ -78,12 +81,13 @@ export default function Page() {
         nome: form.nome || undefined,
         perfil_acesso_id: form.perfil_acesso_id ? Number(form.perfil_acesso_id) : undefined,
         data_nascimento: form.data_nascimento || null,
-        crefito: form.crefito || null
+        crefito: form.crefito || null,
+        comissao_percentual: form.comissao_percentual === "" ? null : Number(form.comissao_percentual)
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profissionais"] });
-      setForm({ nome: "", perfil_acesso_id: "", data_nascimento: "", crefito: "" });
+      setForm({ nome: "", perfil_acesso_id: "", data_nascimento: "", crefito: "", comissao_percentual: "" });
       setShowModal(false);
       setEditingId(null);
     }
@@ -120,7 +124,7 @@ export default function Page() {
             className="rounded-full bg-black px-4 py-2 text-white"
             onClick={() => {
               setEditingId(null);
-              setForm({ nome: "", perfil_acesso_id: "", data_nascimento: "", crefito: "" });
+              setForm({ nome: "", perfil_acesso_id: "", data_nascimento: "", crefito: "", comissao_percentual: "" });
               setShowModal(true);
             }}
           >
@@ -171,11 +175,12 @@ export default function Page() {
         </div>
 
         <div className="rounded-2xl bg-white/70 p-4">
-          <div className="grid grid-cols-5 gap-4 border-b border-black/10 pb-3 text-xs uppercase tracking-widest text-gray-500">
+          <div className="grid grid-cols-6 gap-4 border-b border-black/10 pb-3 text-xs uppercase tracking-widest text-gray-500">
             <span>Nome</span>
             <span>Perfil</span>
             <span>Data Nascimento</span>
             <span>CREFITO</span>
+            <span>Comissao</span>
             <span>Acoes</span>
           </div>
           <div className="divide-y divide-black/5">
@@ -186,7 +191,7 @@ export default function Page() {
               <div className="py-6 text-sm text-gray-500">Nenhum profissional encontrado.</div>
             )}
             {filtered.map((prof) => (
-              <div key={prof.id} className="grid grid-cols-5 gap-4 py-3 text-sm">
+              <div key={prof.id} className="grid grid-cols-6 gap-4 py-3 text-sm">
                 <span className="font-medium">{prof.nome}</span>
                 <span>
                   {perfisQuery.data?.find((p) => p.id === prof.perfil_acesso_id)?.descricao ??
@@ -194,6 +199,9 @@ export default function Page() {
                 </span>
                 <span>{prof.data_nascimento ? prof.data_nascimento : "—"}</span>
                 <span>{prof.crefito || "—"}</span>
+                <span>
+                  {prof.comissao_percentual != null ? `${prof.comissao_percentual}%` : "—"}
+                </span>
                 <div className="flex items-center gap-2">
                   <button
                     className="rounded-full bg-white/70 px-3 py-1 text-xs"
@@ -203,7 +211,9 @@ export default function Page() {
                         nome: prof.nome,
                         perfil_acesso_id: String(prof.perfil_acesso_id),
                         data_nascimento: prof.data_nascimento ?? "",
-                        crefito: prof.crefito ?? ""
+                        crefito: prof.crefito ?? "",
+                        comissao_percentual:
+                          prof.comissao_percentual == null ? "" : String(prof.comissao_percentual)
                       });
                       setShowModal(true);
                     }}
@@ -282,6 +292,19 @@ export default function Page() {
                   />
                 </label>
               </div>
+              <label className="text-sm">
+                Comissao (% sobre recebimentos)
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  className="mt-1 w-full rounded-xl border border-black/10 p-3"
+                  placeholder="Ex: 40"
+                  value={form.comissao_percentual}
+                  onChange={(e) => setForm((f) => ({ ...f, comissao_percentual: e.target.value }))}
+                />
+              </label>
               <button
                 className="mt-2 rounded-full bg-black px-4 py-2 text-white"
                 onClick={() =>

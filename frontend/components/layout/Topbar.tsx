@@ -9,6 +9,7 @@ const links = [
   { href: "/contratos/modelos", label: "Modelo de Contrato" },
   { href: "/agenda", label: "Agenda" },
   { href: "/financeiro", label: "Financeiro" },
+  { href: "/comissoes", label: "Valor a Pagar" },
   { href: "/configuracoes", label: "Configuracoes" }
 ];
 

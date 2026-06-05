@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from sqlalchemy import String, Integer, Date, DateTime, ForeignKey
+from sqlalchemy import String, Integer, Date, DateTime, ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -14,6 +14,7 @@ class Profissional(Base):
     perfil_acesso_id: Mapped[int] = mapped_column(ForeignKey("perfil_acesso.id"))
     data_nascimento: Mapped[date | None] = mapped_column(Date, nullable=True)
     crefito: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    comissao_percentual: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     perfil = relationship("PerfilAcesso", back_populates="profissionais")

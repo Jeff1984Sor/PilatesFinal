@@ -8,6 +8,7 @@ class ProfissionalCreate(BaseModel):
     perfil_acesso_id: int
     data_nascimento: date | None = None
     crefito: str | None = None
+    comissao_percentual: float | None = None
 
 
 class ProfissionalUpdate(BaseModel):
@@ -15,6 +16,7 @@ class ProfissionalUpdate(BaseModel):
     perfil_acesso_id: int | None = None
     data_nascimento: date | None = None
     crefito: str | None = None
+    comissao_percentual: float | None = None
 
 
 class ProfissionalOut(ORMModel):
@@ -23,3 +25,4 @@ class ProfissionalOut(ORMModel):
     perfil_acesso_id: int
     data_nascimento: date | None
     crefito: str | None
+    comissao_percentual: float | None

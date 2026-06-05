@@ -60,6 +60,7 @@ class ContasReceber(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     aluno_id: Mapped[int] = mapped_column(ForeignKey("aluno.id"))
     contrato_id: Mapped[int | None] = mapped_column(ForeignKey("contrato.id"), nullable=True)
+    profissional_id: Mapped[int | None] = mapped_column(ForeignKey("profissional.id"), nullable=True)
     vencimento: Mapped[date] = mapped_column(Date)
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     valor: Mapped[float] = mapped_column(Numeric(10, 2))
