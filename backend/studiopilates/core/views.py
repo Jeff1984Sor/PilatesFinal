@@ -4,7 +4,7 @@ import calendar
 import json
 import re
 from collections import defaultdict
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from urllib.parse import quote
 from io import BytesIO
@@ -144,6 +144,9 @@ def _salvar_documento_contrato(contrato, pdf_bytes=None):
 def _contrato_precificacao(plano, valor_aula=None):
     recorrencia = getattr(plano, "recorrencia", "MENSAL") or "MENSAL"
     valor_plano = Decimal(str(getattr(plano, "valor", 0) or 0))
+    aulas_por_semana = int(getattr(plano, "aulas_por_semana", 0) or 0)
+    # Numero de aulas no mes considerando 4 semanas fixas.
+    aulas_no_mes = aulas_por_semana * 4
     if recorrencia == "SEMANAL":
         try:
             valor_base = Decimal(str(valor_aula)) if valor_aula not in (None, "") else valor_plano
@@ -153,9 +156,16 @@ def _contrato_precificacao(plano, valor_aula=None):
         valor_parcela = valor_base * Decimal("4")
         valor_total = valor_parcela
     else:
-        valor_aula_decimal = None
+        # Plano mensal: o valor do plano e o valor mensal (parcela).
+        # O valor por aula = valor mensal / numero de aulas no mes (4 semanas).
         valor_parcela = valor_plano
         valor_total = valor_plano
+        if aulas_no_mes > 0:
+            valor_aula_decimal = (valor_plano / Decimal(aulas_no_mes)).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+        else:
+            valor_aula_decimal = None
     return recorrencia, valor_aula_decimal, valor_parcela, valor_total
 
 
