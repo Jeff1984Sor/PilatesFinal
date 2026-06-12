@@ -142,30 +142,23 @@ def _salvar_documento_contrato(contrato, pdf_bytes=None):
 
 
 def _contrato_precificacao(plano, valor_aula=None):
-    recorrencia = getattr(plano, "recorrencia", "MENSAL") or "MENSAL"
+    # Contratos sao cobrados mensalmente: o valor do plano e o valor MENSAL (parcela).
+    # Gera 1 parcela por mes de duracao. O "valor por aula" e apenas informativo:
+    # valor mensal / numero de aulas no mes (aulas_por_semana x 4 semanas).
+    recorrencia = "MENSAL"
     valor_plano = Decimal(str(getattr(plano, "valor", 0) or 0))
     aulas_por_semana = int(getattr(plano, "aulas_por_semana", 0) or 0)
-    # Numero de aulas no mes considerando 4 semanas fixas.
+    duracao_meses = int(getattr(plano, "duracao_meses", 0) or 0) or 1
     aulas_no_mes = aulas_por_semana * 4
-    if recorrencia == "SEMANAL":
-        try:
-            valor_base = Decimal(str(valor_aula)) if valor_aula not in (None, "") else valor_plano
-        except Exception:
-            valor_base = valor_plano
-        valor_aula_decimal = valor_base
-        valor_parcela = valor_base * Decimal("4")
-        valor_total = valor_parcela
+
+    valor_parcela = valor_plano
+    valor_total = valor_plano * duracao_meses
+    if aulas_no_mes > 0:
+        valor_aula_decimal = (valor_plano / Decimal(aulas_no_mes)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
     else:
-        # Plano mensal: o valor do plano e o valor mensal (parcela).
-        # O valor por aula = valor mensal / numero de aulas no mes (4 semanas).
-        valor_parcela = valor_plano
-        valor_total = valor_plano
-        if aulas_no_mes > 0:
-            valor_aula_decimal = (valor_plano / Decimal(aulas_no_mes)).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP
-            )
-        else:
-            valor_aula_decimal = None
+        valor_aula_decimal = None
     return recorrencia, valor_aula_decimal, valor_parcela, valor_total
 
 

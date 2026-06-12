@@ -31,7 +31,7 @@
         </div>
         <div class="col-md-4">
           <select class="form-select js-plano" name="cdPlano" required>
-            {% for p in planos %}<option value="{{ p.id }}" data-recorrencia="{{ p.recorrencia }}" data-valor="{{ p.valor }}">{{ p.dsPlano }}</option>{% endfor %}
+            {% for p in planos %}<option value="{{ p.id }}" data-recorrencia="{{ p.recorrencia }}" data-valor="{{ p.valor }}" data-duracao="{{ p.duracao_meses }}" data-aulas="{{ p.aulas_por_semana }}">{{ p.dsPlano }}</option>{% endfor %}
           </select>
         </div>
         <div class="col-md-4">

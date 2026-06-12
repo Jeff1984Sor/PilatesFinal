@@ -632,7 +632,7 @@
                       <select class="form-select js-plano" name="cdPlano" required>
                         <option value="">Selecione</option>
                         {% for p in planos %}
-                          <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}">{{ p.dsPlano }}</option>
+                          <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}" data-aulas="{{ p.aulas_por_semana }}">{{ p.dsPlano }}</option>
                         {% endfor %}
                       </select>
                     </div>
@@ -1058,7 +1058,7 @@
                             <label>Plano</label>
                             <select class="form-select js-plano" name="cdPlano" required>
                               {% for p in planos %}
-                                <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}" {% if obj.cdPlano_id == p.id %}selected{% endif %}>{{ p.dsPlano }}</option>
+                                <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}" data-aulas="{{ p.aulas_por_semana }}" {% if obj.cdPlano_id == p.id %}selected{% endif %}>{{ p.dsPlano }}</option>
                               {% endfor %}
                             </select>
                           </div>

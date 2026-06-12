@@ -1805,7 +1805,7 @@
 
                     {% for p in planos %}
 
-                      <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}">{{ p.dsPlano }}</option>
+                      <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}" data-aulas="{{ p.aulas_por_semana }}">{{ p.dsPlano }}</option>
 
                     {% endfor %}
 
@@ -1978,7 +1978,7 @@
 
                     {% for p in planos %}
 
-                      <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}" {% if c.cdPlano_id == p.id %}selected{% endif %}>
+                      <option value="{{ p.id }}" data-duracao="{{ p.duracao_meses }}" data-valor="{{ p.valor }}" data-recorrencia="{{ p.recorrencia }}" data-aulas="{{ p.aulas_por_semana }}" {% if c.cdPlano_id == p.id %}selected{% endif %}>
 
                         {{ p.dsPlano }}
 

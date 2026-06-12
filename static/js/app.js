@@ -209,15 +209,13 @@ function setCurrencyValue(input, value) {
 }
 
 function syncValorAulaVisibility(container, recorrenciaValor) {
+  // O valor por aula e sempre exibido (informativo, calculado) e nunca editavel.
   const groups = container.querySelectorAll(".js-valor-aula-group");
-  const isSemanal = recorrenciaValor === "SEMANAL";
-  groups.forEach((group) => group.classList.toggle("d-none", !isSemanal));
+  groups.forEach((group) => group.classList.remove("d-none"));
   const valorAula = container.querySelector(".js-valor-aula, input[name='valor_aula']");
   if (valorAula) {
-    valorAula.required = isSemanal;
-    if (!isSemanal) {
-      valorAula.value = "";
-    }
+    valorAula.required = false;
+    valorAula.readOnly = true;
   }
 }
 
@@ -239,31 +237,25 @@ function syncContratoPricing(container) {
     return;
   }
 
-  const recorrenciaValor = (selected.dataset.recorrencia || "MENSAL").toUpperCase();
   const valorPlano = parseCurrencyValue(selected.dataset.valor || "0");
-  syncValorAulaVisibility(container, recorrenciaValor);
+  const aulasPorSemana = parseInt(selected.dataset.aulas || "0", 10) || 0;
+  const aulasNoMes = aulasPorSemana * 4;
+  const duracao = parseInt(selected.dataset.duracao || "0", 10) || 1;
+  syncValorAulaVisibility(container, "MENSAL");
 
+  // Contratos sao mensais: parcela = valor mensal do plano; total = valor x duracao.
   if (recorrencia) {
-    recorrencia.value = recorrenciaValor;
+    recorrencia.value = "MENSAL";
   }
-
-  if (recorrenciaValor === "SEMANAL") {
-    if (valorAula && !valorAula.value) {
-      valorAula.value = valorPlano ? valorPlano.toFixed(2) : "";
-    }
-    const valorBase = parseCurrencyValue(valorAula?.value || valorPlano);
-    const total = valorBase * 4;
-    setCurrencyValue(valorParcela, total);
-    setCurrencyValue(valorTotal, total);
-  } else {
-    setCurrencyValue(valorAula, "");
-    setCurrencyValue(valorParcela, valorPlano);
-    setCurrencyValue(valorTotal, valorPlano);
+  if (valorAula) {
+    const va = aulasNoMes > 0 ? valorPlano / aulasNoMes : 0;
+    valorAula.value = va ? va.toFixed(2) : "";
   }
+  setCurrencyValue(valorParcela, valorPlano);
+  setCurrencyValue(valorTotal, valorPlano * duracao);
 
   const inicio = container.querySelector(".js-contrato-inicio, input[name='dtInicioContrato']");
   const fim = container.querySelector(".js-contrato-fim, input[name='dtFimContrato']");
-  const duracao = parseInt(selected.dataset.duracao || "0", 10);
   if (inicio && fim && !fim.value) {
     fim.value = calcFimContrato(inicio.value, duracao || 1);
   }
