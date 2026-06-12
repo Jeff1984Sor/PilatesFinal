@@ -5174,16 +5174,12 @@ def contrato_agenda(request, pk):
                             conflitos.append(f"Bloqueio em {current} {inicio}")
                             current = current + timedelta(days=1)
                             continue
-                        servicos_ids = _horario_servicos_ids(
-                            contrato.cdUnidade_id,
-                            current,
-                            inicio_time,
-                            fim_time,
-                            fallback=[plano.cdTipoServico_id] if plano.cdTipoServico_id else [],
-                        )
-                        if not servicos_ids:
-                            servicos_ids = [plano.cdTipoServico_id] if plano.cdTipoServico_id else []
-                        for servico_id in servicos_ids:
+                        # A reserva do contrato deve ser somente para o servico do
+                        # plano (ex: Pilates). Antes o sistema criava uma reserva
+                        # para cada servico oferecido no horario, gerando aulas
+                        # duplicadas de outro servico (ex: Alongamento).
+                        servico_id = plano.cdTipoServico_id
+                        if servico_id:
                             try:
                                 aula = models.AulaSessao.objects.filter(
                                     unidade=contrato.cdUnidade,
@@ -5203,12 +5199,10 @@ def contrato_agenda(request, pk):
                                         horaFim=fim_time,
                                     )
                                 else:
-                                    update_fields = ["profissional"]
                                     aula.profissional_id = prof_id
-                                    aula.save(update_fields=update_fields)
-                                if models.Reserva.objects.filter(aluno=contrato.cdAluno, aulaSessao=aula).exists():
-                                    continue
-                                services.create_reserva(contrato.cdAluno, aula, status="RESERVADA")
+                                    aula.save(update_fields=["profissional"])
+                                if not models.Reserva.objects.filter(aluno=contrato.cdAluno, aulaSessao=aula).exists():
+                                    services.create_reserva(contrato.cdAluno, aula, status="RESERVADA")
                             except Exception:
                                 conflitos.append(f"Sem vaga em {current} {inicio}")
                     current = current + timedelta(days=1)
