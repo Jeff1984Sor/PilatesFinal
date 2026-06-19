@@ -2309,9 +2309,33 @@
 
           <div class="mb-3">
 
+            <label class="form-label">Mensagem pronta</label>
+
+            <select class="form-select js-whatsapp-template" data-aluno-nome="{{ aluno.dsNome }}">
+
+              <option value="">— Selecione um modelo (opcional) —</option>
+
+              <option value="aniversario">Feliz Aniversário</option>
+
+              <option value="fim_contrato">Aviso de fim de contrato</option>
+
+              <option value="vencimento_proximo">Lembrete de vencimento próximo</option>
+
+              <option value="mensalidade_atraso">Lembrete de mensalidade em atraso</option>
+
+              <option value="tres_meses">Acompanhamento de 3 meses</option>
+
+            </select>
+
+            <small class="text-muted">Os campos [Valor] e [Data] devem ser preenchidos por você antes de enviar.</small>
+
+          </div>
+
+          <div class="mb-3">
+
             <label class="form-label">Mensagem</label>
 
-            <textarea class="form-control" name="mensagem" rows="4" placeholder="Escreva a mensagem para o aluno"></textarea>
+            <textarea class="form-control js-whatsapp-text" name="mensagem" rows="6" placeholder="Escreva a mensagem para o aluno"></textarea>
 
           </div>
 
@@ -2339,12 +2363,52 @@
   document.addEventListener("DOMContentLoaded", function () {
     const selectAll = document.getElementById("selectAllReservas");
     const checks = Array.from(document.querySelectorAll(".js-reserva-check"));
-    if (!selectAll || !checks.length) return;
-    selectAll.addEventListener("change", function () {
-      checks.forEach((checkbox) => {
-        checkbox.checked = selectAll.checked;
+    if (selectAll && checks.length) {
+      selectAll.addEventListener("change", function () {
+        checks.forEach((checkbox) => {
+          checkbox.checked = selectAll.checked;
+        });
       });
-    });
+    }
+
+    // Mensagens prontas de WhatsApp
+    const tplSelect = document.querySelector(".js-whatsapp-template");
+    const tplText = document.querySelector(".js-whatsapp-text");
+    if (tplSelect && tplText) {
+      const nome = tplSelect.dataset.alunoNome || "";
+      const TEMPLATES = {
+        aniversario:
+          "Feliz Aniversário, " + nome + "! 🎉\n" +
+          "Desejamos um ano cheio de energia boa, leveza, saúde e momentos que façam seu coração sorrir. " +
+          "Continue se cuidando e honrando seu corpo. É um privilégio te acompanhar nessa jornada. 🎂🎈🙏",
+        fim_contrato:
+          "Olá, " + nome + "! Tudo bem? 🌸\n" +
+          "Seu ciclo atual de Pilates está chegando ao fim e adoraríamos continuar acompanhando sua evolução! " +
+          "Para o próximo período, o valor do plano passou por um pequeno reajuste e será de R$ [Valor].\n" +
+          "Podemos confirmar sua renovação e garantir seu horário? Me avise por aqui para prepararmos o novo contrato! ✨",
+        vencimento_proximo:
+          "Olá, " + nome + "! Tudo bem? Passando para lembrar que sua mensalidade do Pilates vence em breve, " +
+          "no dia [Data]. Qualquer dúvida, estou à disposição. 🧘‍♀️✨",
+        mensalidade_atraso:
+          "Olá! Tudo bem? Passando para lembrar que o pagamento da sua mensalidade do Pilates " +
+          "(vencimento em [Data]) no valor de R$ [Valor] ainda não consta em nosso sistema.\n" +
+          "Pode ter sido apenas um esquecimento, mas se precisar de algo, estou à disposição! 🧘‍♀️\n" +
+          "Chave Pix (CNPJ): 50.732.875/0001-56\n" +
+          "Caso o pagamento já tenha sido realizado, por favor, desconsidere esta mensagem.",
+        tres_meses:
+          "Olá, " + nome + "! Parabéns pelos 3 meses de Pilates! 💪🏻\n" +
+          "Sente mais força ou mobilidade? Alguma dor reduziu? Alguma nova meta que você gostaria de trabalhar?\n" +
+          "Os primeiros 90 dias são essenciais para criar consistência, e você está indo muito bem!\n" +
+          "Obrigada por confiar na Mayris para cuidar de você. Conte sempre comigo!",
+      };
+      tplSelect.addEventListener("change", function () {
+        const tpl = TEMPLATES[tplSelect.value];
+        if (tpl) {
+          tplText.value = tpl;
+          tplText.focus();
+        }
+      });
+    }
   });
 </script>
 
