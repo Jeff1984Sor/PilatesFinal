@@ -276,7 +276,16 @@ class TermoUsoForm(BaseAutoCdForm):
 
     class Meta:
         model = models.TermoUso
-        fields = ["cdTermoUso", "nome", "dsTermoUso"]
+        fields = ["nome", "dsTermoUso"]
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        if not obj.cdTermoUso:
+            ultimo = models.TermoUso.objects.order_by("-cdTermoUso").values_list("cdTermoUso", flat=True).first() or 0
+            obj.cdTermoUso = ultimo + 1
+        if commit:
+            obj.save()
+        return obj
 
 
 class ContratoForm(BaseAutoCdForm):
@@ -445,7 +454,16 @@ class ModeloContratoForm(BaseAutoCdForm):
 
     class Meta:
         model = models.ModeloContrato
-        fields = ["cdModeloContrato", "dsNome", "conteudo_html", "ativo"]
+        fields = ["dsNome", "conteudo_html", "ativo"]
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        if not obj.cdModeloContrato:
+            ultimo = models.ModeloContrato.objects.order_by("-cdModeloContrato").values_list("cdModeloContrato", flat=True).first() or 0
+            obj.cdModeloContrato = ultimo + 1
+        if commit:
+            obj.save()
+        return obj
 
 
 class EmailConfiguracaoForm(BaseAutoCdForm):
