@@ -148,6 +148,35 @@ def render_contrato_html(contrato):
     return template
 
 
+def render_termo_html(termo, aluno):
+    """Substitui as variaveis do termo com os dados do aluno (sem contrato)."""
+    endereco = getattr(aluno, "cdEndereco", None)
+    hoje = timezone.localdate()
+    substitutions = {
+        "{ALUNO_NOME}": aluno.dsNome,
+        "{ALUNO_CPF}": aluno.dsCPF,
+        "{ALUNO_RG}": aluno.dsRg or "",
+        "{ALUNO_NASCIMENTO}": aluno.dtNascimento.strftime("%d/%m/%Y") if aluno.dtNascimento else "",
+        "{ALUNO_ESTADO_CIVIL}": aluno.get_estado_civil_display() if aluno.estado_civil else "",
+        "{ALUNO_PROFISSAO}": str(aluno.cdProfissao) if aluno.cdProfissao else "",
+        "{ALUNO_EMAIL}": aluno.dsEmail or "",
+        "{ALUNO_TELEFONE}": ", ".join(aluno.telefones.values_list("dsTelefone", flat=True)),
+        "{ALUNO_ENDERECO}": f"{endereco.dsLogradouro}, {endereco.dsNumero} - {endereco.dsBairro} - {endereco.dsCidade} ({endereco.dsCEP})"
+        if endereco
+        else "",
+        "{ENDERECO_LOGRADOURO}": endereco.dsLogradouro if endereco else "",
+        "{ENDERECO_NUMERO}": endereco.dsNumero if endereco else "",
+        "{ENDERECO_BAIRRO}": endereco.dsBairro if endereco else "",
+        "{ENDERECO_CIDADE}": endereco.dsCidade if endereco else "",
+        "{ENDERECO_CEP}": endereco.dsCEP if endereco else "",
+        "{DATA_HOJE}": hoje.strftime("%d/%m/%Y"),
+    }
+    text = termo.dsTermoUso or ""
+    for key, value in substitutions.items():
+        text = text.replace(key, value or "")
+    return text
+
+
 def render_contrato_pdf(contrato):
     html = render_contrato_html(contrato)
     try:

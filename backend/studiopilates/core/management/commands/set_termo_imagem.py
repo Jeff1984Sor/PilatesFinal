@@ -13,8 +13,8 @@ from studiopilates.core import models
 CONTEUDO_HTML = """
 <h2 style="text-align:center;">🌿 TERMO DE AUTORIZAÇÃO DE USO DE IMAGEM — MAYRIS STUDIO DE PILATES</h2>
 
-<p>Pelo presente instrumento, eu, ____________________________________________________________,
-CPF nº ____________________, residente em ____________________________________________________,
+<p>Pelo presente instrumento, eu, <strong>{ALUNO_NOME}</strong>,
+CPF nº {ALUNO_CPF}, residente em {ALUNO_ENDERECO},
 declaro que <strong>AUTORIZO</strong> o uso da minha imagem e voz ao MAYRIS STUDIO DE PILATES,
 inscrito sob CNPJ nº 50.732.875/0001-56, representado por sua fundadora Flávia Grando, para fins
 institucionais e comerciais, conforme cláusulas abaixo.</p>
@@ -85,13 +85,12 @@ publicamente sem autorização específica e adicional.</p>
   <li>As partes elegem o foro da comarca de Sorocaba – SP para dirimir qualquer conflito.</li>
 </ul>
 
+<p style="margin-top:24px;">Sorocaba/SP, {DATA_HOJE}.</p>
+
 <h4>Assinaturas</h4>
-<p style="margin-top:32px;">____________________________________________<br/>Assinatura da Aluna</p>
-<p style="margin-top:24px;">____________________________________________<br/>Nome completo</p>
-<p style="margin-top:24px;">____________________________________________<br/>Data</p>
+<p style="margin-top:32px;">____________________________________________<br/>{ALUNO_NOME}<br/>Assinatura da Aluna</p>
 <p style="margin-top:32px;">____________________________________________<br/>Assinatura do Estúdio<br/>
 Flávia Grando – Mayris Studio de Pilates</p>
-<p style="margin-top:8px;">Data: _____/_____/_____</p>
 """.strip()
 
 

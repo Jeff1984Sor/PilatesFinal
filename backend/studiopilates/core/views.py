@@ -767,7 +767,7 @@ def aluno_termo_documento(request, pk):
     return render(
         request,
         "alunos/termo_documento.html",
-        {"aluno": aluno, "termo": termo, "conteudo": termo.dsTermoUso, "active_menu": "cadastros"},
+        {"aluno": aluno, "termo": termo, "conteudo": services.render_termo_html(termo, aluno), "active_menu": "cadastros"},
     )
 
 
@@ -786,7 +786,7 @@ def aluno_termo_whatsapp(request, pk):
     if not telefone:
         messages.warning(request, "Aluno sem telefone valido cadastrado.")
         return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
-    texto = strip_tags(termo.dsTermoUso or "").strip()
+    texto = strip_tags(services.render_termo_html(termo, aluno)).strip()
     mensagem = f"Olá {aluno.dsNome}! Segue o nosso Termo de Autorização de Uso de Imagem:\n\n{texto}"
     resp = service.send(aluno, telefone, mensagem, WhatsappMessageType.MANUAL)
     if resp.get("error"):
