@@ -7,6 +7,7 @@
     <div class="collapse navbar-collapse" id="topNav">
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link {% if active_menu == 'dashboard' %}active{% endif %}" href="/">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link {% if active_menu == 'mayasec' %}active{% endif %}" href="{% url 'mayasec' %}">MayaSec</a></li>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle {% if active_menu == 'cadastros' %}active{% endif %}" href="#" data-bs-toggle="dropdown">Cadastros</a>
           <ul class="dropdown-menu">

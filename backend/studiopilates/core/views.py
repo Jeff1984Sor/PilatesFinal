@@ -5304,6 +5304,19 @@ def email_config_view(request):
 
 
 @login_required
+def mayasec_view(request):
+    return render(
+        request,
+        "mayasec.html",
+        {
+            "title": "MayaSec",
+            "breadcrumbs": [("Home", reverse("dashboard")), ("MayaSec", "#")],
+            "active_menu": "mayasec",
+        },
+    )
+
+
+@login_required
 def whatsapp_config_view(request):
     unidades = models.Unidade.objects.order_by("cdUnidade").all()
     if not unidades:
