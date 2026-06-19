@@ -1,7 +1,8 @@
 import os
+import re
 import sys
 import django
-from fastapi import FastAPI, Depends, File, UploadFile, HTTPException
+from fastapi import FastAPI, Depends, File, UploadFile, HTTPException, Header, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from django.contrib.auth import authenticate
 import jwt
@@ -14,6 +15,8 @@ for path in (ROOT_DIR, BACKEND_DIR):
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "studiopilates.settings")
 django.setup()
+
+from django.utils import timezone
 
 from studiopilates.core import models
 from studiopilates.core import services
@@ -121,3 +124,185 @@ def ai_documento(file: UploadFile = File(...), _: dict = Depends(verify_jwt)):
 def ai_endereco(file: UploadFile = File(...), _: dict = Depends(verify_jwt)):
     data = extract_address_from_proof(file.file.read(), file.filename)
     return data
+
+
+# ---------------------------------------------------------------------------
+# API de Integracao externa (empresas). Autenticada por API key cadastrada na
+# tela "Configuracoes > Tokens de Integracao" (models.IntegracaoToken).
+# ---------------------------------------------------------------------------
+
+_MESES = [
+    "", "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+]
+_STATUS_FATURA = {"aberto": "ABERTO", "pago": "PAGO", "atrasado": "ATRASADO", "cancelado": "CANCELADO"}
+
+
+def require_api_key(
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    authorization: str | None = Header(default=None),
+):
+    """Aceita X-API-Key: <token> ou Authorization: Bearer <token>. Valida contra
+    os tokens ATIVOS cadastrados em Tokens de Integracao."""
+    provided = x_api_key
+    if not provided and authorization and authorization.lower().startswith("bearer "):
+        provided = authorization[7:].strip()
+    if not provided:
+        raise HTTPException(status_code=401, detail="API key ausente")
+    tok = models.IntegracaoToken.objects.filter(token=provided, ativo=True).first()
+    if not tok:
+        raise HTTPException(status_code=401, detail="API key invalida")
+    models.IntegracaoToken.objects.filter(pk=tok.pk).update(ultimo_uso=timezone.now())
+    return provided
+
+
+def _descricao_fatura(competencia):
+    if competencia and "-" in competencia:
+        try:
+            ano, mes = competencia.split("-")[:2]
+            return f"Mensalidade {_MESES[int(mes)]}/{ano}"
+        except (ValueError, IndexError):
+            pass
+    return "Mensalidade"
+
+
+def _aluno_payload(aluno, telefone=None):
+    return {
+        "id": aluno.id,
+        "cdAluno": aluno.cdAluno,
+        "dsNome": aluno.dsNome,
+        "dsCPF": aluno.dsCPF,
+        "dsEmail": aluno.dsEmail,
+        "dsTelefone": telefone,
+        "status": aluno.status,
+    }
+
+
+@app.get("/integracao/alunos/por-telefone")
+def integ_aluno_por_telefone(telefone: str = Query(...), _: str = Depends(require_api_key)):
+    digits = re.sub(r"\D", "", telefone or "")
+    if not digits:
+        raise HTTPException(status_code=400, detail="Telefone invalido")
+    variants = {digits}
+    if digits.startswith("55") and len(digits) > 2:
+        variants.add(digits[2:])
+    elif len(digits) in (10, 11):
+        variants.add(f"55{digits}")
+    nucleo = digits[-8:] if len(digits) >= 8 else digits
+    candidatos = models.TelefoneAluno.objects.select_related("cdAluno").filter(dsTelefone__contains=nucleo)
+    for t in candidatos:
+        td = re.sub(r"\D", "", t.dsTelefone or "")
+        if td in variants or (td and (td.endswith(digits) or digits.endswith(td))):
+            return _aluno_payload(t.cdAluno, t.dsTelefone)
+    raise HTTPException(status_code=404, detail="Aluno nao encontrado")
+
+
+@app.get("/integracao/alunos/por-codigo/{cd_aluno}")
+def integ_aluno_por_codigo(cd_aluno: int, _: str = Depends(require_api_key)):
+    aluno = models.Aluno.objects.filter(cdAluno=cd_aluno).first()
+    if not aluno:
+        raise HTTPException(status_code=404, detail="Aluno nao encontrado")
+    tel = aluno.telefones.first()
+    return _aluno_payload(aluno, tel.dsTelefone if tel else None)
+
+
+@app.get("/integracao/alunos")
+def integ_listar_alunos(
+    nome: str | None = None,
+    status: str | None = None,
+    limit: int = Query(50, ge=1, le=200),
+    _: str = Depends(require_api_key),
+):
+    qs = models.Aluno.objects.all()
+    if nome:
+        qs = qs.filter(dsNome__icontains=nome)
+    if status:
+        qs = qs.filter(status=status.upper())
+    qs = qs.order_by("dsNome")[:limit]
+    return [_aluno_payload(a) for a in qs]
+
+
+@app.get("/integracao/faturas")
+def integ_faturas(
+    cdAluno: int = Query(...),
+    status: str | None = Query(None, description="aberto|pago|atrasado|cancelado"),
+    _: str = Depends(require_api_key),
+):
+    qs = models.ContasReceber.objects.select_related("contrato", "contrato__cdAluno").filter(
+        contrato__cdAluno__cdAluno=cdAluno
+    )
+    if status:
+        qs = qs.filter(status=_STATUS_FATURA.get(status.strip().lower(), status.strip().upper()))
+    qs = qs.order_by("dtVencimento")
+    return [
+        {
+            "id": cr.id,
+            "cdAluno": cdAluno,
+            "contrato_id": cr.contrato_id,
+            "descricao": _descricao_fatura(cr.competencia),
+            "competencia": cr.competencia or None,
+            "valor": float(cr.valor),
+            "vencimento": cr.dtVencimento,
+            "dt_pagamento": cr.dtPagamento,
+            "status": (cr.status or "").lower(),
+        }
+        for cr in qs
+    ]
+
+
+@app.get("/integracao/contratos")
+def integ_contratos(cdAluno: int = Query(...), _: str = Depends(require_api_key)):
+    qs = (
+        models.Contrato.objects.select_related("cdAluno", "cdPlano", "cdProfissional", "cdUnidade")
+        .filter(cdAluno__cdAluno=cdAluno)
+        .order_by("-dtFimContrato", "-id")
+    )
+    return [
+        {
+            "id": c.id,
+            "cdContrato": c.cdContrato,
+            "cdAluno": cdAluno,
+            "plano": c.cdPlano.dsPlano if c.cdPlano_id else None,
+            "profissional": c.cdProfissional.profissional if c.cdProfissional_id else None,
+            "unidade": c.cdUnidade.dsUnidade if c.cdUnidade_id else None,
+            "dt_inicio": c.dtInicioContrato,
+            "dt_fim": c.dtFimContrato,
+            "status": c.status,
+            "valor_parcela": float(c.valor_parcela) if c.valor_parcela is not None else None,
+            "valor_total": float(c.valor_total) if c.valor_total is not None else None,
+        }
+        for c in qs
+    ]
+
+
+@app.get("/integracao/aulas")
+def integ_aulas(
+    cdAluno: int = Query(...),
+    apenas_proximas: bool = False,
+    limit: int = Query(50, ge=1, le=200),
+    _: str = Depends(require_api_key),
+):
+    qs = models.Reserva.objects.select_related(
+        "aluno", "aulaSessao", "aulaSessao__tipoServico", "aulaSessao__profissional", "aulaSessao__unidade"
+    ).filter(aluno__cdAluno=cdAluno)
+    if apenas_proximas:
+        hoje = timezone.localdate()
+        qs = qs.filter(aulaSessao__data__gte=hoje)
+    qs = qs.order_by("-aulaSessao__data", "-aulaSessao__horaInicio")[:limit]
+    result = []
+    for r in qs:
+        a = r.aulaSessao
+        result.append(
+            {
+                "reserva_id": r.id,
+                "cdAluno": cdAluno,
+                "data": a.data if a else None,
+                "hora_inicio": a.horaInicio if a else None,
+                "hora_fim": a.horaFim if a else None,
+                "tipo_servico": a.tipoServico.dsTipoServico if a and a.tipoServico_id else None,
+                "profissional": a.profissional.profissional if a and a.profissional_id else None,
+                "unidade": a.unidade.dsUnidade if a and a.unidade_id else None,
+                "status": r.status,
+            }
+        )
+    return result
