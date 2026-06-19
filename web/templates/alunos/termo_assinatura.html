@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="signature-page">
+  <div class="signature-shell">
+    {% if token_invalido %}
+      <div class="signature-empty">
+        <div class="signature-empty__icon">!</div>
+        <h3 class="mb-2">Link invalido</h3>
+        <p class="text-muted mb-0">Solicite um novo link de assinatura do termo.</p>
+      </div>
+    {% else %}
+      <div class="signature-hero">
+        <div>
+          <div class="signature-kicker">Assinatura digital</div>
+          <h2 class="mb-1">{{ aluno.dsNome }}</h2>
+          <div class="text-muted">Termo de Autorizacao de Uso de Imagem</div>
+        </div>
+        <div class="signature-chip">
+          <span>Seguro</span>
+          <span class="dot"></span>
+          <span>Valido</span>
+        </div>
+      </div>
+      <div class="signature-grid">
+        <div class="signature-contract">
+          <div class="signature-card">
+            <div class="signature-card__header">
+              <div>
+                <div class="signature-card__title">Termo completo</div>
+                <div class="signature-card__subtitle">Revise o conteudo antes de assinar.</div>
+              </div>
+              <div class="signature-badge">Pronto para assinatura</div>
+            </div>
+            <div class="signature-contract__body">
+              <div class="wysiwyg-content">{{ termo_html|safe }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="signature-form">
+          <div class="signature-card">
+            <div class="signature-card__header">
+              <div class="signature-card__title">Seus dados</div>
+              <div class="signature-card__subtitle">Confirme nome e documento.</div>
+            </div>
+            <form method="post" class="signature-form__body">
+              {% csrf_token %}
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label">Nome completo</label>
+                  <input class="form-control" name="assinatura_nome" value="{{ aluno.dsNome }}" required />
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Documento (CPF)</label>
+                  <input class="form-control" name="assinatura_documento" value="{{ aluno.dsCPF }}" placeholder="000.000.000-00" />
+                </div>
+              </div>
+              <div class="signature-pad mt-4">
+                <div class="signature-pad__header">
+                  <div>
+                    <div class="signature-pad__title">Assinatura</div>
+                    <div class="signature-pad__hint">Use o dedo ou caneta no tablet.</div>
+                  </div>
+                  <button class="btn btn-outline-secondary btn-sm" type="button" id="sigClear">Limpar</button>
+                </div>
+                <div class="signature-pad__canvas">
+                  <canvas id="sigCanvas" width="720" height="220"></canvas>
+                </div>
+                <input type="hidden" name="assinatura_data" id="sigData" />
+              </div>
+              <button class="btn btn-primary w-100 mt-4" type="submit">Assinar termo</button>
+              <div class="signature-form__footer">
+                Ao assinar, voce autoriza o uso da sua imagem conforme os termos acima.
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% if not token_invalido %}
+<script>
+  (function() {
+    const canvas = document.getElementById("sigCanvas");
+    const input = document.getElementById("sigData");
+    const clearBtn = document.getElementById("sigClear");
+    if (!canvas || !input) return;
+    const ctx = canvas.getContext("2d");
+    let drawing = false;
+    const ratio = window.devicePixelRatio || 1;
+    const resizeCanvas = () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * ratio;
+      canvas.height = rect.height * ratio;
+      ctx.scale(ratio, ratio);
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#1f3f3f";
+    };
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    const getPos = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    };
+    const start = (e) => { drawing = true; const pos = getPos(e); ctx.beginPath(); ctx.moveTo(pos.x, pos.y); };
+    const move = (e) => { if (!drawing) return; const pos = getPos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); };
+    const stop = () => { drawing = false; input.value = canvas.toDataURL("image/png"); };
+    canvas.addEventListener("mousedown", start);
+    canvas.addEventListener("mousemove", move);
+    canvas.addEventListener("mouseup", stop);
+    canvas.addEventListener("mouseleave", stop);
+    canvas.addEventListener("touchstart", start, { passive: true });
+    canvas.addEventListener("touchmove", move, { passive: true });
+    canvas.addEventListener("touchend", stop);
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        input.value = "";
+      });
+    }
+  })();
+</script>
+{% endif %}
+{% endblock %}

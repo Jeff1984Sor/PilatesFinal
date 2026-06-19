@@ -796,6 +796,95 @@ def aluno_termo_whatsapp(request, pk):
     return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
 
 
+def _aluno_termo(aluno):
+    return aluno.cdTermoUso or models.TermoUso.objects.first()
+
+
+@login_required
+def aluno_termo_assinar_local(request, pk):
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    if not _aluno_termo(aluno):
+        messages.warning(request, "Nenhum termo cadastrado para assinar.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
+    token = services.gerar_token_termo(aluno)
+    return redirect("termo_assinar", token=token)
+
+
+@login_required
+@require_POST
+def aluno_termo_enviar_assinatura_whatsapp(request, pk):
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    if not _aluno_termo(aluno):
+        messages.warning(request, "Nenhum termo cadastrado para enviar.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
+    service = WhatsappService()
+    telefone = service.get_aluno_phone(aluno)
+    if not telefone:
+        messages.warning(request, "Aluno sem telefone valido cadastrado.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
+    token = services.gerar_token_termo(aluno)
+    link = request.build_absolute_uri(reverse("termo_assinar", args=[token]))
+    mensagem = (
+        f"Olá {aluno.dsNome}! Para autorizar o uso da sua imagem, assine nosso termo neste link: {link}"
+    )
+    resp = service.send(aluno, telefone, mensagem, WhatsappMessageType.MANUAL)
+    if resp.get("error"):
+        messages.warning(request, "Nao foi possivel enviar o link de assinatura via WhatsApp.")
+    else:
+        messages.success(request, "Link de assinatura do termo enviado por WhatsApp.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
+
+
+def termo_assinar(request, token):
+    try:
+        aluno_id = services.validar_token_termo(token)
+    except Exception:
+        return render(request, "alunos/termo_assinatura.html", {"token_invalido": True})
+    aluno = get_object_or_404(models.Aluno, pk=aluno_id)
+    termo = _aluno_termo(aluno)
+    if not termo:
+        return render(request, "alunos/termo_assinatura.html", {"token_invalido": True})
+    if request.method == "POST":
+        if aluno.termo_assinado_em:
+            return render(request, "alunos/termo_assinatura_sucesso.html", {"aluno": aluno, "ja_assinado": True})
+        assinatura_nome = request.POST.get("assinatura_nome", "").strip()
+        assinatura_documento = request.POST.get("assinatura_documento", "").strip()
+        assinatura_data = request.POST.get("assinatura_data", "").strip()
+        if assinatura_nome and assinatura_data.startswith("data:image/"):
+            try:
+                from django.core.files.base import ContentFile
+                import base64
+
+                _header, data = assinatura_data.split(",", 1)
+                aluno.termo_assinatura_imagem = ContentFile(base64.b64decode(data), name=f"termo_{aluno.id}.png")
+            except Exception:
+                pass
+        aluno.cdTermoUso = termo
+        aluno.termo_assinatura_nome = assinatura_nome
+        aluno.termo_assinatura_documento = assinatura_documento
+        aluno.termo_assinatura_ip = request.META.get("REMOTE_ADDR")
+        aluno.autoriza_imagem = True
+        aluno.termo_aceite_em = timezone.now()
+        aluno.termo_assinado_em = timezone.now()
+        aluno.save()
+        # Confirmacao por WhatsApp (resposta assinada)
+        try:
+            service = WhatsappService()
+            telefone = service.get_aluno_phone(aluno)
+            if telefone:
+                service.send(
+                    aluno,
+                    telefone,
+                    f"Olá {aluno.dsNome}! Recebemos sua autorização de uso de imagem assinada. Obrigada! 🌿",
+                    WhatsappMessageType.MANUAL,
+                )
+        except Exception:
+            logger.exception("Erro ao enviar confirmacao do termo assinado")
+        return render(request, "alunos/termo_assinatura_sucesso.html", {"aluno": aluno})
+    conteudo = services.render_termo_html(termo, aluno)
+    return render(request, "alunos/termo_assinatura.html", {"aluno": aluno, "termo_html": conteudo, "token": token})
+
+
 @login_required
 def aluno_whatsapp_message(request, pk):
     aluno = get_object_or_404(models.Aluno, pk=pk)

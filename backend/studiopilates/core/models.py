@@ -91,6 +91,11 @@ class Aluno(models.Model):
     cdTermoUso = models.ForeignKey(TermoUso, on_delete=models.SET_NULL, null=True, blank=True)
     dtCadastro = models.DateTimeField(auto_now_add=True)
     termo_aceite_em = models.DateTimeField(null=True, blank=True)
+    termo_assinatura_nome = models.CharField(max_length=150, blank=True)
+    termo_assinatura_documento = models.CharField(max_length=30, blank=True)
+    termo_assinatura_ip = models.GenericIPAddressField(null=True, blank=True)
+    termo_assinatura_imagem = models.ImageField(upload_to="assinaturas_termo", null=True, blank=True)
+    termo_assinado_em = models.DateTimeField(null=True, blank=True)
 
     def clean(self):
         if self.sem_cpf:

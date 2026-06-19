@@ -309,11 +309,29 @@
               </div>
             </form>
 
+            {% if aluno.termo_assinado_em %}
+              <div class="rounded-4 border border-success bg-success-subtle p-3 mb-3">
+                <div class="fw-semibold text-success">✓ Termo assinado</div>
+                <div class="small text-muted">
+                  Por {{ aluno.termo_assinatura_nome|default:aluno.dsNome }}
+                  em {{ aluno.termo_assinado_em|date:"d/m/Y H:i" }}
+                </div>
+                {% if aluno.termo_assinatura_imagem %}
+                  <img src="{{ aluno.termo_assinatura_imagem.url }}" alt="Assinatura" style="max-height:80px; margin-top:8px;" />
+                {% endif %}
+              </div>
+            {% endif %}
+
             <div class="d-flex flex-wrap gap-2">
               <a class="btn btn-outline-secondary" href="{% url 'aluno_termo_documento' aluno.id %}" target="_blank" rel="noopener" title="Ver termo de uso de imagem">👁️ Ver termo</a>
-              <form method="post" action="{% url 'aluno_termo_whatsapp' aluno.id %}" class="d-inline" onsubmit="return confirm('Enviar o termo de uso de imagem por WhatsApp?');">
+              <form method="post" action="{% url 'aluno_termo_whatsapp' aluno.id %}" class="d-inline" onsubmit="return confirm('Enviar o termo (texto) por WhatsApp?');">
                 {% csrf_token %}
                 <button class="btn btn-outline-success" type="submit">Enviar por WhatsApp</button>
+              </form>
+              <a class="btn btn-outline-primary" href="{% url 'aluno_termo_assinar_local' aluno.id %}" title="Assinar agora (presencial)">✍️ Assinar</a>
+              <form method="post" action="{% url 'aluno_termo_enviar_assinatura_whatsapp' aluno.id %}" class="d-inline" onsubmit="return confirm('Enviar o link de assinatura por WhatsApp?');">
+                {% csrf_token %}
+                <button class="btn btn-success" type="submit">Enviar para assinatura (WhatsApp)</button>
               </form>
             </div>
 

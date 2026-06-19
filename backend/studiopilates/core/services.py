@@ -272,6 +272,17 @@ def validar_token_contrato(token, max_age_days=7):
     return int(pk)
 
 
+def gerar_token_termo(aluno):
+    signer = signing.TimestampSigner(salt="termo-assinatura")
+    return signer.sign(str(aluno.pk))
+
+
+def validar_token_termo(token, max_age_days=30):
+    signer = signing.TimestampSigner(salt="termo-assinatura")
+    pk = signer.unsign(token, max_age=max_age_days * 86400)
+    return int(pk)
+
+
 def enviar_contrato_para_assinatura(contrato, base_url):
     if not contrato.cdAluno.dsEmail:
         return False
