@@ -22,9 +22,16 @@ class Settings(BaseSettings):
 
     RATE_LIMIT_PER_MINUTE: int = 0
 
+    # Chaves de API para integracoes externas (empresas). Separe varias por virgula.
+    INTEGRACAO_API_KEYS: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def integracao_api_keys_list(self) -> list[str]:
+        return [k.strip() for k in self.INTEGRACAO_API_KEYS.split(",") if k.strip()]
 
 
 settings = Settings()

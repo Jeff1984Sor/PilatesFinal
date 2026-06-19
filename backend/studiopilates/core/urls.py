@@ -53,6 +53,11 @@ urlpatterns = [
     path("cadastros/perfis-acesso/criar/", lambda r: views.create_view(r, models.PerfilAcesso, forms.PerfilAcessoForm, "perfis_acesso_list"), name="perfis_acesso_create"),
     path("cadastros/perfis-acesso/<int:pk>/editar/", lambda r, pk: views.edit_view(r, models.PerfilAcesso, forms.PerfilAcessoForm, "perfis_acesso_list", pk), name="perfis_acesso_edit"),
     path("cadastros/perfis-acesso/<int:pk>/excluir/", lambda r, pk: views.delete_view(r, models.PerfilAcesso, "perfis_acesso_list", pk), name="perfis_acesso_delete"),
+
+    path("cadastros/tokens-integracao/", lambda r: views.list_view(r, models.IntegracaoToken, forms.IntegracaoTokenForm, "Tokens de Integracao"), name="tokens_integracao_list"),
+    path("cadastros/tokens-integracao/criar/", lambda r: views.create_view(r, models.IntegracaoToken, forms.IntegracaoTokenForm, "tokens_integracao_list"), name="tokens_integracao_create"),
+    path("cadastros/tokens-integracao/<int:pk>/editar/", lambda r, pk: views.edit_view(r, models.IntegracaoToken, forms.IntegracaoTokenForm, "tokens_integracao_list", pk), name="tokens_integracao_edit"),
+    path("cadastros/tokens-integracao/<int:pk>/excluir/", lambda r, pk: views.delete_view(r, models.IntegracaoToken, "tokens_integracao_list", pk), name="tokens_integracao_delete"),
     path("cadastros/profissoes/", lambda r: views.list_view(r, models.Profissao, forms.ProfissaoForm, "Profissoes"), name="profissoes_list"),
     path("cadastros/profissoes/criar/", lambda r: views.create_view(r, models.Profissao, forms.ProfissaoForm, "profissoes_list"), name="profissoes_create"),
     path("cadastros/profissoes/<int:pk>/editar/", lambda r, pk: views.edit_view(r, models.Profissao, forms.ProfissaoForm, "profissoes_list", pk), name="profissoes_edit"),

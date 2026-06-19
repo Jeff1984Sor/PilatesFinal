@@ -1,14 +1,56 @@
 import re
+import secrets
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status, Header
 from sqlalchemy import text, bindparam
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db
+from app.core.config import settings
 from app.modules.integracao.schemas import AlunoOut, FaturaOut, ContratoOut, AulaOut
 
-# Todos os endpoints exigem Bearer token (get_current_user).
-router = APIRouter(prefix="/integracao", tags=["integracao"], dependencies=[Depends(get_current_user)])
+
+def require_api_key(
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> str:
+    """Autentica integracoes externas por API key. Aceita o header X-API-Key
+    ou Authorization: Bearer <chave>. As chaves validas sao os tokens ATIVOS
+    cadastrados na tela 'Tokens de Integracao' (tabela core_integracaotoken);
+    tambem aceita chaves estaticas em INTEGRACAO_API_KEYS no .env (fallback)."""
+    provided = x_api_key
+    if not provided and authorization and authorization.lower().startswith("bearer "):
+        provided = authorization[7:].strip()
+    if not provided:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API key ausente")
+
+    # 1) tokens cadastrados na aplicacao (Django) - ativos
+    try:
+        row = db.execute(
+            text('SELECT id FROM core_integracaotoken WHERE token = :t AND ativo = true LIMIT 1'),
+            {"t": provided},
+        ).first()
+        if row:
+            db.execute(
+                text('UPDATE core_integracaotoken SET ultimo_uso = CURRENT_TIMESTAMP WHERE id = :id'),
+                {"id": row[0]},
+            )
+            db.commit()
+            return provided
+    except Exception:
+        db.rollback()  # tabela pode nao existir ainda; cai no fallback do .env
+
+    # 2) fallback: chaves estaticas do .env
+    for k in settings.integracao_api_keys_list:
+        if secrets.compare_digest(provided, k):
+            return provided
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API key invalida")
+
+
+# Todos os endpoints exigem API key (X-API-Key ou Authorization: Bearer <chave>).
+router = APIRouter(prefix="/integracao", tags=["integracao"], dependencies=[Depends(require_api_key)])
 
 _PHONE_RE = re.compile(r"\D+")
 _MESES = [

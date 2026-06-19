@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, time
 from uuid import uuid4
 
@@ -682,3 +683,31 @@ class WhatsappConfiguracao(models.Model):
 
     def __str__(self):
         return f"WhatsApp do {self.unidade}"
+
+
+def gerar_token_integracao() -> str:
+    return f"pilates_{secrets.token_urlsafe(32)}"
+
+
+class IntegracaoToken(models.Model):
+    """Token de API para integracoes externas (empresas). Validado pela API
+    FastAPI (modulo /integracao) lendo esta tabela."""
+
+    nome = models.CharField("Empresa / Descricao", max_length=120)
+    token = models.CharField(max_length=80, unique=True, blank=True, db_index=True)
+    ativo = models.BooleanField(default=True)
+    ultimo_uso = models.DateTimeField("Ultimo uso", null=True, blank=True)
+    dtCadastro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Token de Integracao"
+        verbose_name_plural = "Tokens de Integracao"
+        ordering = ["-dtCadastro"]
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = gerar_token_integracao()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.nome

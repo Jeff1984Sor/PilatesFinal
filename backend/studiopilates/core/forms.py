@@ -548,3 +548,14 @@ class WhatsappMessageForm(forms.Form):
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Escreva a mensagem que será enviada por WhatsApp"}),
         label="Mensagem de WhatsApp",
     )
+
+
+class IntegracaoTokenForm(forms.ModelForm):
+    class Meta:
+        model = models.IntegracaoToken
+        fields = ["nome", "ativo"]
+        labels = {"nome": "Empresa / Descricao", "ativo": "Ativo"}
+        widgets = {
+            "nome": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex: Empresa XPTO"}),
+            "ativo": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
