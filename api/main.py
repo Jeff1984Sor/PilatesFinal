@@ -21,7 +21,7 @@ from django.utils import timezone
 from studiopilates.core import models
 from studiopilates.core import services
 from shared.ai.gemini_client import extract_address_from_proof, extract_student_from_document
-from .schemas import AlunoIn, AlunoOut, ContratoIn, AulaSessaoIn, ReservaIn
+from .schemas import AlunoIn, AlunoOut, ContratoIn, AulaSessaoIn, ReservaIn, WhatsappMensagemIn
 
 app = FastAPI(title="StudioPilates API")
 security = HTTPBearer()
@@ -273,6 +273,36 @@ def integ_contratos(cdAluno: int = Query(...), _: str = Depends(require_api_key)
         }
         for c in qs
     ]
+
+
+@app.post("/integracao/whatsapp-mensagens")
+def integ_whatsapp_mensagem(data: WhatsappMensagemIn, _: str = Depends(require_api_key)):
+    """Salva uma mensagem de WhatsApp na aba WhatsApp do aluno."""
+    aluno = models.Aluno.objects.filter(cdAluno=data.cdAluno).first()
+    if not aluno:
+        raise HTTPException(status_code=404, detail="Aluno nao encontrado")
+    direcao = (data.direcao or "").strip().lower()
+    if direcao not in ("recebida", "enviada"):
+        raise HTTPException(status_code=400, detail="direcao deve ser 'recebida' ou 'enviada'")
+    contrato_id = data.contrato_id
+    if contrato_id and not models.Contrato.objects.filter(pk=contrato_id).exists():
+        contrato_id = None
+    msg = models.AlunoWhatsappMessage.objects.create(
+        aluno=aluno,
+        contrato_id=contrato_id,
+        tipo=models.WhatsappMessageType.MANUAL,
+        direcao=direcao,
+        telefone=data.telefone or "",
+        mensagem=data.texto,
+        status="received" if direcao == "recebida" else "sent",
+        enviado_em=data.data_iso or timezone.now(),
+    )
+    return {
+        "id": msg.id,
+        "cdAluno": aluno.cdAluno,
+        "direcao": direcao,
+        "enviado_em": msg.enviado_em,
+    }
 
 
 @app.get("/integracao/aulas")

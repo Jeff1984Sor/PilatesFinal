@@ -142,9 +142,15 @@ class WhatsappMessageType(models.TextChoices):
 
 
 class AlunoWhatsappMessage(models.Model):
+    DIRECAO_CHOICES = [
+        ("enviada", "Enviada"),
+        ("recebida", "Recebida"),
+    ]
+
     aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE, related_name="whatsapp_messages")
     contrato = models.ForeignKey("Contrato", null=True, blank=True, on_delete=models.SET_NULL, related_name="whatsapp_messages")
     tipo = models.CharField(max_length=30, choices=WhatsappMessageType.choices, default=WhatsappMessageType.MANUAL)
+    direcao = models.CharField(max_length=10, choices=DIRECAO_CHOICES, default="enviada")
     telefone = models.CharField(max_length=20, blank=True)
     mensagem = models.TextField()
     status = models.CharField(max_length=20, default="sent")

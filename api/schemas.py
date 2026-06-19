@@ -1,5 +1,14 @@
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel
+
+
+class WhatsappMensagemIn(BaseModel):
+    cdAluno: int
+    direcao: str = "recebida"  # "recebida" (cliente -> estudio) ou "enviada"
+    texto: str
+    telefone: str | None = None
+    data_iso: datetime | None = None
+    contrato_id: int | None = None
 
 
 class AlunoIn(BaseModel):

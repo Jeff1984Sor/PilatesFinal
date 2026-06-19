@@ -821,7 +821,14 @@
 
                     <span class="text-xs text-gray-500">{{ msg.enviado_em|date:"d/m/Y H:i" }}</span>
 
-                    <span class="badge bg-white border border-black/10 text-dark text-xs">{{ msg.get_tipo_display }}</span>
+                    <span>
+                      {% if msg.direcao == "recebida" %}
+                        <span class="badge bg-success text-xs">Recebida</span>
+                      {% else %}
+                        <span class="badge bg-primary text-xs">Enviada</span>
+                      {% endif %}
+                      <span class="badge bg-white border border-black/10 text-dark text-xs">{{ msg.get_tipo_display }}</span>
+                    </span>
 
                   </div>
 
