@@ -5667,6 +5667,21 @@ def contrato_assinar_local(request, pk):
 
 
 @login_required
+def contrato_documento(request, pk):
+    contrato = get_object_or_404(models.Contrato, pk=pk)
+    conteudo = services.render_contrato_html(contrato)
+    return render(
+        request,
+        "contratos/documento.html",
+        {
+            "contrato": contrato,
+            "conteudo": conteudo,
+            "active_menu": "contratos",
+        },
+    )
+
+
+@login_required
 def contrato_assinatura_detalhe(request, pk):
     contrato = get_object_or_404(models.Contrato, pk=pk)
     contrato_html = services.render_contrato_html(contrato)

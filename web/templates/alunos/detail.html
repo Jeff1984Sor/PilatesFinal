@@ -339,6 +339,8 @@
 
                             <div class="d-flex flex-wrap gap-2">
 
+                              <a class="btn btn-sm btn-outline-secondary" href="{% url 'contrato_documento' c.id %}?next={{ request.path }}?tab=contratos" target="_blank" rel="noopener" title="Ver documento do contrato">👁️ Ver</a>
+
                               <a class="btn btn-sm btn-outline-primary" href="{% url 'contratos_edit' c.id %}?next={{ request.path }}?tab=contratos">Editar</a>
 
                               <form method="post" action="{% url 'contratos_delete' c.id %}" class="d-inline" onsubmit="return confirm('Excluir este contrato?');">
