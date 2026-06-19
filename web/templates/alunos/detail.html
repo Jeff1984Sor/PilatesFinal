@@ -258,9 +258,69 @@
 
           </li>
 
+          <li class="nav-item" role="presentation">
+
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-imagem" type="button" role="tab">Uso da imagem</button>
+
+          </li>
+
         </ul>
 
         <div class="tab-content">
+
+          <div class="tab-pane fade" id="tab-imagem" role="tabpanel">
+            <div class="fw-semibold mb-3">Uso da imagem</div>
+
+            <div class="rounded-4 border p-3 mb-3 {% if aluno.autoriza_imagem %}border-success bg-success-subtle{% else %}border-danger bg-danger-subtle{% endif %}">
+              <div class="row align-items-center">
+                <div class="col">
+                  <div class="text-muted small">Autoriza o uso da imagem?</div>
+                  <div class="fw-bold {% if aluno.autoriza_imagem %}text-success{% else %}text-danger{% endif %}">{% if aluno.autoriza_imagem %}Sim{% else %}Nao{% endif %}</div>
+                </div>
+                <div class="col-auto">
+                  <form method="post" action="{% url 'aluno_autoriza_imagem_toggle' aluno.id %}" class="m-0">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}?tab=imagem" />
+                    <input type="hidden" name="autoriza_imagem" value="{% if aluno.autoriza_imagem %}0{% else %}1{% endif %}" />
+                    <button class="btn btn-sm {% if aluno.autoriza_imagem %}btn-success{% else %}btn-danger{% endif %}" type="submit">{% if aluno.autoriza_imagem %}Desligar{% else %}Ligar{% endif %}</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <div class="small text-muted mb-2">
+              Termo atual: <strong>{{ aluno.cdTermoUso|default:"Nenhum" }}</strong>
+              {% if aluno.termo_aceite_em %} &middot; registrado em {{ aluno.termo_aceite_em|date:"d/m/Y H:i" }}{% endif %}
+            </div>
+
+            <form method="post" action="{% url 'aluno_termo_registrar' aluno.id %}" class="row g-2 align-items-end mb-3">
+              {% csrf_token %}
+              <div class="col-md-6">
+                <label class="form-label small mb-1">Termo de uso de imagem</label>
+                <select name="termo_id" class="form-select" required>
+                  <option value="">Selecione...</option>
+                  {% for t in termos_uso %}
+                    <option value="{{ t.id }}" {% if aluno.cdTermoUso_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-auto">
+                <button class="btn btn-primary" type="submit">Registrar termo</button>
+              </div>
+            </form>
+
+            <div class="d-flex flex-wrap gap-2">
+              <a class="btn btn-outline-secondary" href="{% url 'aluno_termo_documento' aluno.id %}" target="_blank" rel="noopener" title="Ver termo de uso de imagem">👁️ Ver termo</a>
+              <form method="post" action="{% url 'aluno_termo_whatsapp' aluno.id %}" class="d-inline" onsubmit="return confirm('Enviar o termo de uso de imagem por WhatsApp?');">
+                {% csrf_token %}
+                <button class="btn btn-outline-success" type="submit">Enviar por WhatsApp</button>
+              </form>
+            </div>
+
+            {% if not termos_uso %}
+              <p class="text-muted small mt-3">Nenhum termo cadastrado. Cadastre em <a href="/cadastros/termos/">Cadastros &gt; Modelos de Termo de Uso</a>.</p>
+            {% endif %}
+          </div>
 
           {% if can_view_contratos %}
           <div class="tab-pane fade show active" id="tab-contratos" role="tabpanel">

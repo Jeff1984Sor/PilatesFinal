@@ -660,6 +660,7 @@ def aluno_detail(request, pk):
     }
     # so mostra no modal os templates LIGADOS (toggle) e com texto
     whatsapp_templates = {k: txt for k, (ativo, txt) in _wpp_all.items() if ativo and txt}
+    termos_uso = models.TermoUso.objects.all()
     documentos = aluno.documentos.select_related("contrato").all()
     documento_form = forms.AlunoDocumentoForm()
     aula_avulsa_form = forms.AulaAvulsaForm(
@@ -695,6 +696,7 @@ def aluno_detail(request, pk):
         "telefones": telefones,
         "whatsapp_number": whatsapp_number,
         "whatsapp_templates": whatsapp_templates,
+        "termos_uso": termos_uso,
         "contratos": contratos,
         "contrato_forms": contrato_forms,
         "aulas_avulsas": aulas_avulsas,
@@ -737,6 +739,61 @@ def aluno_autoriza_imagem_toggle(request, pk):
     aluno.save(update_fields=["autoriza_imagem"])
     messages.success(request, "Permissao de uso da imagem atualizada.")
     return redirect(next_url or reverse("alunos_detail", args=[aluno.pk]))
+
+
+@login_required
+@require_POST
+def aluno_termo_registrar(request, pk):
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    termo = models.TermoUso.objects.filter(pk=request.POST.get("termo_id")).first()
+    if not termo:
+        messages.error(request, "Selecione um termo valido.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
+    aluno.cdTermoUso = termo
+    aluno.termo_aceite_em = timezone.now()
+    aluno.autoriza_imagem = True
+    aluno.save(update_fields=["cdTermoUso", "termo_aceite_em", "autoriza_imagem"])
+    messages.success(request, "Termo de uso de imagem registrado para o aluno.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
+
+
+@login_required
+def aluno_termo_documento(request, pk):
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    termo = models.TermoUso.objects.filter(pk=request.GET.get("termo")).first() or aluno.cdTermoUso or models.TermoUso.objects.first()
+    if not termo:
+        messages.warning(request, "Nenhum termo cadastrado. Cadastre em Cadastros > Modelos de Termo de Uso.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
+    return render(
+        request,
+        "alunos/termo_documento.html",
+        {"aluno": aluno, "termo": termo, "conteudo": termo.dsTermoUso, "active_menu": "cadastros"},
+    )
+
+
+@login_required
+@require_POST
+def aluno_termo_whatsapp(request, pk):
+    from django.utils.html import strip_tags
+
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    termo = aluno.cdTermoUso or models.TermoUso.objects.first()
+    if not termo:
+        messages.warning(request, "Nenhum termo cadastrado para enviar.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
+    service = WhatsappService()
+    telefone = service.get_aluno_phone(aluno)
+    if not telefone:
+        messages.warning(request, "Aluno sem telefone valido cadastrado.")
+        return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
+    texto = strip_tags(termo.dsTermoUso or "").strip()
+    mensagem = f"Olá {aluno.dsNome}! Segue o nosso Termo de Autorização de Uso de Imagem:\n\n{texto}"
+    resp = service.send(aluno, telefone, mensagem, WhatsappMessageType.MANUAL)
+    if resp.get("error"):
+        messages.warning(request, "Nao foi possivel enviar o termo via WhatsApp.")
+    else:
+        messages.success(request, "Termo de imagem enviado por WhatsApp.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno.pk])}?tab=imagem")
 
 
 @login_required
