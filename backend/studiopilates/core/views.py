@@ -1821,6 +1821,15 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
             {"name": "duracao_meses", "label": "Duracao (meses)"},
             {"name": "recorrencia", "label": "Recorrencia"},
         ]
+    if model is models.ModeloContrato:
+        display_fields = [
+            {"name": "dsNome", "label": "Nome"},
+            {"name": "ativo", "label": "Ativo"},
+        ]
+    if model is models.TermoUso:
+        display_fields = [
+            {"name": "nome", "label": "Nome"},
+        ]
     if model is models.Contrato:
         display_fields = [
             {"name": "cdPlano", "label": "Plano"},
