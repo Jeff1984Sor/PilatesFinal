@@ -83,13 +83,13 @@
           <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-right">Dir</button>
           <button type="button" class="btn btn-sm btn-outline-secondary js-format" data-cmd="align-justify">Just</button>
         </div>
-        <textarea
-          class="form-control modelocontrato-editor__textarea"
-          id="{{ form.conteudo_html.id_for_label }}"
-          name="conteudo_html"
-          rows="16"
-          placeholder="Digite aqui o texto do contrato. Use os botoes acima para formatar e as variaveis para inserir campos dinamicos."
-        >{{ form.conteudo_html.value|default_if_none:'' }}</textarea>
+        <textarea class="js-wysiwyg-source d-none" name="conteudo_html" hidden>{{ form.conteudo_html.value|default_if_none:'' }}</textarea>
+        <div
+          class="wysiwyg-editor js-wysiwyg form-control modelocontrato-editor__textarea"
+          data-target="conteudo_html"
+          contenteditable="true"
+          style="min-height: 420px; overflow:auto; text-align:left;"
+        ></div>
       </section>
     </div>
 
