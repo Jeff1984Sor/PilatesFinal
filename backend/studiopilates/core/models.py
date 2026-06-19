@@ -729,6 +729,18 @@ class WhatsappConfiguracao(models.Model):
         ),
     )
 
+    # Liga/desliga e horario de disparo automatico de cada mensagem pronta
+    avisar_aniversario = models.BooleanField("Ativar aniversário", default=False)
+    horario_aviso_aniversario = models.TimeField(default=time(9, 0))
+    avisar_vencimento = models.BooleanField("Ativar vencimento próximo", default=False)
+    horario_aviso_vencimento = models.TimeField(default=time(10, 0))
+    avisar_atraso = models.BooleanField("Ativar mensalidade em atraso", default=False)
+    horario_aviso_atraso = models.TimeField(default=time(10, 0))
+    avisar_tres_meses = models.BooleanField("Ativar acompanhamento 3 meses", default=False)
+    horario_aviso_tres_meses = models.TimeField(default=time(10, 0))
+    # Fim de contrato = renovacao (sem disparo proprio); toggle controla disponibilidade manual
+    avisar_fim_contrato = models.BooleanField("Ativar fim de contrato (manual)", default=True)
+
     variaveis_template = models.JSONField(blank=True, null=True, default=dict)
 
     dtCadastro = models.DateTimeField(auto_now_add=True)

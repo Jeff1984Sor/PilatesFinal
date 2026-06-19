@@ -29,7 +29,10 @@ from . import forms, models, services, totalpass_service
 from .signals import ensure_profissional_for_user
 from shared.ai.gemini_client import GeminiError, extract_address_from_proof, extract_student_from_document, improve_evolution_text
 from .whatsapp_service import WhatsappService, WhatsappMessageType
-from .whatsapp_scheduler import _send_class_reminders, _send_professor_schedule, _send_contract_renewals
+from .whatsapp_scheduler import (
+    _send_class_reminders, _send_professor_schedule, _send_contract_renewals,
+    _send_birthdays, _send_payment_due, _send_payment_overdue, _send_three_months,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -648,13 +651,15 @@ def aluno_detail(request, pk):
     whatsapp_messages = aluno.whatsapp_messages.select_related("contrato").all()
     whatsapp_form = forms.WhatsappMessageForm()
     wpp_config = models.WhatsappConfiguracao.objects.filter(unidade=aluno.cdUnidade_id).first() or models.WhatsappConfiguracao()
-    whatsapp_templates = {
-        "aniversario": wpp_config.template_aniversario,
-        "fim_contrato": wpp_config.template_fim_contrato,
-        "vencimento_proximo": wpp_config.template_vencimento_proximo,
-        "mensalidade_atraso": wpp_config.template_mensalidade_atraso,
-        "tres_meses": wpp_config.template_tres_meses,
+    _wpp_all = {
+        "aniversario": (wpp_config.avisar_aniversario, wpp_config.template_aniversario),
+        "fim_contrato": (wpp_config.avisar_fim_contrato, wpp_config.template_fim_contrato),
+        "vencimento_proximo": (wpp_config.avisar_vencimento, wpp_config.template_vencimento_proximo),
+        "mensalidade_atraso": (wpp_config.avisar_atraso, wpp_config.template_mensalidade_atraso),
+        "tres_meses": (wpp_config.avisar_tres_meses, wpp_config.template_tres_meses),
     }
+    # so mostra no modal os templates LIGADOS (toggle) e com texto
+    whatsapp_templates = {k: txt for k, (ativo, txt) in _wpp_all.items() if ativo and txt}
     documentos = aluno.documentos.select_related("contrato").all()
     documento_form = forms.AlunoDocumentoForm()
     aula_avulsa_form = forms.AulaAvulsaForm(
@@ -5336,7 +5341,10 @@ def whatsapp_config_view(request):
     batch_skipped = []
     if request.method == "POST":
         action = request.POST.get("action", "").strip()
-        if action in {"send_aluno_now", "send_professor_now", "send_renovacao_now"}:
+        if action in {
+            "send_aluno_now", "send_professor_now", "send_renovacao_now",
+            "send_aniversario_now", "send_vencimento_now", "send_atraso_now", "send_tres_meses_now",
+        }:
             if not configuracao:
                 messages.warning(request, "Salve a configuracao antes de enviar agora.")
                 return redirect(f"{reverse('whatsapp_config')}?unidade={unidade.id}")
@@ -5425,6 +5433,34 @@ def whatsapp_config_view(request):
                         "active_menu": "configuracoes",
                     },
                 )
+            elif action == "send_aniversario_now":
+                qtd = _send_birthdays(service, configuracao, hoje, force=True)
+                if qtd:
+                    messages.success(request, f"Aniversário: {qtd} mensagem(ns) enviada(s).")
+                else:
+                    messages.warning(request, "Nenhum aniversariante (com telefone) hoje.")
+                return redirect(f"{reverse('whatsapp_config')}?unidade={unidade.id}")
+            elif action == "send_vencimento_now":
+                qtd = _send_payment_due(service, configuracao, hoje, force=True)
+                if qtd:
+                    messages.success(request, f"Vencimento próximo: {qtd} mensagem(ns) enviada(s).")
+                else:
+                    messages.warning(request, "Nenhuma mensalidade vencendo amanhã (em aberto).")
+                return redirect(f"{reverse('whatsapp_config')}?unidade={unidade.id}")
+            elif action == "send_atraso_now":
+                qtd = _send_payment_overdue(service, configuracao, hoje, force=True)
+                if qtd:
+                    messages.success(request, f"Mensalidade em atraso: {qtd} mensagem(ns) enviada(s).")
+                else:
+                    messages.warning(request, "Nenhuma mensalidade em atraso (em aberto).")
+                return redirect(f"{reverse('whatsapp_config')}?unidade={unidade.id}")
+            elif action == "send_tres_meses_now":
+                qtd = _send_three_months(service, configuracao, hoje, force=True)
+                if qtd:
+                    messages.success(request, f"Acompanhamento 3 meses: {qtd} mensagem(ns) enviada(s).")
+                else:
+                    messages.warning(request, "Nenhum contrato completando 90 dias hoje.")
+                return redirect(f"{reverse('whatsapp_config')}?unidade={unidade.id}")
             elif action == "send_renovacao_now":
                 qtd = _send_contract_renewals(service, configuracao, hoje + timedelta(days=7), force=True)
                 if qtd:

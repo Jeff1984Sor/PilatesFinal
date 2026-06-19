@@ -242,29 +242,78 @@
         <div class="card-body">
           <h6 class="card-title">Mensagens prontas</h6>
           <p class="text-muted small mb-3">
-            Modelos para envio manual no WhatsApp do aluno. Use os campos
-            <code>{aluno}</code>, <code>{valor}</code> e <code>{data}</code> — eles serão
-            substituídos ao usar a mensagem.
+            Use os campos <code>{aluno}</code>, <code>{valor}</code> e <code>{data}</code> — eles serão
+            substituídos no envio. Ligue/desligue cada mensagem e defina o horário do disparo automático.
           </p>
-          <div class="mt-3">
-            <label class="form-label" for="{{ form.template_aniversario.id_for_label }}">{{ form.template_aniversario.label }}</label>
-            {{ form.template_aniversario }}
-          </div>
-          <div class="mt-3">
-            <label class="form-label" for="{{ form.template_fim_contrato.id_for_label }}">{{ form.template_fim_contrato.label }}</label>
-            {{ form.template_fim_contrato }}
-          </div>
-          <div class="mt-3">
-            <label class="form-label" for="{{ form.template_vencimento_proximo.id_for_label }}">{{ form.template_vencimento_proximo.label }}</label>
-            {{ form.template_vencimento_proximo }}
-          </div>
-          <div class="mt-3">
-            <label class="form-label" for="{{ form.template_mensalidade_atraso.id_for_label }}">{{ form.template_mensalidade_atraso.label }}</label>
-            {{ form.template_mensalidade_atraso }}
-          </div>
-          <div class="mt-3">
-            <label class="form-label" for="{{ form.template_tres_meses.id_for_label }}">{{ form.template_tres_meses.label }}</label>
-            {{ form.template_tres_meses }}
+
+          <div class="row g-4">
+
+            <div class="col-md-6">
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h6 class="mb-0">🎂 Aniversário</h6>
+                <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="send_aniversario_now" formnovalidate>Enviar agora</button>
+              </div>
+              <div class="form-check form-switch my-2">
+                {{ form.avisar_aniversario }}
+                <label class="form-check-label" for="{{ form.avisar_aniversario.id_for_label }}">Ativar (envia no dia do aniversário)</label>
+              </div>
+              <label class="form-label" for="{{ form.horario_aviso_aniversario.id_for_label }}">Horário</label>
+              {{ form.horario_aviso_aniversario }}
+              <div class="mt-2">{{ form.template_aniversario }}</div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h6 class="mb-0">⏰ Vencimento próximo</h6>
+                <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="send_vencimento_now" formnovalidate>Enviar agora</button>
+              </div>
+              <div class="form-check form-switch my-2">
+                {{ form.avisar_vencimento }}
+                <label class="form-check-label" for="{{ form.avisar_vencimento.id_for_label }}">Ativar (1 dia antes do vencimento)</label>
+              </div>
+              <label class="form-label" for="{{ form.horario_aviso_vencimento.id_for_label }}">Horário</label>
+              {{ form.horario_aviso_vencimento }}
+              <div class="mt-2">{{ form.template_vencimento_proximo }}</div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h6 class="mb-0">💸 Mensalidade em atraso</h6>
+                <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="send_atraso_now" formnovalidate>Enviar agora</button>
+              </div>
+              <div class="form-check form-switch my-2">
+                {{ form.avisar_atraso }}
+                <label class="form-check-label" for="{{ form.avisar_atraso.id_for_label }}">Ativar (1x por semana enquanto em atraso)</label>
+              </div>
+              <label class="form-label" for="{{ form.horario_aviso_atraso.id_for_label }}">Horário</label>
+              {{ form.horario_aviso_atraso }}
+              <div class="mt-2">{{ form.template_mensalidade_atraso }}</div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h6 class="mb-0">💪 Acompanhamento de 3 meses</h6>
+                <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="send_tres_meses_now" formnovalidate>Enviar agora</button>
+              </div>
+              <div class="form-check form-switch my-2">
+                {{ form.avisar_tres_meses }}
+                <label class="form-check-label" for="{{ form.avisar_tres_meses.id_for_label }}">Ativar (90 dias após início do contrato)</label>
+              </div>
+              <label class="form-label" for="{{ form.horario_aviso_tres_meses.id_for_label }}">Horário</label>
+              {{ form.horario_aviso_tres_meses }}
+              <div class="mt-2">{{ form.template_tres_meses }}</div>
+            </div>
+
+            <div class="col-md-6">
+              <h6 class="mb-0">📄 Fim de contrato</h6>
+              <div class="form-check form-switch my-2">
+                {{ form.avisar_fim_contrato }}
+                <label class="form-check-label" for="{{ form.avisar_fim_contrato.id_for_label }}">Disponível como mensagem manual</label>
+              </div>
+              <small class="text-muted d-block mb-2">O disparo automático já é feito pelo aviso de "Renovação" acima.</small>
+              {{ form.template_fim_contrato }}
+            </div>
+
           </div>
         </div>
       </div>

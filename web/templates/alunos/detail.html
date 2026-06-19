@@ -2385,6 +2385,13 @@
       } catch (e) {
         TEMPLATES = {};
       }
+      // esconde as opcoes de templates desligados (sem texto no dict)
+      Array.from(tplSelect.options).forEach(function (opt) {
+        if (opt.value && !(opt.value in TEMPLATES)) {
+          opt.hidden = true;
+          opt.disabled = true;
+        }
+      });
       tplSelect.addEventListener("change", function () {
         let tpl = TEMPLATES[tplSelect.value];
         if (tpl) {

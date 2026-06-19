@@ -382,6 +382,134 @@ def _send_contract_renewals(service: WhatsappService, config: models.WhatsappCon
     return sent_count
 
 
+def _fmt_valor(v):
+    try:
+        return f"{float(v):.2f}".replace(".", ",")
+    except (TypeError, ValueError):
+        return ""
+
+
+def _send_aluno_messages(service, config, *, prefix, template, recipients, data_referencia, force=False, tipo=None):
+    """Envia uma mensagem simples para uma lista de alunos.
+    recipients: lista de dicts {aluno, contrato(opcional), dedup_id, context(opcional)}"""
+    tipo = tipo or WhatsappMessageType.MANUAL
+    sent = 0
+    for rec in recipients:
+        aluno = rec["aluno"]
+        if not aluno:
+            continue
+        telefone = service.get_aluno_phone(aluno)
+        if not telefone:
+            continue
+        dedupe_key = _log_key(prefix, config.unidade_id, data_referencia, rec["dedup_id"])
+        if not force and _already_sent(dedupe_key):
+            continue
+        mensagem = _render_template(template, aluno=aluno.dsNome, **rec.get("context", {}))
+        if not mensagem:
+            continue
+        try:
+            resp = _send_with_retry(
+                lambda: service.send(aluno, telefone, mensagem, tipo, contrato=rec.get("contrato")),
+                attempts=3,
+                pause_seconds=BATCH_THROTTLE_SECONDS,
+            )
+            if "error" not in resp:
+                sent += 1
+                _store_log(
+                    dedupe_key=dedupe_key,
+                    tipo=tipo,
+                    unidade=config.unidade,
+                    aluno=aluno,
+                    contrato=rec.get("contrato"),
+                    data_referencia=data_referencia,
+                    telefone=telefone,
+                    mensagem=mensagem,
+                    response_payload=json.dumps(resp, ensure_ascii=False),
+                )
+        except Exception:
+            logger.exception("Falha ao enviar %s para aluno %s na unidade %s", prefix, aluno.id, config.unidade_id)
+        time.sleep(BATCH_THROTTLE_SECONDS)
+    return sent
+
+
+def _send_birthdays(service, config, hoje, *, force=False):
+    alunos = models.Aluno.objects.filter(
+        cdUnidade=config.unidade,
+        status="ATIVO",
+        dtNascimento__month=hoje.month,
+        dtNascimento__day=hoje.day,
+    ).prefetch_related("telefones")
+    recipients = [{"aluno": a, "dedup_id": a.id} for a in alunos]
+    return _send_aluno_messages(
+        service, config, prefix="birthday", template=config.template_aniversario,
+        recipients=recipients, data_referencia=hoje, force=force,
+    )
+
+
+def _send_payment_due(service, config, hoje, *, force=False):
+    alvo = hoje + timedelta(days=1)
+    contas = (
+        models.ContasReceber.objects.filter(
+            contrato__cdUnidade=config.unidade, status="ABERTO", dtVencimento=alvo,
+        )
+        .select_related("contrato", "contrato__cdAluno")
+        .prefetch_related("contrato__cdAluno__telefones")
+    )
+    recipients = []
+    for cr in contas:
+        aluno = cr.contrato.cdAluno if cr.contrato_id else None
+        recipients.append({
+            "aluno": aluno, "contrato": cr.contrato, "dedup_id": cr.id,
+            "context": {"valor": _fmt_valor(cr.valor), "data": cr.dtVencimento.strftime("%d/%m/%Y")},
+        })
+    return _send_aluno_messages(
+        service, config, prefix="payment_due", template=config.template_vencimento_proximo,
+        recipients=recipients, data_referencia=alvo, force=force,
+    )
+
+
+def _send_payment_overdue(service, config, hoje, *, force=False):
+    contas = (
+        models.ContasReceber.objects.filter(
+            contrato__cdUnidade=config.unidade,
+            status__in=["ABERTO", "ATRASADO"],
+            dtVencimento__lt=hoje,
+        )
+        .select_related("contrato", "contrato__cdAluno")
+        .prefetch_related("contrato__cdAluno__telefones")
+    )
+    # dedup semanal: usa a segunda-feira da semana como referencia (1x por semana)
+    semana = hoje - timedelta(days=hoje.weekday())
+    recipients = []
+    for cr in contas:
+        aluno = cr.contrato.cdAluno if cr.contrato_id else None
+        recipients.append({
+            "aluno": aluno, "contrato": cr.contrato, "dedup_id": cr.id,
+            "context": {"valor": _fmt_valor(cr.valor), "data": cr.dtVencimento.strftime("%d/%m/%Y")},
+        })
+    return _send_aluno_messages(
+        service, config, prefix="payment_overdue", template=config.template_mensalidade_atraso,
+        recipients=recipients, data_referencia=semana, force=force,
+    )
+
+
+def _send_three_months(service, config, hoje, *, force=False):
+    alvo = hoje - timedelta(days=90)
+    contratos = (
+        models.Contrato.objects.filter(
+            cdUnidade=config.unidade, dtInicioContrato=alvo,
+            status__in=["ASSINADO", "ASSINADO_DIGITALMENTE"],
+        )
+        .select_related("cdAluno")
+        .prefetch_related("cdAluno__telefones")
+    )
+    recipients = [{"aluno": c.cdAluno, "contrato": c, "dedup_id": c.id} for c in contratos]
+    return _send_aluno_messages(
+        service, config, prefix="three_months", template=config.template_tres_meses,
+        recipients=recipients, data_referencia=alvo, force=force,
+    )
+
+
 def _run_jobs():
     with connection.cursor() as cursor:
         cursor.execute("SELECT pg_try_advisory_lock(%s)", [_ADVISORY_LOCK_ID])
@@ -410,6 +538,26 @@ def _run_jobs():
                     _send_contract_renewals(service, config, today + timedelta(days=7))
             except Exception:
                 logger.exception("Erro ao enviar lembretes de renovacao da unidade %s", config.unidade_id)
+            try:
+                if config.avisar_aniversario and now.time() >= config.horario_aviso_aniversario:
+                    _send_birthdays(service, config, today)
+            except Exception:
+                logger.exception("Erro ao enviar aniversarios da unidade %s", config.unidade_id)
+            try:
+                if config.avisar_vencimento and now.time() >= config.horario_aviso_vencimento:
+                    _send_payment_due(service, config, today)
+            except Exception:
+                logger.exception("Erro ao enviar avisos de vencimento da unidade %s", config.unidade_id)
+            try:
+                if config.avisar_atraso and now.time() >= config.horario_aviso_atraso:
+                    _send_payment_overdue(service, config, today)
+            except Exception:
+                logger.exception("Erro ao enviar avisos de atraso da unidade %s", config.unidade_id)
+            try:
+                if config.avisar_tres_meses and now.time() >= config.horario_aviso_tres_meses:
+                    _send_three_months(service, config, today)
+            except Exception:
+                logger.exception("Erro ao enviar acompanhamento 3 meses da unidade %s", config.unidade_id)
     finally:
         with connection.cursor() as cursor:
             cursor.execute("SELECT pg_advisory_unlock(%s)", [_ADVISORY_LOCK_ID])
