@@ -679,6 +679,56 @@ class WhatsappConfiguracao(models.Model):
         default="Seu contrato vence em {dias_restantes} dias. Deseja renovar?"
     )
 
+    # Mensagens prontas (editaveis). Placeholders: {aluno}, {valor}, {data}
+    template_aniversario = models.TextField(
+        "Mensagem de aniversário",
+        blank=True,
+        default=(
+            "Feliz Aniversário, {aluno}! 🎉\n"
+            "Desejamos um ano cheio de energia boa, leveza, saúde e momentos que façam seu coração sorrir. "
+            "Continue se cuidando e honrando seu corpo. É um privilégio te acompanhar nessa jornada. 🎂🎈🙏"
+        ),
+    )
+    template_fim_contrato = models.TextField(
+        "Mensagem de fim de contrato",
+        blank=True,
+        default=(
+            "Olá, {aluno}! Tudo bem? 🌸\n"
+            "Seu ciclo atual de Pilates está chegando ao fim e adoraríamos continuar acompanhando sua evolução! "
+            "Para o próximo período, o valor do plano passou por um pequeno reajuste e será de R$ {valor}.\n"
+            "Podemos confirmar sua renovação e garantir seu horário? Me avise por aqui para prepararmos o novo contrato! ✨"
+        ),
+    )
+    template_vencimento_proximo = models.TextField(
+        "Mensagem de vencimento próximo",
+        blank=True,
+        default=(
+            "Olá, {aluno}! Tudo bem? Passando para lembrar que sua mensalidade do Pilates vence em breve, "
+            "no dia {data}. Qualquer dúvida, estou à disposição. 🧘‍♀️✨"
+        ),
+    )
+    template_mensalidade_atraso = models.TextField(
+        "Mensagem de mensalidade em atraso",
+        blank=True,
+        default=(
+            "Olá! Tudo bem? Passando para lembrar que o pagamento da sua mensalidade do Pilates "
+            "(vencimento em {data}) no valor de R$ {valor} ainda não consta em nosso sistema.\n"
+            "Pode ter sido apenas um esquecimento, mas se precisar de algo, estou à disposição! 🧘‍♀️\n"
+            "Chave Pix (CNPJ): 50.732.875/0001-56\n"
+            "Caso o pagamento já tenha sido realizado, por favor, desconsidere esta mensagem."
+        ),
+    )
+    template_tres_meses = models.TextField(
+        "Mensagem de acompanhamento (3 meses)",
+        blank=True,
+        default=(
+            "Olá, {aluno}! Parabéns pelos 3 meses de Pilates! 💪🏻\n"
+            "Sente mais força ou mobilidade? Alguma dor reduziu? Alguma nova meta que você gostaria de trabalhar?\n"
+            "Os primeiros 90 dias são essenciais para criar consistência, e você está indo muito bem!\n"
+            "Obrigada por confiar na Mayris para cuidar de você. Conte sempre comigo!"
+        ),
+    )
+
     variaveis_template = models.JSONField(blank=True, null=True, default=dict)
 
     dtCadastro = models.DateTimeField(auto_now_add=True)

@@ -490,6 +490,11 @@ class WhatsappConfiguracaoForm(BaseAutoCdForm):
             "avisar_renovacao",
             "horario_aviso_renovacao",
             "template_aviso_renovacao",
+            "template_aniversario",
+            "template_fim_contrato",
+            "template_vencimento_proximo",
+            "template_mensalidade_atraso",
+            "template_tres_meses",
             "variaveis_template",
         ]
 

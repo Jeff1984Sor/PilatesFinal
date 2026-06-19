@@ -647,6 +647,14 @@ def aluno_detail(request, pk):
     profissionais = models.Profissional.objects.all()
     whatsapp_messages = aluno.whatsapp_messages.select_related("contrato").all()
     whatsapp_form = forms.WhatsappMessageForm()
+    wpp_config = models.WhatsappConfiguracao.objects.filter(unidade=aluno.cdUnidade_id).first() or models.WhatsappConfiguracao()
+    whatsapp_templates = {
+        "aniversario": wpp_config.template_aniversario,
+        "fim_contrato": wpp_config.template_fim_contrato,
+        "vencimento_proximo": wpp_config.template_vencimento_proximo,
+        "mensalidade_atraso": wpp_config.template_mensalidade_atraso,
+        "tres_meses": wpp_config.template_tres_meses,
+    }
     documentos = aluno.documentos.select_related("contrato").all()
     documento_form = forms.AlunoDocumentoForm()
     aula_avulsa_form = forms.AulaAvulsaForm(
@@ -681,6 +689,7 @@ def aluno_detail(request, pk):
         "endereco": endereco,
         "telefones": telefones,
         "whatsapp_number": whatsapp_number,
+        "whatsapp_templates": whatsapp_templates,
         "contratos": contratos,
         "contrato_forms": contrato_forms,
         "aulas_avulsas": aulas_avulsas,

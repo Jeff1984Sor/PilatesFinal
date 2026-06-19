@@ -2359,6 +2359,8 @@
 
 </div>
 
+{{ whatsapp_templates|json_script:"wpp-templates" }}
+
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const selectAll = document.getElementById("selectAllReservas");
@@ -2371,39 +2373,22 @@
       });
     }
 
-    // Mensagens prontas de WhatsApp
+    // Mensagens prontas de WhatsApp (vindas da Configuracao de WhatsApp)
     const tplSelect = document.querySelector(".js-whatsapp-template");
     const tplText = document.querySelector(".js-whatsapp-text");
-    if (tplSelect && tplText) {
+    const tplData = document.getElementById("wpp-templates");
+    if (tplSelect && tplText && tplData) {
       const nome = tplSelect.dataset.alunoNome || "";
-      const TEMPLATES = {
-        aniversario:
-          "Feliz Aniversário, " + nome + "! 🎉\n" +
-          "Desejamos um ano cheio de energia boa, leveza, saúde e momentos que façam seu coração sorrir. " +
-          "Continue se cuidando e honrando seu corpo. É um privilégio te acompanhar nessa jornada. 🎂🎈🙏",
-        fim_contrato:
-          "Olá, " + nome + "! Tudo bem? 🌸\n" +
-          "Seu ciclo atual de Pilates está chegando ao fim e adoraríamos continuar acompanhando sua evolução! " +
-          "Para o próximo período, o valor do plano passou por um pequeno reajuste e será de R$ [Valor].\n" +
-          "Podemos confirmar sua renovação e garantir seu horário? Me avise por aqui para prepararmos o novo contrato! ✨",
-        vencimento_proximo:
-          "Olá, " + nome + "! Tudo bem? Passando para lembrar que sua mensalidade do Pilates vence em breve, " +
-          "no dia [Data]. Qualquer dúvida, estou à disposição. 🧘‍♀️✨",
-        mensalidade_atraso:
-          "Olá! Tudo bem? Passando para lembrar que o pagamento da sua mensalidade do Pilates " +
-          "(vencimento em [Data]) no valor de R$ [Valor] ainda não consta em nosso sistema.\n" +
-          "Pode ter sido apenas um esquecimento, mas se precisar de algo, estou à disposição! 🧘‍♀️\n" +
-          "Chave Pix (CNPJ): 50.732.875/0001-56\n" +
-          "Caso o pagamento já tenha sido realizado, por favor, desconsidere esta mensagem.",
-        tres_meses:
-          "Olá, " + nome + "! Parabéns pelos 3 meses de Pilates! 💪🏻\n" +
-          "Sente mais força ou mobilidade? Alguma dor reduziu? Alguma nova meta que você gostaria de trabalhar?\n" +
-          "Os primeiros 90 dias são essenciais para criar consistência, e você está indo muito bem!\n" +
-          "Obrigada por confiar na Mayris para cuidar de você. Conte sempre comigo!",
-      };
+      let TEMPLATES = {};
+      try {
+        TEMPLATES = JSON.parse(tplData.textContent || "{}");
+      } catch (e) {
+        TEMPLATES = {};
+      }
       tplSelect.addEventListener("change", function () {
-        const tpl = TEMPLATES[tplSelect.value];
+        let tpl = TEMPLATES[tplSelect.value];
         if (tpl) {
+          tpl = tpl.split("{aluno}").join(nome);
           tplText.value = tpl;
           tplText.focus();
         }
