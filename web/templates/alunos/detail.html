@@ -1730,6 +1730,20 @@
 
             <div class="col-md-4">
 
+              <label>Telefone(s)</label>
+
+              {% if telefones %}
+                {% for tel in telefones %}
+                  <input class="form-control js-telefone mb-2" name="telefone_{{ forloop.counter }}" value="{{ tel }}" placeholder="(00) 00000-0000" />
+                {% endfor %}
+              {% else %}
+                <input class="form-control js-telefone" name="telefone_1" value="" placeholder="(00) 00000-0000" />
+              {% endif %}
+
+            </div>
+
+            <div class="col-md-4">
+
               {{ edit_form.dtNascimento.label_tag }} {{ edit_form.dtNascimento }}
 
             </div>
