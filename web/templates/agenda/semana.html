@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .agw-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:14px; }
+  .agw-toolbar .title { font-size:20px; font-weight:600; text-transform:capitalize; }
+  .agw-legend { display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:#555; margin-bottom:10px; }
+  .agw-legend span { display:inline-flex; align-items:center; gap:5px; }
+  .agw-dot { width:11px; height:11px; border-radius:3px; display:inline-block; }
+  .agw-grid { display:grid; grid-template-columns: 56px repeat(6, 1fr); border:1px solid #0001; border-radius:12px; overflow:hidden; background:#fff; }
+  .agw-head { position:sticky; top:0; z-index:2; background:#faf9f8; border-bottom:1px solid #0001; padding:8px 6px; text-align:center; font-size:13px; }
+  .agw-head.today { background:#7a1f2b; color:#fff; border-radius:0; }
+  .agw-corner { background:#faf9f8; border-bottom:1px solid #0001; }
+  .agw-axis { position:relative; border-right:1px solid #0001; }
+  .agw-axis .hr { position:absolute; right:6px; font-size:11px; color:#999; transform:translateY(-6px); }
+  .agw-col { position:relative; border-right:1px solid #0001; }
+  .agw-col .line { position:absolute; left:0; right:0; border-top:1px dashed #0000000d; }
+  .agw-block { position:absolute; border-radius:6px; color:#fff; overflow:hidden; padding:3px 6px; font-size:11px; line-height:1.25; box-shadow:0 1px 3px #0003; }
+  .agw-block .h { font-weight:700; }
+  .agw-block .n { opacity:.95; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .agw-block .t { opacity:.8; font-size:10px; }
+</style>
+
+<div class="agw-toolbar">
+  <span class="title">{{ month_label }}</span>
+  <div class="btn-group btn-group-sm ms-2">
+    <a class="btn btn-outline-secondary" href="?week={{ prev_week }}{% if profissional_id %}&profissional={{ profissional_id }}{% endif %}">‹</a>
+    <a class="btn btn-outline-secondary" href="?week={{ hoje }}{% if profissional_id %}&profissional={{ profissional_id }}{% endif %}">Hoje</a>
+    <a class="btn btn-outline-secondary" href="?week={{ next_week }}{% if profissional_id %}&profissional={{ profissional_id }}{% endif %}">›</a>
+  </div>
+  <form method="get" class="ms-2">
+    <input type="hidden" name="week" value="{{ week_start|date:'Y-m-d' }}" />
+    <select name="profissional" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:180px">
+      <option value="">Todos os profissionais</option>
+      {% for p in profissionais %}
+        <option value="{{ p.id }}" {% if profissional_id == p.id|stringformat:'s' %}selected{% endif %}>{{ p.profissional }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  <a class="btn btn-sm btn-outline-primary ms-auto" href="{% url 'aulas_list' %}">Operação (presença/evolução)</a>
+</div>
+
+<div class="agw-legend">
+  <span><i class="agw-dot" style="background:#f59e0b"></i> A confirmar</span>
+  <span><i class="agw-dot" style="background:#3b9ad9"></i> Confirmada</span>
+  <span><i class="agw-dot" style="background:#16a34a"></i> Concluída</span>
+  <span><i class="agw-dot" style="background:#eab308"></i> Falta avisada</span>
+  <span><i class="agw-dot" style="background:#ef4444"></i> Falta</span>
+  <span><i class="agw-dot" style="background:#9ca3af"></i> Cancelada</span>
+  <span><i class="agw-dot" style="background:#cbd5e1"></i> Sem alunos</span>
+</div>
+
+<div class="agw-grid">
+  <div class="agw-corner"></div>
+  {% for d in grid_days %}
+    <div class="agw-head {% if d.is_today %}today{% endif %}">{{ d.label }} {{ d.number }}</div>
+  {% endfor %}
+
+  <div class="agw-axis" style="height:{{ grid_height }}px">
+    {% for h in hours %}<div class="hr" style="top:{{ h.top }}px">{{ h.label }}</div>{% endfor %}
+  </div>
+
+  {% for d in grid_days %}
+    <div class="agw-col" style="height:{{ grid_height }}px">
+      {% for h in hours %}<div class="line" style="top:{{ h.top }}px"></div>{% endfor %}
+      {% for b in d.blocks %}
+        <div class="agw-block"
+             style="top:{{ b.top }}px; height:{{ b.height }}px; left:{{ b.leftpct }}%; width:{{ b.widthpct }}%; background:{{ b.cor }}"
+             title="{{ b.hora }} · {{ b.tipo }} · {{ b.aluno }} · {{ b.label }}{% if b.prof %} · {{ b.prof }}{% endif %}">
+          <div class="h">{{ b.hora }}</div>
+          {% if b.aluno %}<div class="n">{{ b.aluno }}</div>{% endif %}
+          <div class="t">{{ b.tipo }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

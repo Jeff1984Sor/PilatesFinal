@@ -3392,6 +3392,126 @@ def exportar_contas_pagar_pdf(request):
 
 
 @login_required
+def _cor_status_reserva(r):
+    if r.status == "RESERVADA" and r.confirmada_em:
+        return ("#3b9ad9", "Confirmada")
+    if r.status == "RESERVADA":
+        return ("#f59e0b", "A confirmar")
+    return {
+        "CONCLUIDA": ("#16a34a", "Concluída"),
+        "FALTOU_AVISOU": ("#eab308", "Falta avisada"),
+        "FALTOU_SEM_AVISAR": ("#ef4444", "Falta"),
+        "CANCELADA": ("#9ca3af", "Cancelada"),
+        "PENDENTE": ("#a78bfa", "Pendente"),
+    }.get(r.status, ("#94a3b8", r.status))
+
+
+@login_required
+def aulas_semana(request):
+    week_str = request.GET.get("week", "").strip()
+    profissional_id = request.GET.get("profissional", "").strip()
+    try:
+        ref = datetime.strptime(week_str, "%Y-%m-%d").date() if week_str else date.today()
+    except ValueError:
+        ref = date.today()
+    week_start = ref - timedelta(days=ref.weekday())
+    days = [week_start + timedelta(days=i) for i in range(6)]  # Seg a Sab
+    week_end = days[-1]
+
+    qs = models.AulaSessao.objects.select_related("tipoServico", "profissional", "unidade").filter(
+        data__range=(week_start, week_end)
+    )
+    if profissional_id:
+        qs = qs.filter(profissional_id=profissional_id)
+    aulas = list(qs)
+    reservas = models.Reserva.objects.filter(aulaSessao__in=aulas).select_related("aluno")
+    res_by_aula = {}
+    for r in reservas:
+        res_by_aula.setdefault(r.aulaSessao_id, []).append(r)
+
+    GRID_START, GRID_END, PPM = 6 * 60, 22 * 60, 0.8
+
+    def _min(t):
+        return t.hour * 60 + t.minute
+
+    weekday_labels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab"]
+    grid_days = []
+    for dia in days:
+        raw = []
+        for aula in [a for a in aulas if a.data == dia]:
+            ini = _min(aula.horaInicio)
+            fim = _min(aula.horaFim) if aula.horaFim else ini + 50
+            tipo = aula.tipoServico.dsTipoServico if aula.tipoServico_id else "Aula"
+            prof = aula.profissional.profissional if aula.profissional_id else ""
+            hora = aula.horaInicio.strftime("%H:%M")
+            alunos = res_by_aula.get(aula.id, [])
+            if alunos:
+                for r in alunos:
+                    cor, label = _cor_status_reserva(r)
+                    raw.append({"ini": ini, "fim": fim, "cor": cor, "label": label,
+                                "aluno": r.aluno.dsNome, "tipo": tipo, "hora": hora, "prof": prof})
+            else:
+                raw.append({"ini": ini, "fim": fim, "cor": "#cbd5e1", "label": "Sem alunos",
+                            "aluno": "", "tipo": tipo, "hora": hora, "prof": prof})
+        raw.sort(key=lambda b: (b["ini"], b["fim"]))
+        # clusters de blocos que se sobrepoem -> colunas lado a lado
+        clusters, cur, cur_end = [], [], -1
+        for b in raw:
+            if cur and b["ini"] >= cur_end:
+                clusters.append(cur)
+                cur, cur_end = [], -1
+            cur.append(b)
+            cur_end = max(cur_end, b["fim"])
+        if cur:
+            clusters.append(cur)
+        blocks = []
+        for cl in clusters:
+            cols_end = []
+            for b in cl:
+                placed = False
+                for ci, end in enumerate(cols_end):
+                    if b["ini"] >= end:
+                        cols_end[ci] = b["fim"]
+                        b["col"] = ci
+                        placed = True
+                        break
+                if not placed:
+                    b["col"] = len(cols_end)
+                    cols_end.append(b["fim"])
+            ncols = len(cols_end)
+            wpct = 100.0 / ncols
+            for b in cl:
+                blocks.append({
+                    **b,
+                    "top": round((b["ini"] - GRID_START) * PPM, 1),
+                    "height": round(max((b["fim"] - b["ini"]) * PPM, 22), 1),
+                    "leftpct": round(b["col"] * wpct, 2),
+                    "widthpct": round(wpct - 1.5, 2),
+                })
+        grid_days.append({"date": dia, "label": weekday_labels[dia.weekday()], "number": dia.day,
+                          "is_today": dia == date.today(), "blocks": blocks})
+
+    hours = [{"label": f"{h:02d}:00", "top": round((h * 60 - GRID_START) * PPM, 1)} for h in range(6, 23)]
+    meses = ["Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    context = {
+        "title": "Agenda",
+        "grid_days": grid_days,
+        "hours": hours,
+        "grid_height": round((GRID_END - GRID_START) * PPM, 1),
+        "week_start": week_start,
+        "week_end": week_end,
+        "prev_week": (week_start - timedelta(days=7)).isoformat(),
+        "next_week": (week_start + timedelta(days=7)).isoformat(),
+        "hoje": date.today().isoformat(),
+        "month_label": f"{meses[week_start.month - 1]} {week_start.year}",
+        "profissionais": models.Profissional.objects.all(),
+        "profissional_id": profissional_id,
+        "breadcrumbs": [("Home", reverse("dashboard")), ("Agenda", "#")],
+        "active_menu": "agenda",
+    }
+    return render(request, "agenda/semana.html", context)
+
+
 def aulas_list(request):
     qs = models.AulaSessao.objects.select_related("unidade", "tipoServico", "profissional")
     week_str = request.GET.get("week", "").strip()

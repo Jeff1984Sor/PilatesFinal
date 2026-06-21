@@ -164,6 +164,7 @@ urlpatterns = [
     path("financeiro/contas-receber/criar/", lambda r: views.create_view(r, models.ContasReceber, forms.ContasReceberForm, "contas_receber_list"), name="contas_receber_create"),
     path("financeiro/contas-receber/<int:pk>/editar/", lambda r, pk: views.edit_view(r, models.ContasReceber, forms.ContasReceberForm, "contas_receber_list", pk), name="contas_receber_edit"),
     path("financeiro/contas-receber/<int:pk>/excluir/", lambda r, pk: views.delete_view(r, models.ContasReceber, "contas_receber_list", pk), name="contas_receber_delete"),
+    path("agenda/semana/", views.aulas_semana, name="aulas_semana"),
     path("agenda/aulas/", views.aulas_list, name="aulas_list"),
     path("agenda/aulas/operacao/", views.aulas_operacao_api, name="aulas_operacao_api"),
     path("agenda/aulas/evolucoes/enriquecer/", views.evolucao_enriquecer_api, name="evolucao_enriquecer_api"),
