@@ -1223,7 +1223,7 @@ function initAulasOperacao() {
   let items = [];
   let debounceTimer = null;
   let selectedStatus = "";
-  let selectedPeriod = "hoje";
+  let selectedPeriod = "semana";
   let speechRecognition = null;
   let isRecordingEvolution = false;
 

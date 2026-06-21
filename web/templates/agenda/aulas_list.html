@@ -18,27 +18,13 @@
   </div>
 
   <div class="aulas-toolbar">
-    <div class="aulas-search">
-      <label class="aulas-label">Busca rapida</label>
-      <div class="aulas-search__field">
-        <span class="aulas-search__icon">BUSCA</span>
-        <input type="text" class="form-control js-operacao-search" placeholder="Aluno, CPF ou telefone" />
-        <span class="aulas-search__hint">/</span>
-      </div>
-      <div class="aulas-shortcuts">
-        <span>/ busca</span>
-        <span>Enter abre</span>
-        <span>Ctrl+S salva</span>
-      </div>
-    </div>
-
     <div class="aulas-filters">
       <div>
         <label class="aulas-label">Periodo</label>
         <div class="aulas-chips">
-          <button class="aulas-chip is-active js-period" data-value="hoje">Hoje</button>
+          <button class="aulas-chip js-period" data-value="hoje">Hoje</button>
           <button class="aulas-chip js-period" data-value="amanha">Amanha</button>
-          <button class="aulas-chip js-period" data-value="semana">Semana</button>
+          <button class="aulas-chip is-active js-period" data-value="semana">Semana</button>
         </div>
       </div>
       <div>
@@ -57,7 +43,7 @@
       <div>
         <label class="aulas-label">Profissional</label>
         <select class="form-select js-operacao-profissional">
-          <option value="">Todos</option>
+          <option value="">Todos os instrutores</option>
           {% for prof in profissionais %}
             <option value="{{ prof.id }}">{{ prof.profissional }}</option>
           {% endfor %}

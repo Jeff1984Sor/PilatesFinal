@@ -3414,6 +3414,9 @@ def aulas_semana(request):
         ref = datetime.strptime(week_str, "%Y-%m-%d").date() if week_str else date.today()
     except ValueError:
         ref = date.today()
+    # Sem semana escolhida e hoje e sabado/domingo -> mostra a proxima semana
+    if not week_str and ref.weekday() >= 5:
+        ref = ref + timedelta(days=7)
     week_start = ref - timedelta(days=ref.weekday())
     days = [week_start + timedelta(days=i) for i in range(6)]  # Seg a Sab
     week_end = days[-1]
@@ -3645,6 +3648,8 @@ def _build_period_range(target: date | None, periodo: str | None) -> tuple[date,
         return start, start
     if periodo == "semana":
         start = base - timedelta(days=base.weekday())
+        if base.weekday() >= 5:  # sabado/domingo -> proxima semana
+            start = start + timedelta(days=7)
         end = start + timedelta(days=6)
         return start, end
     return base, base
