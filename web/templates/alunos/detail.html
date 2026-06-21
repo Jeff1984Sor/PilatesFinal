@@ -602,6 +602,12 @@
 
                           <a class="btn btn-sm btn-outline-primary" href="{% url 'reservas_edit' r.id %}?next={{ request.path }}?tab=agenda">Editar</a>
 
+                          <button type="button" class="btn btn-sm btn-outline-warning js-reagendar-open"
+                            data-reserva-id="{{ r.id }}"
+                            data-data="{{ r.aulaSessao.data|date:'Y-m-d' }}"
+                            data-hora="{{ r.aulaSessao.horaInicio|time:'H:i' }}"
+                            data-prof="{{ r.aulaSessao.profissional_id|default:'' }}">Reagendar</button>
+
                         </td>
 
                       </tr>
@@ -621,6 +627,43 @@
 
             {% endif %}
 
+          </div>
+
+          <div class="modal fade" id="reagendarModal" tabindex="-1" aria-hidden="true" data-remarcar-url="{% url 'aulas_remarcar_api' 0 %}">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Reagendar aula</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <input type="hidden" class="js-reagendar-reserva" />
+                  <div class="mb-3">
+                    <label class="form-label">Nova data</label>
+                    <input type="date" class="form-control js-reagendar-data" min="{{ today }}" />
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Hora inicio</label>
+                    <input type="time" class="form-control js-reagendar-hora" />
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Profissional</label>
+                    <select class="form-select js-reagendar-prof">
+                      <option value="">Manter profissional atual</option>
+                      {% for prof in profissionais %}
+                        <option value="{{ prof.id }}">{{ prof.profissional }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="text-muted small">A duracao segue o padrao da unidade.</div>
+                  <div class="alert alert-danger py-2 mt-2 d-none js-reagendar-erro"></div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                  <button type="button" class="btn btn-primary js-reagendar-save">Salvar</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="modal fade" id="novaAulaAvulsa" tabindex="-1" aria-hidden="true">
@@ -714,12 +757,57 @@
 
               <div class="d-flex gap-2">
 
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#lancarValorModal">Lancar valor</button>
+
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_excel' aluno.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">Exportar Excel</a>
 
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_exportar_pdf' aluno.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">Exportar PDF</a>
 
               </div>
 
+            </div>
+
+            <div class="modal fade" id="lancarValorModal" tabindex="-1">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <form method="post" action="{% url 'contas_receber_lancar_avulsa' aluno.id %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                      <h5 class="modal-title">Lancar valor no financeiro</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="mb-3">
+                        {{ lancamento_avulso_form.descricao.label_tag }}
+                        {{ lancamento_avulso_form.descricao }}
+                      </div>
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          {{ lancamento_avulso_form.valor.label_tag }}
+                          {{ lancamento_avulso_form.valor }}
+                        </div>
+                        <div class="col-md-6">
+                          {{ lancamento_avulso_form.dtVencimento.label_tag }}
+                          {{ lancamento_avulso_form.dtVencimento }}
+                        </div>
+                        <div class="col-md-6">
+                          {{ lancamento_avulso_form.competencia.label_tag }}
+                          {{ lancamento_avulso_form.competencia }}
+                        </div>
+                        <div class="col-md-6">
+                          {{ lancamento_avulso_form.status.label_tag }}
+                          {{ lancamento_avulso_form.status }}
+                        </div>
+                      </div>
+                      <div class="form-text mt-2">Lancamento avulso, sem vinculo com contrato ou aula.</div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <button type="submit" class="btn btn-primary">Lancar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
 
             <form class="row g-2 mb-3" method="get">
@@ -817,6 +905,8 @@
                             {% else %}
                               Aula avulsa
                             {% endif %}
+                          {% elif f.aluno_id %}
+                            {{ f.descricao|default:"Lancamento avulso" }}
                           {% else %}
                             -
                           {% endif %}
@@ -2480,6 +2570,67 @@
           tplText.focus();
         }
       });
+    }
+
+    // Reagendar aula (data + hora + profissional) reusando a API de remarcar
+    const reagModal = document.getElementById("reagendarModal");
+    if (reagModal) {
+      const reagData = reagModal.querySelector(".js-reagendar-data");
+      const reagHora = reagModal.querySelector(".js-reagendar-hora");
+      const reagProf = reagModal.querySelector(".js-reagendar-prof");
+      const reagReserva = reagModal.querySelector(".js-reagendar-reserva");
+      const reagErro = reagModal.querySelector(".js-reagendar-erro");
+      const reagSave = reagModal.querySelector(".js-reagendar-save");
+      const urlTpl = reagModal.dataset.remarcarUrl || "";
+
+      const csrfToken = function () {
+        const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+        return m ? decodeURIComponent(m[1]) : "";
+      };
+      const showErro = function (msg) {
+        if (reagErro) { reagErro.textContent = msg; reagErro.classList.remove("d-none"); }
+      };
+
+      document.querySelectorAll(".js-reagendar-open").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          reagReserva.value = btn.dataset.reservaId || "";
+          reagData.value = btn.dataset.data || "";
+          reagHora.value = btn.dataset.hora || "";
+          if (reagProf) reagProf.value = btn.dataset.prof || "";
+          if (reagErro) { reagErro.classList.add("d-none"); reagErro.textContent = ""; }
+          bootstrap.Modal.getOrCreateInstance(reagModal).show();
+        });
+      });
+
+      if (reagSave) {
+        reagSave.addEventListener("click", function () {
+          const id = reagReserva.value;
+          const data = reagData.value;
+          const hora = reagHora.value;
+          if (!id || !data || !hora) {
+            showErro("Informe data e hora.");
+            return;
+          }
+          const url = urlTpl.replace("/0/", "/" + id + "/");
+          reagSave.disabled = true;
+          fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+            body: JSON.stringify({ data: data, hora_inicio: hora, profissional_id: (reagProf && reagProf.value) || null })
+          }).then(async function (resp) {
+            reagSave.disabled = false;
+            if (!resp.ok) {
+              const payload = await resp.json().catch(function () { return {}; });
+              showErro(payload.error || "Nao foi possivel reagendar.");
+              return;
+            }
+            window.location.href = window.location.pathname + "?tab=agenda";
+          }).catch(function () {
+            reagSave.disabled = false;
+            showErro("Erro de conexao.");
+          });
+        });
+      }
     }
   });
 </script>

@@ -594,6 +594,9 @@ class ContasReceber(models.Model):
 
     contrato = models.ForeignKey(Contrato, on_delete=models.PROTECT, null=True, blank=True)
     reserva = models.ForeignKey("Reserva", on_delete=models.SET_NULL, null=True, blank=True, related_name="contas_receber")
+    # Lancamento avulso: vinculo direto ao aluno, sem contrato nem reserva/aula.
+    aluno = models.ForeignKey("Aluno", on_delete=models.PROTECT, null=True, blank=True, related_name="contas_avulsas")
+    descricao = models.CharField(max_length=200, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="ABERTO")
     valor = models.DecimalField(max_digits=10, decimal_places=2)
     dtVencimento = models.DateField()
@@ -606,6 +609,8 @@ class ContasReceber(models.Model):
             return f"ContasReceber {self.contrato_id}"
         if self.reserva_id:
             return f"ContasReceber reserva {self.reserva_id}"
+        if self.aluno_id:
+            return f"ContasReceber avulso aluno {self.aluno_id}"
         return f"ContasReceber {self.id}"
 
 

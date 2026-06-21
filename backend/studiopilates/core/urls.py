@@ -191,6 +191,7 @@ urlpatterns = [
     path("financeiro/contas-receber/<int:pk>/baixar/", views.baixar_conta_receber, name="contas_receber_baixar"),
     path("financeiro/contas-receber/<int:pk>/excluir/", views.excluir_conta_receber, name="contas_receber_excluir"),
     path("financeiro/contas-receber/<int:pk>/recibo/", views.recibo_conta_receber_pdf, name="contas_receber_recibo"),
+    path("financeiro/contas-receber/aluno/<int:aluno_id>/lancar/", views.lancar_conta_receber_avulsa, name="contas_receber_lancar_avulsa"),
     path("financeiro/contas-receber/aluno/<int:aluno_id>/exportar-pdf/", views.exportar_contas_receber_pdf, name="contas_receber_exportar_pdf"),
     path("financeiro/contas-receber/aluno/<int:aluno_id>/exportar-excel/", views.exportar_contas_receber_excel, name="contas_receber_exportar_excel"),
     path("evolucoes/aluno/<int:aluno_id>/exportar-pdf/", views.exportar_evolucoes_pdf, name="evolucoes_exportar_pdf"),

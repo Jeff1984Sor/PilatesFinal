@@ -456,6 +456,21 @@ class ContasReceberForm(BaseAutoCdForm):
         fields = ["contrato", "status", "valor", "dtVencimento", "competencia"]
 
 
+class LancamentoAvulsoForm(BaseAutoCdForm):
+    """Lancamento financeiro avulso na ficha do aluno (sem contrato nem aula)."""
+
+    class Meta:
+        model = models.ContasReceber
+        fields = ["descricao", "valor", "dtVencimento", "competencia", "status"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["descricao"].required = True
+        self.fields["descricao"].widget.attrs["placeholder"] = "Ex.: Taxa de matricula, venda de produto..."
+        self.fields["competencia"].widget.attrs.setdefault("placeholder", "AAAA-MM")
+        self.fields["competencia"].label = "Competencia"
+
+
 class PerfilAcessoForm(BaseAutoCdForm):
     class Meta:
         model = models.PerfilAcesso

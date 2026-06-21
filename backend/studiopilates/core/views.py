@@ -639,7 +639,7 @@ def aluno_detail(request, pk):
     )
     contas_receber = _filtrar_contas_receber(
         models.ContasReceber.objects.filter(
-            Q(contrato__cdAluno=aluno) | Q(reserva__aluno=aluno)
+            Q(contrato__cdAluno=aluno) | Q(reserva__aluno=aluno) | Q(aluno=aluno)
         ).select_related(
             "contrato",
             "contrato__cdPlano",
@@ -713,6 +713,9 @@ def aluno_detail(request, pk):
         "evolucoes": evolucoes,
         "avaliacoes": avaliacoes,
         "contas_receber": contas_receber,
+        "lancamento_avulso_form": forms.LancamentoAvulsoForm(
+            initial={"dtVencimento": timezone.localdate(), "competencia": timezone.localdate().strftime("%Y-%m")}
+        ),
         "filtros_financeiro": _get_filtros_financeiro(request),
         "today": timezone.now().date().strftime("%Y-%m-%d"),
         "today_date": timezone.now().date(),
@@ -4920,6 +4923,8 @@ def _conta_receber_aluno(conta):
         return conta.contrato.cdAluno
     if getattr(conta, "reserva_id", None) and getattr(conta.reserva, "aluno_id", None):
         return conta.reserva.aluno
+    if getattr(conta, "aluno_id", None):
+        return conta.aluno
     return None
 
 
@@ -4931,14 +4936,35 @@ def _conta_receber_origem(conta):
         if pacote:
             return f"Aula avulsa #{pacote.cdAulaAvulsa}"
         return "Aula avulsa"
+    if getattr(conta, "aluno_id", None):
+        return conta.descricao or "Lancamento avulso"
     return "-"
+
+
+@login_required
+@require_POST
+def lancar_conta_receber_avulsa(request, aluno_id):
+    aluno = get_object_or_404(models.Aluno, pk=aluno_id)
+    destino = f"{reverse('alunos_detail', args=[aluno.pk])}?tab=financeiro"
+    form = forms.LancamentoAvulsoForm(request.POST)
+    if form.is_valid():
+        conta = form.save(commit=False)
+        conta.aluno = aluno
+        conta.contrato = None
+        conta.reserva = None
+        conta.save()
+        messages.success(request, "Lancamento avulso criado com sucesso.")
+    else:
+        erros = "; ".join(f"{campo}: {', '.join(msgs)}" for campo, msgs in form.errors.items())
+        messages.error(request, f"Nao foi possivel lancar o valor. {erros}")
+    return redirect(destino)
 
 
 @login_required
 def exportar_contas_receber_excel(request, aluno_id):
     aluno = get_object_or_404(models.Aluno, pk=aluno_id)
     qs = _filtrar_contas_receber(
-        models.ContasReceber.objects.filter(Q(contrato__cdAluno=aluno) | Q(reserva__aluno=aluno)).select_related(
+        models.ContasReceber.objects.filter(Q(contrato__cdAluno=aluno) | Q(reserva__aluno=aluno) | Q(aluno=aluno)).select_related(
             "contrato",
             "contrato__cdPlano",
             "contrato__cdPlano__subcategoria_receita",
@@ -4986,7 +5012,7 @@ def exportar_contas_receber_excel(request, aluno_id):
 def exportar_contas_receber_pdf(request, aluno_id):
     aluno = get_object_or_404(models.Aluno, pk=aluno_id)
     qs = _filtrar_contas_receber(
-        models.ContasReceber.objects.filter(Q(contrato__cdAluno=aluno) | Q(reserva__aluno=aluno)).select_related(
+        models.ContasReceber.objects.filter(Q(contrato__cdAluno=aluno) | Q(reserva__aluno=aluno) | Q(aluno=aluno)).select_related(
             "contrato",
             "contrato__cdPlano",
             "contrato__cdPlano__subcategoria_receita",
