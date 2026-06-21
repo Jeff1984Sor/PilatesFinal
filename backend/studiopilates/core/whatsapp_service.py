@@ -82,7 +82,14 @@ class EvolutionClient:
         try:
             resp = httpx.request(method, url, json=payload, headers=headers, timeout=15)
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            # WasenderAPI responde HTTP 200 mesmo em falha (ex.: sessao desconectada),
+            # sinalizando com success=false. Tratamos isso como erro de verdade.
+            if isinstance(data, dict) and data.get("success") is False:
+                msg = data.get("message") or "Falha no envio (success=false)."
+                logger.warning("WasenderAPI recusou envio para %s: %s", to, msg)
+                return _extract_error_payload(resp=resp) | {"error": msg, "response": data}
+            return data
         except httpx.RequestError as exc:
             logger.exception("Failed to send WhatsApp message to %s", to)
             return _extract_error_payload(exc=exc) | {"error": str(exc)}
@@ -128,7 +135,12 @@ class EvolutionClient:
         try:
             resp = httpx.request(method, url, json=payload, headers=headers, timeout=20)
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            if isinstance(data, dict) and data.get("success") is False:
+                msg = data.get("message") or "Falha no envio (success=false)."
+                logger.warning("WasenderAPI recusou documento para %s: %s", to, msg)
+                return {"error": msg, "response": data}
+            return data
         except httpx.RequestError as exc:
             logger.exception("Failed to send WhatsApp document to %s", to)
             return {"error": str(exc)}
