@@ -5872,6 +5872,70 @@ def whatsapp_config_view(request):
       )
 
 
+@login_required
+def whatsapp_historico_view(request):
+    qs = (
+        models.AlunoWhatsappMessage.objects.select_related("aluno", "aluno__cdUnidade")
+        .order_by("-enviado_em")
+    )
+    f_status = request.GET.get("status", "").strip()
+    f_tipo = request.GET.get("tipo", "").strip()
+    f_unidade = request.GET.get("unidade", "").strip()
+    f_inicio = request.GET.get("inicio", "").strip()
+    f_fim = request.GET.get("fim", "").strip()
+    f_busca = request.GET.get("q", "").strip()
+    if f_status:
+        qs = qs.filter(status=f_status)
+    if f_tipo:
+        qs = qs.filter(tipo=f_tipo)
+    if f_unidade:
+        qs = qs.filter(aluno__cdUnidade_id=f_unidade)
+    if f_inicio:
+        try:
+            qs = qs.filter(enviado_em__date__gte=datetime.strptime(f_inicio, "%Y-%m-%d").date())
+        except ValueError:
+            pass
+    if f_fim:
+        try:
+            qs = qs.filter(enviado_em__date__lte=datetime.strptime(f_fim, "%Y-%m-%d").date())
+        except ValueError:
+            pass
+    if f_busca:
+        qs = qs.filter(Q(aluno__dsNome__icontains=f_busca) | Q(telefone__icontains=f_busca))
+
+    total = qs.count()
+    enviadas = qs.filter(status="sent").count()
+    falhas = total - enviadas
+
+    paginator = Paginator(qs, 50)
+    page = paginator.get_page(request.GET.get("page"))
+
+    querystring = request.GET.copy()
+    querystring.pop("page", None)
+
+    context = {
+        "mensagens": page,
+        "page_obj": page,
+        "total": total,
+        "enviadas": enviadas,
+        "falhas": falhas,
+        "tipos": models.WhatsappMessageType.choices,
+        "unidades": models.Unidade.objects.order_by("cdUnidade").all(),
+        "filtros": {
+            "status": f_status,
+            "tipo": f_tipo,
+            "unidade": f_unidade,
+            "inicio": f_inicio,
+            "fim": f_fim,
+            "q": f_busca,
+        },
+        "querystring": querystring.urlencode(),
+        "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("Historico WhatsApp", "#")],
+        "active_menu": "configuracoes",
+    }
+    return render(request, "configuracoes/whatsapp_historico.html", context)
+
+
 def totalpass_config_view(request):
     unidades = models.Unidade.objects.order_by("cdUnidade").all()
     if not unidades:

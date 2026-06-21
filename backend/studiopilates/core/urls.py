@@ -11,6 +11,7 @@ urlpatterns = [
     path("app/icon.svg", views.aluno_app_icon, name="aluno_app_icon"),
     path("configuracoes/email/", views.email_config_view, name="email_config"),
     path("configuracoes/whatsapp/", views.whatsapp_config_view, name="whatsapp_config"),
+    path("configuracoes/whatsapp/historico/", views.whatsapp_historico_view, name="whatsapp_historico"),
     path("configuracoes/totalpass/", views.totalpass_config_view, name="totalpass_config"),
     path("contratos/assinar/<str:token>/", views.contrato_assinar, name="contrato_assinar"),
     path("contratos/pdf/<str:token>/", views.contrato_pdf, name="contrato_pdf"),

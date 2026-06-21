@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3 class="mb-2">Histórico de WhatsApp</h3>
+    <p class="text-muted mb-4">Todas as mensagens enviadas pelo sistema (lembretes, renovações, manuais etc.).</p>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="border rounded-3 p-3">
+          <div class="text-muted small">Total no filtro</div>
+          <div class="display-6 mb-0">{{ total }}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded-3 p-3 border-success bg-success-subtle">
+          <div class="text-muted small">Enviadas com sucesso</div>
+          <div class="display-6 mb-0 text-success">{{ enviadas }}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded-3 p-3 border-danger bg-danger-subtle">
+          <div class="text-muted small">Falhas</div>
+          <div class="display-6 mb-0 text-danger">{{ falhas }}</div>
+        </div>
+      </div>
+    </div>
+
+    <form class="row g-2 mb-4" method="get">
+      <div class="col-md-2">
+        <label class="form-label">Status</label>
+        <select class="form-select" name="status">
+          <option value="">Todos</option>
+          <option value="sent" {% if filtros.status == "sent" %}selected{% endif %}>Enviada</option>
+          <option value="failed" {% if filtros.status == "failed" %}selected{% endif %}>Falha</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" name="tipo">
+          <option value="">Todos</option>
+          {% for value, label in tipos %}
+            <option value="{{ value }}" {% if filtros.tipo == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Unidade</label>
+        <select class="form-select" name="unidade">
+          <option value="">Todas</option>
+          {% for u in unidades %}
+            <option value="{{ u.id }}" {% if filtros.unidade == u.id|stringformat:"s" %}selected{% endif %}>{{ u.dsUnidade }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">De</label>
+        <input class="form-control" type="date" name="inicio" value="{{ filtros.inicio }}" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Até</label>
+        <input class="form-control" type="date" name="fim" value="{{ filtros.fim }}" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Aluno / telefone</label>
+        <input class="form-control" type="text" name="q" value="{{ filtros.q }}" placeholder="Buscar..." />
+      </div>
+      <div class="col-md-3 d-flex align-items-end gap-2">
+        <button class="btn btn-primary" type="submit">Filtrar</button>
+        <a class="btn btn-outline-secondary" href="{% url 'whatsapp_historico' %}">Limpar</a>
+      </div>
+    </form>
+
+    {% if mensagens %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Aluno</th>
+              <th>Unidade</th>
+              <th>Tipo</th>
+              <th>Telefone</th>
+              <th>Status</th>
+              <th>Mensagem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in mensagens %}
+              <tr>
+                <td class="text-nowrap">{{ m.enviado_em|date:"d/m/Y H:i" }}</td>
+                <td>{{ m.aluno.dsNome }}</td>
+                <td>{{ m.aluno.cdUnidade.dsUnidade|default:"-" }}</td>
+                <td>{{ m.get_tipo_display }}</td>
+                <td class="text-nowrap">{{ m.telefone|default:"-" }}</td>
+                <td>
+                  {% if m.status == "sent" %}
+                    <span class="badge bg-success">Enviada</span>
+                  {% else %}
+                    <span class="badge bg-danger">{{ m.status }}</span>
+                  {% endif %}
+                </td>
+                <td class="small text-muted" style="max-width:380px;">{{ m.mensagem|truncatechars:120 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="d-flex justify-content-between align-items-center mt-3">
+          <div class="text-muted small">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+          </div>
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Anterior</a></li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+            {% endif %}
+            {% if page_obj.has_next %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Próxima</a></li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Próxima</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="text-muted">Nenhuma mensagem encontrada para os filtros selecionados.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
