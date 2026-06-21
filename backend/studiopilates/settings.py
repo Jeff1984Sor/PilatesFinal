@@ -112,9 +112,9 @@ WHATSAPP_SCHEDULER_ENABLED = os.getenv("WHATSAPP_SCHEDULER_ENABLED", "True") == 
 # Pausa (segundos) entre cada envio de WhatsApp em lote. Menor = mais rapido,
 # porem maior risco de bloqueio/rate limit. Ajustavel pelo .env sem mexer no codigo.
 try:
-    WHATSAPP_BATCH_PAUSE_SECONDS = float(os.getenv("WHATSAPP_BATCH_PAUSE_SECONDS", "1"))
+    WHATSAPP_BATCH_PAUSE_SECONDS = float(os.getenv("WHATSAPP_BATCH_PAUSE_SECONDS", "5"))
 except ValueError:
-    WHATSAPP_BATCH_PAUSE_SECONDS = 1.0
+    WHATSAPP_BATCH_PAUSE_SECONDS = 5.0
 TOTALPASS_WEBHOOK_TOKEN = os.getenv("TOTALPASS_WEBHOOK_TOKEN", "")
 TOTALPASS_UNIDADE_ID = os.getenv("TOTALPASS_UNIDADE_ID", "")
 TOTALPASS_BOOKING_BASE_URL = os.getenv("TOTALPASS_BOOKING_BASE_URL", "https://booking-api.totalpass.com")
