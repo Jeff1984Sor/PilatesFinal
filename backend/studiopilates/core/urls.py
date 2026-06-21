@@ -191,6 +191,7 @@ urlpatterns = [
     path("cadastros/alunos/<int:aluno_id>/reservas/excluir/", views.aluno_reservas_delete_bulk, name="alunos_reservas_delete_bulk"),
     path("financeiro/contas-receber/<int:pk>/baixar/", views.baixar_conta_receber, name="contas_receber_baixar"),
     path("financeiro/contas-receber/<int:pk>/excluir/", views.excluir_conta_receber, name="contas_receber_excluir"),
+    path("financeiro/contas-receber/<int:pk>/cobrar-whatsapp/", views.cobrar_conta_receber_whatsapp, name="contas_receber_cobrar_whatsapp"),
     path("financeiro/contas-receber/<int:pk>/recibo/", views.recibo_conta_receber_pdf, name="contas_receber_recibo"),
     path("financeiro/contas-receber/aluno/<int:aluno_id>/lancar/", views.lancar_conta_receber_avulsa, name="contas_receber_lancar_avulsa"),
     path("financeiro/contas-receber/aluno/<int:aluno_id>/exportar-pdf/", views.exportar_contas_receber_pdf, name="contas_receber_exportar_pdf"),

@@ -4821,6 +4821,53 @@ def excluir_conta_receber(request, pk):
 
 
 @login_required
+@require_POST
+def cobrar_conta_receber_whatsapp(request, pk):
+    conta = get_object_or_404(
+        models.ContasReceber.objects.select_related(
+            "contrato", "contrato__cdAluno", "contrato__cdUnidade",
+            "reserva", "reserva__aluno", "aluno",
+        ),
+        pk=pk,
+    )
+    next_url = request.POST.get("next", "").strip()
+    if next_url and not next_url.startswith("/"):
+        next_url = ""
+    aluno = _conta_receber_aluno(conta)
+    fallback = f"{reverse('alunos_detail', args=[aluno.pk])}?tab=financeiro" if aluno else "contas_receber_list"
+    destino = next_url or fallback
+
+    if conta.status not in ("ABERTO", "ATRASADO"):
+        messages.warning(request, "Esta fatura nao esta em aberto. Cobranca nao enviada.")
+        return redirect(destino)
+    if not aluno:
+        messages.error(request, "Nao foi possivel identificar o aluno desta fatura.")
+        return redirect(destino)
+
+    service = WhatsappService()
+    telefone = service.get_aluno_phone(aluno)
+    if not telefone:
+        messages.error(request, "Aluno sem telefone valido cadastrado.")
+        return redirect(destino)
+
+    valor = f"{float(conta.valor):.2f}".replace(".", ",") if conta.valor is not None else "0,00"
+    vencimento = conta.dtVencimento.strftime("%d/%m/%Y") if conta.dtVencimento else ""
+    mensagem = (
+        f"Ola {aluno.dsNome}! Identificamos uma fatura em aberto no valor de R$ {valor}"
+        + (f", com vencimento em {vencimento}" if vencimento else "")
+        + ". Caso ja tenha efetuado o pagamento, por favor desconsidere esta mensagem. "
+        "Qualquer duvida, estamos a disposicao!"
+    )
+    contrato = conta.contrato if conta.contrato_id else None
+    resp = service.send(aluno, telefone, mensagem, models.WhatsappMessageType.MANUAL, contrato=contrato)
+    if resp.get("error"):
+        messages.error(request, "Nao foi possivel enviar a cobranca por WhatsApp.")
+    else:
+        messages.success(request, f"Cobranca enviada por WhatsApp para {aluno.dsNome}.")
+    return redirect(destino)
+
+
+@login_required
 def efetuar_pagamento_conta_pagar(request, pk):
     conta = get_object_or_404(models.ContasPagar, pk=pk)
     if request.method != "POST":

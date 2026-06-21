@@ -924,6 +924,16 @@
 
                           {% endif %}
 
+                          {% if f.status == "ABERTO" or f.status == "ATRASADO" %}
+
+                            <form method="post" action="{% url 'contas_receber_cobrar_whatsapp' f.id %}" class="d-inline" onsubmit="return confirm('Enviar cobranca por WhatsApp para este aluno?');">
+                              {% csrf_token %}
+                              <input type="hidden" name="next" value="{{ request.path }}?tab=financeiro" />
+                              <button type="submit" class="btn btn-sm btn-outline-primary">Cobrar WhatsApp</button>
+                            </form>
+
+                          {% endif %}
+
                           <a class="btn btn-sm btn-outline-secondary" href="{% url 'contas_receber_recibo' f.id %}">Recibo PDF</a>
 
                           <a class="btn btn-sm btn-outline-danger" href="{% url 'contas_receber_excluir' f.id %}" onclick="return confirm('Excluir este lancamento?');">Excluir</a>
