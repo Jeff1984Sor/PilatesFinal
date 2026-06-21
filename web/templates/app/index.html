@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#7a1f2b" />
+  <link rel="manifest" href="/app/manifest.json" />
+  <link rel="apple-touch-icon" href="/app/icon.svg" />
+  <title>Mayris Pilates</title>
+  <style>
+    :root { --vinho:#7a1f2b; --bg:#f6f4f2; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:#222; }
+    .wrap { max-width: 480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+    header { background:var(--vinho); color:#fff; padding:18px 20px; display:flex; align-items:center; gap:10px; }
+    header .logo { width:34px; height:34px; background:#fff2; border-radius:10px; display:grid; place-items:center; font-family:Georgia; font-weight:bold; }
+    header h1 { font-size:18px; margin:0; font-weight:600; }
+    main { flex:1; padding:20px; }
+    .card { background:#fff; border-radius:18px; padding:18px; box-shadow:0 4px 20px #0000000d; margin-bottom:14px; }
+    label { display:block; font-size:13px; color:#666; margin-bottom:6px; }
+    input { width:100%; padding:14px; border:1px solid #0001; border-radius:12px; font-size:18px; }
+    button { width:100%; padding:14px; border:0; border-radius:12px; background:var(--vinho); color:#fff; font-size:16px; font-weight:600; cursor:pointer; }
+    button.ghost { background:#fff; color:var(--vinho); border:1px solid var(--vinho); }
+    button.gray { background:#eee; color:#333; }
+    button:disabled { opacity:.5; }
+    .row { display:flex; gap:10px; }
+    .row button { width:auto; flex:1; }
+    .msg { padding:10px 14px; border-radius:10px; font-size:14px; margin-bottom:12px; }
+    .msg.err { background:#fde8e8; color:#9b1c1c; }
+    .msg.ok { background:#e7f6ec; color:#1c7a3f; }
+    .aula { border-left:4px solid var(--vinho); }
+    .aula .data { font-weight:700; font-size:16px; }
+    .aula .info { color:#555; font-size:14px; margin:4px 0 12px; }
+    .badge { display:inline-block; font-size:12px; padding:2px 10px; border-radius:999px; }
+    .badge.conf { background:#e7f6ec; color:#1c7a3f; }
+    .hidden { display:none; }
+    .center { text-align:center; }
+    .muted { color:#888; font-size:13px; }
+    .logout { background:none; border:0; color:#fff; font-size:13px; width:auto; margin-left:auto; padding:0; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">M</div>
+    <h1>Mayris Pilates</h1>
+    <button class="logout hidden" id="btnLogout">Sair</button>
+  </header>
+  <main>
+    <div id="msg"></div>
+
+    <!-- LOGIN: CPF -->
+    <div id="scCpf" class="card">
+      <h3 style="margin-top:0">Entrar</h3>
+      <p class="muted">Informe seu CPF para receber um código no WhatsApp.</p>
+      <label>CPF</label>
+      <input id="cpf" inputmode="numeric" placeholder="000.000.000-00" />
+      <div style="height:12px"></div>
+      <button id="btnCodigo">Receber código</button>
+    </div>
+
+    <!-- LOGIN: CÓDIGO -->
+    <div id="scCodigo" class="card hidden">
+      <h3 style="margin-top:0">Código de acesso</h3>
+      <p class="muted" id="codigoHint">Enviamos um código no seu WhatsApp.</p>
+      <label>Código (6 dígitos)</label>
+      <input id="codigo" inputmode="numeric" placeholder="000000" maxlength="6" />
+      <div style="height:12px"></div>
+      <button id="btnEntrar">Entrar</button>
+      <div style="height:8px"></div>
+      <button class="gray" id="btnVoltar">Voltar</button>
+    </div>
+
+    <!-- AULAS -->
+    <div id="scAulas" class="hidden">
+      <h3 id="ola"></h3>
+      <p class="muted">Suas próximas aulas. Confirme presença ou desmarque (reposição em até 30 dias).</p>
+      <div id="aulas"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const API = "/api/fast/aluno-app";
+  const $ = (id) => document.getElementById(id);
+  let TOKEN = localStorage.getItem("mayris_token") || "";
+  let NOME = localStorage.getItem("mayris_nome") || "";
+
+  function msg(text, ok) {
+    $("msg").innerHTML = text ? `<div class="msg ${ok ? "ok" : "err"}">${text}</div>` : "";
+    if (text) setTimeout(() => { $("msg").innerHTML = ""; }, 5000);
+  }
+  function show(id) {
+    ["scCpf", "scCodigo", "scAulas"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+    $("btnLogout").classList.toggle("hidden", id !== "scAulas");
+  }
+  async function api(path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+    if (TOKEN) opts.headers["Authorization"] = "Bearer " + TOKEN;
+    const r = await fetch(API + path, opts);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.detail || "Erro");
+    return data;
+  }
+
+  $("btnCodigo").onclick = async () => {
+    const cpf = $("cpf").value.replace(/\D/g, "");
+    if (cpf.length !== 11) return msg("CPF inválido");
+    $("btnCodigo").disabled = true;
+    try {
+      const r = await api("/login/solicitar", { method: "POST", body: JSON.stringify({ cpf }) });
+      $("codigoHint").textContent = "Código enviado para o WhatsApp " + (r.telefone || "");
+      show("scCodigo");
+    } catch (e) { msg(e.message); }
+    $("btnCodigo").disabled = false;
+  };
+
+  $("btnVoltar").onclick = () => show("scCpf");
+
+  $("btnEntrar").onclick = async () => {
+    const cpf = $("cpf").value.replace(/\D/g, "");
+    const codigo = $("codigo").value.replace(/\D/g, "");
+    $("btnEntrar").disabled = true;
+    try {
+      const r = await api("/login/confirmar", { method: "POST", body: JSON.stringify({ cpf, codigo }) });
+      TOKEN = r.access_token; NOME = r.nome || "";
+      localStorage.setItem("mayris_token", TOKEN);
+      localStorage.setItem("mayris_nome", NOME);
+      loadAulas();
+    } catch (e) { msg(e.message); }
+    $("btnEntrar").disabled = false;
+  };
+
+  $("btnLogout").onclick = () => {
+    localStorage.removeItem("mayris_token"); localStorage.removeItem("mayris_nome");
+    TOKEN = ""; show("scCpf");
+  };
+
+  function fmtData(iso) {
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" });
+  }
+
+  async function loadAulas() {
+    show("scAulas");
+    $("ola").textContent = "Olá, " + (NOME || "aluno") + "!";
+    $("aulas").innerHTML = '<p class="muted center">Carregando...</p>';
+    try {
+      const aulas = await api("/aulas");
+      if (!aulas.length) { $("aulas").innerHTML = '<div class="card center muted">Nenhuma aula agendada.</div>'; return; }
+      $("aulas").innerHTML = aulas.map((a) => `
+        <div class="card aula" data-id="${a.reserva_id}">
+          <div class="data">${fmtData(a.data)} · ${a.hora_inicio || ""}</div>
+          <div class="info">${a.tipo_servico || "Aula"}${a.profissional ? " · " + a.profissional : ""}${a.unidade ? " · " + a.unidade : ""}</div>
+          ${a.confirmada ? '<span class="badge conf">✓ Presença confirmada</span>' : `
+            <div class="row">
+              <button class="js-conf">Confirmar</button>
+              <button class="ghost js-desm">Desmarcar</button>
+            </div>`}
+        </div>`).join("");
+      document.querySelectorAll(".js-conf").forEach((b) => b.onclick = (e) => acao(e, "confirmar"));
+      document.querySelectorAll(".js-desm").forEach((b) => b.onclick = (e) => acao(e, "desmarcar"));
+    } catch (e) {
+      if ((e.message || "").includes("Token")) { $("btnLogout").onclick(); return; }
+      $("aulas").innerHTML = '<div class="card center err">' + e.message + "</div>";
+    }
+  }
+
+  async function acao(e, tipo) {
+    const card = e.target.closest(".aula");
+    const id = card.dataset.id;
+    if (tipo === "desmarcar" && !confirm("Desmarcar esta aula? Você poderá repor em até 30 dias.")) return;
+    e.target.disabled = true;
+    try {
+      const r = await api(`/aulas/${id}/${tipo}`, { method: "POST" });
+      msg(r.mensagem || (tipo === "confirmar" ? "Presença confirmada!" : "Aula desmarcada."), true);
+      loadAulas();
+    } catch (err) { msg(err.message); e.target.disabled = false; }
+  }
+
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/app/sw.js").catch(() => {});
+  if (TOKEN) loadAulas(); else show("scCpf");
+</script>
+</body>
+</html>

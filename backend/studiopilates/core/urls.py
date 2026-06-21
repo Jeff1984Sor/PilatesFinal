@@ -5,6 +5,10 @@ from . import views, forms, models
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("mayasec/", views.mayasec_view, name="mayasec"),
+    path("app/", views.aluno_app_view, name="aluno_app"),
+    path("app/manifest.json", views.aluno_app_manifest, name="aluno_app_manifest"),
+    path("app/sw.js", views.aluno_app_sw, name="aluno_app_sw"),
+    path("app/icon.svg", views.aluno_app_icon, name="aluno_app_icon"),
     path("configuracoes/email/", views.email_config_view, name="email_config"),
     path("configuracoes/whatsapp/", views.whatsapp_config_view, name="whatsapp_config"),
     path("configuracoes/totalpass/", views.totalpass_config_view, name="totalpass_config"),

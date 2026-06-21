@@ -11,6 +11,15 @@ class WhatsappMensagemIn(BaseModel):
     contrato_id: int | None = None
 
 
+class AlunoLoginSolicitar(BaseModel):
+    cpf: str
+
+
+class AlunoLoginConfirmar(BaseModel):
+    cpf: str
+    codigo: str
+
+
 class AlunoIn(BaseModel):
     cdAluno: int
     dsNome: str

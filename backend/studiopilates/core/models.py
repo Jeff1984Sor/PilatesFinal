@@ -484,6 +484,9 @@ class Reserva(models.Model):
     aulaSessao = models.ForeignKey(AulaSessao, on_delete=models.PROTECT)
     pacote_avulso = models.ForeignKey("AulaAvulsa", null=True, blank=True, on_delete=models.SET_NULL, related_name="reservas")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="RESERVADA")
+    confirmada_em = models.DateTimeField(null=True, blank=True)
+    desmarcada_em = models.DateTimeField(null=True, blank=True)
+    reposicao_ate = models.DateField(null=True, blank=True)
     dtCadastro = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -497,6 +500,18 @@ class Reserva(models.Model):
 
     def __str__(self):
         return f"Reserva {self.aluno}"
+
+
+class AlunoAppCodigo(models.Model):
+    """Codigo de acesso (OTP) enviado por WhatsApp para login do aluno no app."""
+    aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE, related_name="app_codigos")
+    codigo = models.CharField(max_length=6, db_index=True)
+    expira_em = models.DateTimeField()
+    usado = models.BooleanField(default=False)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
 
 
 class ModeloEvolucao(models.Model):

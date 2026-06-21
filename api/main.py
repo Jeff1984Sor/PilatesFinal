@@ -21,7 +21,13 @@ from django.utils import timezone
 from studiopilates.core import models
 from studiopilates.core import services
 from shared.ai.gemini_client import extract_address_from_proof, extract_student_from_document
-from .schemas import AlunoIn, AlunoOut, ContratoIn, AulaSessaoIn, ReservaIn, WhatsappMensagemIn
+from .schemas import (
+    AlunoIn, AlunoOut, ContratoIn, AulaSessaoIn, ReservaIn, WhatsappMensagemIn,
+    AlunoLoginSolicitar, AlunoLoginConfirmar,
+)
+import secrets
+from datetime import timedelta
+from studiopilates.core.whatsapp_service import WhatsappService, WhatsappMessageType
 
 app = FastAPI(title="StudioPilates API")
 security = HTTPBearer()
@@ -336,3 +342,158 @@ def integ_aulas(
             }
         )
     return result
+
+
+# ===========================================================================
+# APP DO ALUNO (PWA) - login por CPF + codigo no WhatsApp
+# ===========================================================================
+
+def _so_digitos(v):
+    return re.sub(r"\D", "", v or "")
+
+
+def _achar_aluno_por_cpf(cpf_digitos):
+    if not cpf_digitos:
+        return None
+    for a in models.Aluno.objects.all():
+        if _so_digitos(a.dsCPF) == cpf_digitos:
+            return a
+    return None
+
+
+def create_aluno_token(aluno):
+    secret = os.getenv("DJANGO_SECRET_KEY", "unsafe-dev-secret")
+    return jwt.encode({"aluno_id": aluno.id, "type": "aluno"}, secret, algorithm="HS256")
+
+
+def verify_aluno_jwt(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    secret = os.getenv("DJANGO_SECRET_KEY", "unsafe-dev-secret")
+    try:
+        payload = jwt.decode(credentials.credentials, secret, algorithms=["HS256"])
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Token invalido")
+    if payload.get("type") != "aluno":
+        raise HTTPException(status_code=401, detail="Token invalido")
+    aluno = models.Aluno.objects.filter(pk=payload.get("aluno_id")).first()
+    if not aluno:
+        raise HTTPException(status_code=401, detail="Aluno nao encontrado")
+    return aluno
+
+
+@app.post("/aluno-app/login/solicitar")
+def aluno_app_login_solicitar(data: AlunoLoginSolicitar):
+    cpf = _so_digitos(data.cpf)
+    if len(cpf) != 11:
+        raise HTTPException(status_code=400, detail="CPF invalido")
+    aluno = _achar_aluno_por_cpf(cpf)
+    if not aluno:
+        raise HTTPException(status_code=404, detail="CPF nao encontrado")
+    service = WhatsappService()
+    telefone = service.get_aluno_phone(aluno)
+    if not telefone:
+        raise HTTPException(status_code=400, detail="Aluno sem telefone cadastrado")
+    codigo = f"{secrets.randbelow(1000000):06d}"
+    models.AlunoAppCodigo.objects.create(
+        aluno=aluno, codigo=codigo, expira_em=timezone.now() + timedelta(minutes=10),
+    )
+    service.send(
+        aluno, telefone,
+        f"Mayris Pilates: seu codigo de acesso ao app e {codigo} (valido por 10 minutos).",
+        WhatsappMessageType.MANUAL,
+    )
+    return {"ok": True, "telefone": "****" + telefone[-4:]}
+
+
+@app.post("/aluno-app/login/confirmar")
+def aluno_app_login_confirmar(data: AlunoLoginConfirmar):
+    cpf = _so_digitos(data.cpf)
+    aluno = _achar_aluno_por_cpf(cpf)
+    if not aluno:
+        raise HTTPException(status_code=404, detail="CPF nao encontrado")
+    codigo = (
+        models.AlunoAppCodigo.objects.filter(
+            aluno=aluno, codigo=_so_digitos(data.codigo), usado=False, expira_em__gte=timezone.now(),
+        )
+        .order_by("-criado_em")
+        .first()
+    )
+    if not codigo:
+        raise HTTPException(status_code=401, detail="Codigo invalido ou expirado")
+    codigo.usado = True
+    codigo.save(update_fields=["usado"])
+    return {"access_token": create_aluno_token(aluno), "nome": aluno.dsNome, "aluno_id": aluno.id}
+
+
+@app.get("/aluno-app/me")
+def aluno_app_me(aluno=Depends(verify_aluno_jwt)):
+    return {
+        "id": aluno.id,
+        "cdAluno": aluno.cdAluno,
+        "nome": aluno.dsNome,
+        "cpf": aluno.dsCPF,
+        "unidade": aluno.cdUnidade.dsUnidade if aluno.cdUnidade_id else None,
+    }
+
+
+@app.get("/aluno-app/aulas")
+def aluno_app_aulas(aluno=Depends(verify_aluno_jwt)):
+    hoje = timezone.localdate()
+    reservas = (
+        models.Reserva.objects.filter(aluno=aluno, aulaSessao__data__gte=hoje)
+        .exclude(status="CANCELADA")
+        .select_related("aulaSessao", "aulaSessao__tipoServico", "aulaSessao__profissional", "aulaSessao__unidade")
+        .order_by("aulaSessao__data", "aulaSessao__horaInicio")
+    )
+    out = []
+    for r in reservas:
+        a = r.aulaSessao
+        out.append({
+            "reserva_id": r.id,
+            "data": a.data,
+            "hora_inicio": a.horaInicio.strftime("%H:%M") if a.horaInicio else None,
+            "hora_fim": a.horaFim.strftime("%H:%M") if a.horaFim else None,
+            "tipo_servico": a.tipoServico.dsTipoServico if a.tipoServico_id else None,
+            "profissional": a.profissional.profissional if a.profissional_id else None,
+            "unidade": a.unidade.dsUnidade if a.unidade_id else None,
+            "status": r.status,
+            "confirmada": bool(r.confirmada_em),
+            "pode_alterar": a.data >= hoje,
+        })
+    return out
+
+
+@app.post("/aluno-app/aulas/{reserva_id}/confirmar")
+def aluno_app_confirmar(reserva_id: int, aluno=Depends(verify_aluno_jwt)):
+    reserva = models.Reserva.objects.filter(pk=reserva_id, aluno=aluno).select_related("aulaSessao").first()
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva nao encontrada")
+    if reserva.status == "CANCELADA":
+        raise HTTPException(status_code=400, detail="Aula cancelada")
+    if reserva.aulaSessao.data < timezone.localdate():
+        raise HTTPException(status_code=400, detail="Aula ja passou")
+    reserva.confirmada_em = timezone.now()
+    reserva.save(update_fields=["confirmada_em"])
+    return {"ok": True, "reserva_id": reserva.id, "confirmada": True}
+
+
+@app.post("/aluno-app/aulas/{reserva_id}/desmarcar")
+def aluno_app_desmarcar(reserva_id: int, aluno=Depends(verify_aluno_jwt)):
+    reserva = models.Reserva.objects.filter(pk=reserva_id, aluno=aluno).select_related("aulaSessao").first()
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva nao encontrada")
+    if reserva.status == "CANCELADA":
+        raise HTTPException(status_code=400, detail="Aula ja desmarcada")
+    if reserva.aulaSessao.data < timezone.localdate():
+        raise HTTPException(status_code=400, detail="Nao e possivel desmarcar uma aula que ja passou")
+    reposicao_ate = reserva.aulaSessao.data + timedelta(days=30)
+    reserva.status = "CANCELADA"
+    reserva.confirmada_em = None
+    reserva.desmarcada_em = timezone.now()
+    reserva.reposicao_ate = reposicao_ate
+    reserva.save(update_fields=["status", "confirmada_em", "desmarcada_em", "reposicao_ate"])
+    return {
+        "ok": True,
+        "reserva_id": reserva.id,
+        "reposicao_ate": reposicao_ate.isoformat(),
+        "mensagem": f"Aula desmarcada. Voce pode repor ate {reposicao_ate.strftime('%d/%m/%Y')} (30 dias).",
+    }

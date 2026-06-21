@@ -5463,6 +5463,48 @@ def email_config_view(request):
     )
 
 
+def aluno_app_view(request):
+    return render(request, "app/index.html")
+
+
+def aluno_app_manifest(request):
+    from django.http import JsonResponse
+    return JsonResponse({
+        "name": "Mayris Pilates",
+        "short_name": "Mayris",
+        "start_url": "/app/",
+        "scope": "/app/",
+        "display": "standalone",
+        "background_color": "#ffffff",
+        "theme_color": "#7a1f2b",
+        "icons": [
+            {"src": "/app/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"},
+        ],
+    })
+
+
+def aluno_app_sw(request):
+    js = (
+        "const CACHE='mayris-app-v1';"
+        "self.addEventListener('install',e=>{self.skipWaiting();});"
+        "self.addEventListener('activate',e=>{self.clients.claim();});"
+        "self.addEventListener('fetch',e=>{});"
+    )
+    resp = HttpResponse(js, content_type="application/javascript")
+    resp["Service-Worker-Allowed"] = "/app/"
+    return resp
+
+
+def aluno_app_icon(request):
+    svg = (
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'>"
+        "<rect width='192' height='192' rx='36' fill='#7a1f2b'/>"
+        "<text x='96' y='128' font-size='110' text-anchor='middle' fill='#fff' font-family='Georgia'>M</text>"
+        "</svg>"
+    )
+    return HttpResponse(svg, content_type="image/svg+xml")
+
+
 @login_required
 def mayasec_view(request):
     return render(
