@@ -407,6 +407,12 @@ def _build_reserva_slots(reservas, days_ahead=60):
         if not aula_atual:
             slots_map[reserva.id] = []
             continue
+        # So geramos horarios (e criamos AulaSessao) para aulas futuras; nao ha como
+        # remarcar uma aula passada. Isso evita varrer/criar sessoes para todo o
+        # historico do aluno em cada abertura da ficha (causava WORKER TIMEOUT).
+        if aula_atual.data < today:
+            slots_map[reserva.id] = []
+            continue
         unidade = aula_atual.unidade
         if not unidade:
             slots_map[reserva.id] = []

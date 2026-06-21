@@ -426,6 +426,29 @@ class ReservaForm(BaseAutoCdForm):
         model = models.Reserva
         fields = ["aluno", "aulaSessao", "status"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # O <select> de aulaSessao e renderizado uma vez por reserva na ficha do
+        # aluno. Carregar TODAS as aulaSessoes em cada um faz a renderizacao
+        # explodir (M reservas x N sessoes) -> WORKER TIMEOUT. O <select> so serve
+        # para guardar o valor selecionado (o JS preenche as opcoes via reserva_slots),
+        # entao limitamos o queryset a aula atual e, em POST, a aula escolhida.
+        field = self.fields.get("aulaSessao")
+        if field is not None:
+            ids = set()
+            if self.instance and self.instance.aulaSessao_id:
+                ids.add(self.instance.aulaSessao_id)
+            if self.is_bound:
+                submitted = self.data.get(self.add_prefix("aulaSessao"))
+                if submitted:
+                    try:
+                        ids.add(int(submitted))
+                    except (TypeError, ValueError):
+                        pass
+            field.queryset = (
+                models.AulaSessao.objects.filter(pk__in=ids) if ids else models.AulaSessao.objects.none()
+            )
+
 
 class ContasReceberForm(BaseAutoCdForm):
     class Meta:
