@@ -677,6 +677,10 @@ class WhatsappConfiguracao(models.Model):
     evolution_usuario = models.CharField(max_length=150, blank=True)
     evolution_senha = models.CharField(max_length=150, blank=True)
 
+    # Acompanhamento: envia um resumo do disparo para o WhatsApp do gestor.
+    acompanhar_envios = models.BooleanField(default=False)
+    numero_acompanhamento = models.CharField(max_length=20, blank=True)
+
     avisar_aluno = models.BooleanField(default=True)
     horario_aviso_aluno = models.TimeField(default=time(19, 0))
     template_aviso_aluno = models.TextField(

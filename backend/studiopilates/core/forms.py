@@ -529,12 +529,21 @@ class WhatsappConfiguracaoForm(BaseAutoCdForm):
         if usuario_field:
             usuario_field.label = "Usuario (nao usado)"
             usuario_field.widget.attrs["readonly"] = True
+        acompanhar_field = self.fields.get("acompanhar_envios")
+        if acompanhar_field:
+            acompanhar_field.label = "Receber resumo dos envios no meu WhatsApp"
+        numero_field = self.fields.get("numero_acompanhamento")
+        if numero_field:
+            numero_field.label = "Meu numero (acompanhamento)"
+            numero_field.widget.attrs["placeholder"] = "Ex.: 5511999999999"
 
     class Meta:
         model = models.WhatsappConfiguracao
         fields = [
             "evolution_url",
             "evolution_senha",
+            "acompanhar_envios",
+            "numero_acompanhamento",
             "avisar_aluno",
             "horario_aviso_aluno",
             "template_aviso_aluno",

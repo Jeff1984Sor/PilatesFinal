@@ -159,6 +159,22 @@
         </div>
       </div>
 
+      <div class="row g-3 mt-1">
+        <div class="col-md-6">
+          <div class="form-check mt-2">
+            {{ form.acompanhar_envios }}
+            <label class="form-check-label" for="{{ form.acompanhar_envios.id_for_label }}">{{ form.acompanhar_envios.label }}</label>
+          </div>
+          <small class="text-muted d-block mt-1">Você recebe um resumo (com a lista de quem foi avisado) a cada disparo.</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.numero_acompanhamento.id_for_label }}">{{ form.numero_acompanhamento.label }}</label>
+          {{ form.numero_acompanhamento }}
+          <small class="text-muted d-block mt-1">Com DDI+DDD, só números. Ex.: 5511999999999.</small>
+          {% if form.numero_acompanhamento.errors %}<div class="invalid-feedback d-block">{{ form.numero_acompanhamento.errors|striptags }}</div>{% endif %}
+        </div>
+      </div>
+
       <hr class="my-4" />
       <div class="row g-4 mt-0">
         <div class="col-md-6">

@@ -121,6 +121,34 @@ def _format_aulas(reservas):
     return "\n".join(lines)
 
 
+def _notify_acompanhamento(service: WhatsappService, config: models.WhatsappConfiguracao, resumo: dict, titulo: str):
+    """Envia um resumo do disparo para o WhatsApp do gestor (acompanhamento).
+    So envia quando houve algum envio novo, para nao gerar spam nas rodadas do scheduler."""
+    if not getattr(config, "acompanhar_envios", False):
+        return
+    numero = service.clean_phone(getattr(config, "numero_acompanhamento", "") or "")
+    if not numero:
+        return
+    if resumo.get("sent", 0) <= 0:
+        return
+    enviados = [e["aluno"] for e in resumo.get("entries", []) if e.get("status") == "sent"]
+    linhas = "\n".join(f"- {nome}" for nome in enviados)
+    mensagem = (
+        f"{titulo} - {config.unidade.dsUnidade}\n"
+        f"Enviados: {resumo.get('sent', 0)}\n"
+        f"Sem telefone: {resumo.get('without_phone', 0)}\n"
+        f"Pendentes (limite): {resumo.get('rate_limited', 0)}\n"
+        f"Falhas: {resumo.get('failed', 0)}"
+    )
+    if linhas:
+        mensagem += f"\n\nAvisados:\n{linhas}"
+    try:
+        cliente = service._get_client_for_unidade(config.unidade)
+        cliente.send_message(numero, mensagem)
+    except Exception:
+        logger.exception("Falha ao enviar resumo de acompanhamento da unidade %s", config.unidade_id)
+
+
 def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfiguracao, target_date, *, force: bool = False):
     reservas = (
         models.Reserva.objects.filter(
@@ -269,6 +297,7 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
 
         time.sleep(BATCH_THROTTLE_SECONDS)
 
+    _notify_acompanhamento(service, config, resumo, "Lembretes de aula (amanha)")
     return resumo
 
 
