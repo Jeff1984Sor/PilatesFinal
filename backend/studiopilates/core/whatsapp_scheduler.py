@@ -69,6 +69,19 @@ def _send_with_retry(send_fn, *, attempts: int = 3, pause_seconds: float = 1.0):
     return last_response or {"error": "Falha ao enviar mensagem."}
 
 
+def _is_session_down(resp) -> bool:
+    """Detecta resposta da WasenderAPI indicando que a sessao do WhatsApp caiu.
+    Nesse caso nao adianta seguir o lote (e martelar a API pode gerar restricao)."""
+    if not isinstance(resp, dict):
+        return False
+    texto = str(resp.get("error") or "")
+    inner = resp.get("response")
+    if isinstance(inner, dict):
+        texto += " " + str(inner.get("message") or "")
+    texto = texto.lower()
+    return "not connected" in texto or ("session" in texto and "connect" in texto)
+
+
 def _log_key(prefix: str, unidade_id: int | None, data_referencia, recipient_id: int | None) -> str:
     return f"{prefix}:{unidade_id or 0}:{data_referencia.isoformat()}:{recipient_id or 0}"
 
@@ -220,6 +233,7 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
             horarios=aulas,
         )
 
+        resp = None
         try:
             resp = _send_with_retry(
                 lambda: service.send(aluno, telefone, mensagem, WhatsappMessageType.AUTOMATED_REMINDER),
@@ -294,6 +308,14 @@ def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfi
                     "error": str(exc),
                 }
             )
+
+        if _is_session_down(resp):
+            logger.warning(
+                "Sessao do WhatsApp desconectada na unidade %s - abortando o lote para nao sobrecarregar a API.",
+                config.unidade_id,
+            )
+            resumo["session_down"] = True
+            break
 
         time.sleep(BATCH_THROTTLE_SECONDS)
 
@@ -436,6 +458,7 @@ def _send_aluno_messages(service, config, *, prefix, template, recipients, data_
         mensagem = _render_template(template, aluno=aluno.dsNome, **rec.get("context", {}))
         if not mensagem:
             continue
+        resp = None
         try:
             resp = _send_with_retry(
                 lambda: service.send(aluno, telefone, mensagem, tipo, contrato=rec.get("contrato")),
@@ -457,6 +480,12 @@ def _send_aluno_messages(service, config, *, prefix, template, recipients, data_
                 )
         except Exception:
             logger.exception("Falha ao enviar %s para aluno %s na unidade %s", prefix, aluno.id, config.unidade_id)
+        if _is_session_down(resp):
+            logger.warning(
+                "Sessao do WhatsApp desconectada na unidade %s - abortando lote '%s'.",
+                config.unidade_id, prefix,
+            )
+            break
         time.sleep(BATCH_THROTTLE_SECONDS)
     return sent
 
