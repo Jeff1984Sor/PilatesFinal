@@ -88,6 +88,32 @@ def _is_professor_user(user):
     return "professor" in perfil
 
 
+def _professor_block(request):
+    """Area restrita a admin. Retorna um redirect se o usuario for professor, senao None."""
+    if _is_professor_user(request.user):
+        messages.error(request, "Sem permissao para acessar esta area.")
+        return redirect("aulas_list")
+    return None
+
+
+def _aplica_filtro_professor(request, profissional_id):
+    """Professor so enxerga as proprias aulas: forca o filtro de profissional para o dele."""
+    if _is_professor_user(request.user):
+        prof = _get_profissional_for_user(request.user)
+        return str(prof.id) if prof else "0"
+    return profissional_id
+
+
+def _admin_only_models():
+    """Modelos cujo CRUD generico nao pode ser acessado por professor."""
+    return (
+        models.Plano, models.Contrato,
+        models.ContasReceber, models.ContasPagar,
+        models.ContaBancaria, models.MovimentoConta,
+        models.Reserva,
+    )
+
+
 def _enviar_contrato_whatsapp(request, contrato, is_new=False):
     service = WhatsappService()
     telefone = service.get_aluno_phone(contrato.cdAluno)
@@ -499,6 +525,8 @@ def login_view(request):
         if user:
             ensure_profissional_for_user(user)
             login(request, user)
+            if _is_professor_user(user):
+                return redirect("aulas_list")
             return redirect("dashboard")
         messages.error(request, "Login invalido")
     return render(request, "login.html")
@@ -522,6 +550,8 @@ def perfil_view(request):
 
 @login_required
 def dashboard(request):
+    if _is_professor_user(request.user):
+        return redirect("aulas_list")
     today = timezone.localdate()
     start_month = _shift_month(today.replace(day=1), -5)
     aniversariantes_mes = (
@@ -733,6 +763,7 @@ def aluno_detail(request, pk):
         "active_menu": "cadastros",
         "can_view_contratos": not is_professor,
         "can_view_financeiro": not is_professor,
+        "is_professor": is_professor,
     }
     return render(request, "alunos/detail.html", context)
 
@@ -1877,7 +1908,7 @@ def atualizar_bloqueio_agenda(request, pk):
 
 
 def list_view(request, model, form_class, title, allow_modal=True, extra_context=None):
-    if model in (models.Plano, models.Contrato) and _is_professor_user(request.user):
+    if model in _admin_only_models() and _is_professor_user(request.user):
         messages.error(request, "Sem permissao para acessar esta area.")
         return redirect("dashboard")
     query = request.GET.get("q", "").strip()
@@ -2189,6 +2220,9 @@ def bloqueios_list(request):
 
 @login_required
 def contas_pagar_list(request):
+    bloqueio = _professor_block(request)
+    if bloqueio:
+        return bloqueio
     today = timezone.now().date()
     inicio = request.GET.get("inicio", "").strip()
     fim = request.GET.get("fim", "").strip()
@@ -2537,6 +2571,9 @@ def _build_fluxo_caixa_data(request):
 
 @login_required
 def conta_bancaria_view(request):
+    bloqueio = _professor_block(request)
+    if bloqueio:
+        return bloqueio
     today = timezone.now().date()
     inicio = request.GET.get("inicio", "").strip()
     fim = request.GET.get("fim", "").strip()
@@ -2599,6 +2636,9 @@ def conta_bancaria_view(request):
 
 @login_required
 def fluxo_caixa_view(request):
+    bloqueio = _professor_block(request)
+    if bloqueio:
+        return bloqueio
     data = _build_fluxo_caixa_data(request)
     chart_labels = [item["data"].strftime("%d/%m") for item in data["saldo_diario"]]
     chart_receitas = [float(item["receitas"]) for item in data["saldo_diario"]]
@@ -2869,6 +2909,9 @@ def criar_movimento_conta(request):
 
 @login_required
 def dre_view(request):
+    bloqueio = _professor_block(request)
+    if bloqueio:
+        return bloqueio
     today = timezone.now().date()
     inicio = request.GET.get("inicio", "").strip()
     fim = request.GET.get("fim", "").strip()
@@ -2912,6 +2955,9 @@ def dre_view(request):
 
 @login_required
 def dre_relatorio(request):
+    bloqueio = _professor_block(request)
+    if bloqueio:
+        return bloqueio
     today = timezone.now().date()
     inicio = request.GET.get("inicio", "").strip()
     fim = request.GET.get("fim", "").strip()
@@ -3419,6 +3465,7 @@ def _cor_status_reserva(r):
 def aulas_semana(request):
     week_str = request.GET.get("week", "").strip()
     profissional_id = request.GET.get("profissional", "").strip()
+    profissional_id = _aplica_filtro_professor(request, profissional_id)
     try:
         ref = datetime.strptime(week_str, "%Y-%m-%d").date() if week_str else date.today()
     except ValueError:
@@ -3528,6 +3575,7 @@ def aulas_list(request):
     qs = models.AulaSessao.objects.select_related("unidade", "tipoServico", "profissional")
     week_str = request.GET.get("week", "").strip()
     profissional_id = request.GET.get("profissional", "").strip()
+    profissional_id = _aplica_filtro_professor(request, profissional_id)
     view_mode = request.GET.get("view", "week").strip().lower()
     if view_mode == "list":
         view_mode = "week"
@@ -3635,6 +3683,7 @@ def aulas_list(request):
         "prof_chips": prof_chips[:5],
         "reservas_by_aula": reservas_by_aula,
         "modelos_evolucao": models.ModeloEvolucao.objects.filter(ativo=True).order_by("titulo"),
+        "is_professor": _is_professor_user(request.user),
         "breadcrumbs": [("Home", reverse("dashboard")), ("Aulas", "#")],
         "active_menu": "agenda",
     }
@@ -3745,6 +3794,9 @@ def aulas_operacao_api(request):
 
     unidade_id = request.GET.get("unidade_id") or None
     profissional_id = request.GET.get("profissional_id") or None
+    if _is_professor_user(request.user):
+        prof = _get_profissional_for_user(request.user)
+        profissional_id = str(prof.id) if prof else "0"
     status_filter = request.GET.get("status_aula") or None
     query = (request.GET.get("q") or "").strip()
 
@@ -4339,6 +4391,8 @@ def aula_status_api(request, reserva_id):
     }
     if acao not in status_map:
         return JsonResponse({"error": "Acao invalida."}, status=400)
+    if acao == "remarcar" and _is_professor_user(request.user):
+        return JsonResponse({"error": "Sem permissao para remarcar."}, status=403)
     reserva = get_object_or_404(models.Reserva, pk=reserva_id)
     reserva.status = status_map[acao]
     reserva.save(update_fields=["status"])
@@ -4349,6 +4403,8 @@ def aula_status_api(request, reserva_id):
 def aula_remarcar_api(request, reserva_id):
     if request.method != "POST":
         return JsonResponse({"error": "Metodo invalido."}, status=405)
+    if _is_professor_user(request.user):
+        return JsonResponse({"error": "Sem permissao para remarcar."}, status=403)
     payload = _parse_json_body(request)
     data_str = (payload.get("data") or "").strip()
     hora_str = (payload.get("hora_inicio") or "").strip()
@@ -4481,7 +4537,7 @@ def totalpass_webhook(request):
 
 
 def create_view(request, model, form_class, redirect_name):
-    if model in (models.Plano, models.Contrato) and _is_professor_user(request.user):
+    if model in _admin_only_models() and _is_professor_user(request.user):
         messages.error(request, "Sem permissao para acessar esta area.")
         return redirect("dashboard")
     if request.method == "POST":
@@ -4600,7 +4656,7 @@ def create_view(request, model, form_class, redirect_name):
 
 
 def edit_view(request, model, form_class, redirect_name, pk):
-    if model in (models.Plano, models.Contrato) and _is_professor_user(request.user):
+    if model in _admin_only_models() and _is_professor_user(request.user):
         messages.error(request, "Sem permissao para acessar esta area.")
         return redirect("dashboard")
     obj = get_object_or_404(model, pk=pk)
@@ -4688,7 +4744,7 @@ def edit_view(request, model, form_class, redirect_name, pk):
 
 
 def delete_view(request, model, redirect_name, pk):
-    if model in (models.Plano, models.Contrato) and _is_professor_user(request.user):
+    if model in _admin_only_models() and _is_professor_user(request.user):
         messages.error(request, "Sem permissao para acessar esta area.")
         return redirect("dashboard")
     obj = get_object_or_404(model, pk=pk)

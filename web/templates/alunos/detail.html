@@ -600,6 +600,8 @@
 
                         <td>
 
+                          {% if not is_professor %}
+
                           <a class="btn btn-sm btn-outline-primary" href="{% url 'reservas_edit' r.id %}?next={{ request.path }}?tab=agenda">Editar</a>
 
                           <button type="button" class="btn btn-sm btn-outline-warning js-reagendar-open"
@@ -607,6 +609,8 @@
                             data-data="{{ r.aulaSessao.data|date:'Y-m-d' }}"
                             data-hora="{{ r.aulaSessao.horaInicio|time:'H:i' }}"
                             data-prof="{{ r.aulaSessao.profissional_id|default:'' }}">Reagendar</button>
+
+                          {% endif %}
 
                         </td>
 
