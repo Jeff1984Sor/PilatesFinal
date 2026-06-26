@@ -1496,8 +1496,31 @@ body {
   .mayris-login__left {
     min-height: 280px;
   }
+  /* Menu do topo responsivo no celular (antes sumia por completo) */
   .mayris-sidebar {
-    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+  .mayris-topmenu__brand {
+    min-width: 0;
+  }
+  .mayris-topmenu__profile {
+    margin-left: auto;
+  }
+  .mayris-topmenu__links {
+    order: 3;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .mayris-topmenu__link,
+  .mayris-topmenu__trigger {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+  .mayris-topmenu__panel {
+    max-width: calc(100vw - 28px);
   }
   .mayris-topbar {
     padding: 14px 16px;
