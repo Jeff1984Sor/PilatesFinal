@@ -32,6 +32,8 @@ from .whatsapp_service import WhatsappService, WhatsappMessageType
 from .whatsapp_scheduler import (
     _send_class_reminders, _send_professor_schedule, _send_contract_renewals,
     _send_birthdays, _send_payment_due, _send_payment_overdue, _send_three_months,
+    reservas_lembrete_por_aluno, montar_mensagem_lembrete,
+    _log_key, _already_sent, _store_log, _is_session_down,
 )
 
 logger = logging.getLogger(__name__)
@@ -6037,6 +6039,123 @@ def whatsapp_historico_view(request):
         "active_menu": "configuracoes",
     }
     return render(request, "configuracoes/whatsapp_historico.html", context)
+
+
+def _whatsapp_unidade_selecionada(request):
+    unidades = models.Unidade.objects.order_by("cdUnidade").all()
+    unidade_id = request.GET.get("unidade") or request.POST.get("unidade")
+    unidade = unidades.filter(pk=unidade_id).first() if unidade_id else unidades.first()
+    if not unidade:
+        unidade = unidades.first()
+    return unidades, unidade
+
+
+@login_required
+def aviso_aluno_config_view(request):
+    bloqueio = _professor_block(request)
+    if bloqueio:
+        return bloqueio
+    unidades, unidade = _whatsapp_unidade_selecionada(request)
+    if not unidade:
+        messages.warning(request, "Cadastre ao menos uma unidade antes de configurar o WhatsApp.")
+        return redirect("dashboard")
+    configuracao = models.WhatsappConfiguracao.objects.filter(unidade=unidade).first()
+    if request.method == "POST":
+        form = forms.AvisoAlunoConfigForm(request.POST, instance=configuracao)
+        if form.is_valid():
+            cfg = form.save(commit=False)
+            cfg.unidade = unidade
+            cfg.save()
+            messages.success(request, "Configuracao do Aviso ao aluno salva.")
+            return redirect(f"{reverse('aviso_aluno_config')}?unidade={unidade.id}")
+        messages.error(request, "Verifique os erros do formulario.")
+    else:
+        form = forms.AvisoAlunoConfigForm(instance=configuracao)
+    return render(
+        request,
+        "configuracoes/aviso_aluno.html",
+        {
+            "form": form,
+            "unidades": unidades,
+            "unidade": unidade,
+            "title": "Aviso ao aluno",
+            "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("Aviso ao aluno", "#")],
+            "active_menu": "configuracoes",
+        },
+    )
+
+
+@login_required
+def aviso_aluno_preview_api(request):
+    if _is_professor_user(request.user):
+        return JsonResponse({"error": "Sem permissao."}, status=403)
+    _unidades, unidade = _whatsapp_unidade_selecionada(request)
+    config = models.WhatsappConfiguracao.objects.filter(unidade=unidade).first() if unidade else None
+    if not config:
+        return JsonResponse({"error": "Salve a configuracao desta unidade primeiro."}, status=400)
+    target = timezone.localdate() + timedelta(days=1)
+    service = WhatsappService()
+    grupos = reservas_lembrete_por_aluno(config, target)
+    items = []
+    for _aluno_id, reservas in grupos.items():
+        aluno = reservas[0].aluno
+        telefone = service.get_aluno_phone(aluno)
+        dedupe = _log_key("student_reminder", config.unidade_id, target, aluno.id)
+        if not telefone:
+            status = "sem_telefone"
+        elif _already_sent(dedupe):
+            status = "ja_enviado"
+        else:
+            status = "pendente"
+        items.append({"aluno_id": aluno.id, "nome": aluno.dsNome, "telefone": telefone or "-", "status": status})
+    items.sort(key=lambda x: x["nome"])
+    return JsonResponse({"target": target.strftime("%d/%m/%Y"), "unidade": unidade.dsUnidade, "items": items})
+
+
+@login_required
+@require_POST
+def aviso_aluno_enviar_um_api(request):
+    if _is_professor_user(request.user):
+        return JsonResponse({"status": "failed", "error": "Sem permissao."}, status=403)
+    payload = _parse_json_body(request)
+    aluno_id = payload.get("aluno_id")
+    unidade = models.Unidade.objects.filter(pk=payload.get("unidade")).first() or models.Unidade.objects.first()
+    config = models.WhatsappConfiguracao.objects.filter(unidade=unidade).first() if unidade else None
+    if not config:
+        return JsonResponse({"status": "failed", "error": "Configuracao nao encontrada."}, status=400)
+    target = timezone.localdate() + timedelta(days=1)
+    grupos = reservas_lembrete_por_aluno(config, target)
+    try:
+        reservas = grupos.get(int(aluno_id))
+    except (TypeError, ValueError):
+        reservas = None
+    if not reservas:
+        return JsonResponse({"status": "failed", "error": "Aluno sem aula amanha."}, status=400)
+    aluno = reservas[0].aluno
+    service = WhatsappService()
+    telefone = service.get_aluno_phone(aluno)
+    if not telefone:
+        return JsonResponse({"status": "sem_telefone", "telefone": "-"})
+    dedupe = _log_key("student_reminder", config.unidade_id, target, aluno.id)
+    if _already_sent(dedupe):
+        return JsonResponse({"status": "ja_enviado", "telefone": telefone})
+    mensagem = montar_mensagem_lembrete(config, reservas, target)
+    resp = service.send(aluno, telefone, mensagem, WhatsappMessageType.AUTOMATED_REMINDER)
+    if _is_session_down(resp):
+        return JsonResponse({"status": "session_down", "telefone": telefone, "error": "Sessao do WhatsApp desconectada."})
+    if resp.get("error"):
+        return JsonResponse({"status": "failed", "telefone": telefone, "error": resp.get("error")})
+    _store_log(
+        dedupe_key=dedupe,
+        tipo=WhatsappMessageType.AUTOMATED_REMINDER,
+        unidade=config.unidade,
+        aluno=aluno,
+        data_referencia=target,
+        telefone=telefone,
+        mensagem=mensagem,
+        response_payload=json.dumps(resp, ensure_ascii=False),
+    )
+    return JsonResponse({"status": "sent", "telefone": telefone})
 
 
 def totalpass_config_view(request):

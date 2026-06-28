@@ -573,6 +573,35 @@ class WhatsappConfiguracaoForm(BaseAutoCdForm):
         ]
 
 
+class AvisoAlunoConfigForm(BaseAutoCdForm):
+    """Config so do Aviso ao aluno (tela dedicada)."""
+
+    class Meta:
+        model = models.WhatsappConfiguracao
+        fields = [
+            "avisar_aluno",
+            "horario_aviso_aluno",
+            "template_aviso_aluno",
+            "acompanhar_envios",
+            "numero_acompanhamento",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "avisar_aluno" in self.fields:
+            self.fields["avisar_aluno"].label = "Habilitar agendamento automatico"
+        if "horario_aviso_aluno" in self.fields:
+            self.fields["horario_aviso_aluno"].label = "Horario do envio automatico"
+        if "template_aviso_aluno" in self.fields:
+            self.fields["template_aviso_aluno"].label = "Mensagem"
+            self.fields["template_aviso_aluno"].widget.attrs["rows"] = 5
+        if "acompanhar_envios" in self.fields:
+            self.fields["acompanhar_envios"].label = "Receber resumo no meu WhatsApp"
+        if "numero_acompanhamento" in self.fields:
+            self.fields["numero_acompanhamento"].label = "Meu numero (acompanhamento)"
+            self.fields["numero_acompanhamento"].widget.attrs["placeholder"] = "5511999999999"
+
+
 class TotalpassConfiguracaoForm(BaseAutoCdForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

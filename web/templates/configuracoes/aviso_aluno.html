@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <h3 class="mb-1">Aviso ao aluno</h3>
+        <p class="text-muted mb-0">Lembrete de aula de amanhã. Configure a mensagem e envie acompanhando ao vivo.</p>
+      </div>
+      <form method="get" class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0">Unidade</label>
+        <select class="form-select" name="unidade" onchange="this.form.submit()">
+          {% for u in unidades %}
+            <option value="{{ u.id }}" {% if u.id == unidade.id %}selected{% endif %}>{{ u.dsUnidade }}</option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="mb-3">Configuração</h5>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="unidade" value="{{ unidade.id }}" />
+          <div class="form-check form-switch mb-3">
+            {{ form.avisar_aluno }}
+            <label class="form-check-label" for="{{ form.avisar_aluno.id_for_label }}">{{ form.avisar_aluno.label }}</label>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ form.horario_aviso_aluno.label }}</label>
+            {{ form.horario_aviso_aluno }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ form.template_aviso_aluno.label }}</label>
+            {{ form.template_aviso_aluno }}
+            <div class="form-text">Variáveis: {aluno}, {tipo_servico}, {horario}, {data}, {unidade}.</div>
+          </div>
+          <hr />
+          <div class="form-check form-switch mb-2">
+            {{ form.acompanhar_envios }}
+            <label class="form-check-label" for="{{ form.acompanhar_envios.id_for_label }}">{{ form.acompanhar_envios.label }}</label>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ form.numero_acompanhamento.label }}</label>
+            {{ form.numero_acompanhamento }}
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Salvar configuração</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card shadow-sm h-100"
+         data-preview-url="{% url 'aviso_aluno_preview_api' %}"
+         data-enviar-url="{% url 'aviso_aluno_enviar_um_api' %}"
+         data-unidade="{{ unidade.id }}"
+         id="avisoLive">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+          <h5 class="mb-0">Envio ao vivo — aula de <span class="js-target">amanhã</span></h5>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm js-recarregar">Recarregar lista</button>
+            <button type="button" class="btn btn-primary btn-sm js-iniciar" disabled>Enviar agora</button>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="badge bg-secondary">Total: <span class="js-c-total">0</span></span>
+          <span class="badge bg-warning text-dark">Pendentes: <span class="js-c-pendente">0</span></span>
+          <span class="badge bg-success">Enviados: <span class="js-c-sent">0</span></span>
+          <span class="badge bg-danger">Falhas: <span class="js-c-failed">0</span></span>
+          <span class="badge bg-info text-dark">Já enviados: <span class="js-c-ja">0</span></span>
+          <span class="badge bg-dark">Sem telefone: <span class="js-c-semtel">0</span></span>
+        </div>
+
+        <div class="js-live-msg small text-muted mb-2"></div>
+
+        <div class="table-responsive" style="max-height:460px; overflow:auto;">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th>#</th><th>Aluno</th><th>Telefone</th><th>Status</th></tr>
+            </thead>
+            <tbody class="js-live-rows">
+              <tr><td colspan="4" class="text-muted">Clique em “Recarregar lista”.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const root = document.getElementById("avisoLive");
+    if (!root) return;
+    const previewUrl = root.dataset.previewUrl;
+    const enviarUrl = root.dataset.enviarUrl;
+    const unidade = root.dataset.unidade;
+    const rowsEl = root.querySelector(".js-live-rows");
+    const btnReload = root.querySelector(".js-recarregar");
+    const btnStart = root.querySelector(".js-iniciar");
+    const msgEl = root.querySelector(".js-live-msg");
+    const DELAY_MS = 5000; // intervalo entre envios (mesmo padrao do lote)
+
+    let items = [];
+
+    function csrf() {
+      const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : "";
+    }
+    function badge(status) {
+      const map = {
+        pendente: '<span class="badge bg-warning text-dark">Pendente</span>',
+        enviando: '<span class="badge bg-primary">Enviando…</span>',
+        sent: '<span class="badge bg-success">Enviado ✓</span>',
+        failed: '<span class="badge bg-danger">Falhou ✗</span>',
+        ja_enviado: '<span class="badge bg-info text-dark">Já enviado</span>',
+        sem_telefone: '<span class="badge bg-dark">Sem telefone</span>',
+        session_down: '<span class="badge bg-danger">Sessão off</span>',
+      };
+      return map[status] || status;
+    }
+    function counts() {
+      const c = { total: items.length, pendente: 0, sent: 0, failed: 0, ja: 0, semtel: 0 };
+      items.forEach((it) => {
+        if (it.status === "pendente" || it.status === "enviando") c.pendente++;
+        else if (it.status === "sent") c.sent++;
+        else if (it.status === "failed" || it.status === "session_down") c.failed++;
+        else if (it.status === "ja_enviado") c.ja++;
+        else if (it.status === "sem_telefone") c.semtel++;
+      });
+      root.querySelector(".js-c-total").textContent = c.total;
+      root.querySelector(".js-c-pendente").textContent = c.pendente;
+      root.querySelector(".js-c-sent").textContent = c.sent;
+      root.querySelector(".js-c-failed").textContent = c.failed;
+      root.querySelector(".js-c-ja").textContent = c.ja;
+      root.querySelector(".js-c-semtel").textContent = c.semtel;
+      const temPendentes = items.some((it) => it.status === "pendente");
+      btnStart.disabled = !temPendentes;
+    }
+    function render() {
+      if (!items.length) {
+        rowsEl.innerHTML = '<tr><td colspan="4" class="text-muted">Nenhum aluno com aula amanhã nesta unidade.</td></tr>';
+        counts();
+        return;
+      }
+      rowsEl.innerHTML = items.map((it, i) =>
+        `<tr data-aluno="${it.aluno_id}"><td>${i + 1}</td><td>${it.nome}</td><td>${it.telefone}</td><td class="js-st">${badge(it.status)}</td></tr>`
+      ).join("");
+      counts();
+    }
+    function setStatus(idx, status) {
+      items[idx].status = status;
+      const tr = rowsEl.querySelector(`tr[data-aluno="${items[idx].aluno_id}"]`);
+      if (tr) tr.querySelector(".js-st").innerHTML = badge(status);
+      counts();
+    }
+
+    function loadPreview() {
+      msgEl.textContent = "Carregando…";
+      btnReload.disabled = true;
+      fetch(`${previewUrl}?unidade=${unidade}`)
+        .then((r) => r.json())
+        .then((data) => {
+          btnReload.disabled = false;
+          if (data.error) { msgEl.textContent = data.error; return; }
+          items = data.items || [];
+          root.querySelector(".js-target").textContent = data.target || "amanhã";
+          msgEl.textContent = `${items.length} aluno(s) com aula em ${data.target} (${data.unidade}).`;
+          render();
+        })
+        .catch(() => { btnReload.disabled = false; msgEl.textContent = "Erro ao carregar a lista."; });
+    }
+
+    function sleep(ms) { return new Promise((res) => setTimeout(res, ms)); }
+
+    async function start() {
+      btnStart.disabled = true;
+      btnReload.disabled = true;
+      let parou = false;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].status !== "pendente") continue;
+        setStatus(i, "enviando");
+        let data = {};
+        try {
+          const resp = await fetch(enviarUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+            body: JSON.stringify({ aluno_id: items[i].aluno_id, unidade: unidade }),
+          });
+          data = await resp.json().catch(() => ({}));
+        } catch (e) {
+          data = { status: "failed", error: "Erro de conexão." };
+        }
+        setStatus(i, data.status || "failed");
+        if (data.status === "session_down") {
+          msgEl.textContent = "⚠️ Sessão do WhatsApp desconectada — envio interrompido. Reconecte no painel da WasenderAPI.";
+          parou = true;
+          break;
+        }
+        await sleep(DELAY_MS);
+      }
+      btnReload.disabled = false;
+      counts();
+      if (!parou) msgEl.textContent = "Envio concluído.";
+    }
+
+    btnReload.addEventListener("click", loadPreview);
+    btnStart.addEventListener("click", start);
+    loadPreview();
+  })();
+</script>
+{% endblock %}

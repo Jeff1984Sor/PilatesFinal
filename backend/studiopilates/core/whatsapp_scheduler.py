@@ -162,6 +162,39 @@ def _notify_acompanhamento(service: WhatsappService, config: models.WhatsappConf
         logger.exception("Falha ao enviar resumo de acompanhamento da unidade %s", config.unidade_id)
 
 
+def reservas_lembrete_por_aluno(config: models.WhatsappConfiguracao, target_date):
+    """Reservas elegiveis para lembrete (aula amanha), agrupadas por aluno. Reutilizavel pela UI ao vivo."""
+    reservas = (
+        models.Reserva.objects.filter(
+            aulaSessao__data=target_date,
+            aulaSessao__unidade=config.unidade,
+        )
+        .exclude(status__in=["CANCELADA", "CONCLUIDA", "FALTOU_AVISOU", "FALTOU_SEM_AVISAR"])
+        .select_related("aluno", "aulaSessao", "aulaSessao__tipoServico", "aulaSessao__unidade")
+        .prefetch_related("aluno__telefones")
+        .order_by("aluno__cdAluno", "aulaSessao__horaInicio")
+    )
+    return _reservas_por_aluno(reservas)
+
+
+def montar_mensagem_lembrete(config: models.WhatsappConfiguracao, aluno_reservas, target_date):
+    """Monta o texto do lembrete para um aluno (mesma logica do envio em lote)."""
+    aluno = aluno_reservas[0].aluno
+    aulas = _format_aulas(aluno_reservas)
+    primeira = aluno_reservas[0].aulaSessao
+    return _render_template(
+        config.template_aviso_aluno
+        or "Boa noite {aluno}, amanhã temos aula de {tipo_servico} às {horario}. Podemos confirmar?",
+        aluno=aluno.dsNome,
+        unidade=config.unidade.dsUnidade,
+        data=target_date.strftime("%d/%m/%Y"),
+        horario=primeira.horaInicio.strftime("%H:%M"),
+        tipo_servico=getattr(primeira.tipoServico, "dsTipoServico", "Pilates"),
+        aulas=aulas,
+        horarios=aulas,
+    )
+
+
 def _send_class_reminders(service: WhatsappService, config: models.WhatsappConfiguracao, target_date, *, force: bool = False):
     reservas = (
         models.Reserva.objects.filter(
