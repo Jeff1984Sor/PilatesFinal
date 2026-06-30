@@ -185,6 +185,7 @@ urlpatterns = [
     path("agenda/aulas/<int:pk>/editar/", lambda r, pk: views.edit_view(r, models.AulaSessao, forms.AulaSessaoForm, "aulas_list", pk), name="aulas_edit"),
     path("agenda/aulas/<int:pk>/excluir/", lambda r, pk: views.delete_view(r, models.AulaSessao, "aulas_list", pk), name="aulas_delete"),
     path("contratos/", lambda r: views.list_view(r, models.Contrato, forms.ContratoForm, "Contratos"), name="contratos_list"),
+    path("contratos/gestao/", views.contratos_gestao, name="contratos_gestao"),
     path("contratos/criar/", lambda r: views.create_view(r, models.Contrato, forms.ContratoForm, "contratos_list"), name="contratos_create"),
     path("contratos/<int:pk>/editar/", lambda r, pk: views.edit_view(r, models.Contrato, forms.ContratoForm, "contratos_list", pk), name="contratos_edit"),
     path("contratos/<int:pk>/excluir/", lambda r, pk: views.delete_view(r, models.Contrato, "contratos_list", pk), name="contratos_delete"),

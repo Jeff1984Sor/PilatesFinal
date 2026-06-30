@@ -5454,6 +5454,90 @@ def wizard_step5(request):
 
 
 @login_required
+def contratos_gestao(request):
+    if _is_professor_user(request.user):
+        messages.error(request, "Sem permissao para acessar esta area.")
+        return redirect("dashboard")
+
+    today = timezone.now().date()
+    query = request.GET.get("q", "").strip()
+    filtro = request.GET.get("filtro", "ativos")
+
+    qs = models.Contrato.objects.select_related(
+        "cdAluno", "cdPlano", "cdUnidade", "cdProfissional"
+    )
+
+    if query:
+        qs = qs.filter(
+            Q(cdAluno__dsNome__icontains=query)
+            | Q(cdContrato__icontains=query)
+            | Q(cdPlano__dsPlano__icontains=query)
+        )
+
+    # Filtros por situacao do vencimento
+    if filtro == "vencidos":
+        qs = qs.filter(dtFimContrato__lt=today)
+    elif filtro == "vencendo":
+        qs = qs.filter(
+            dtFimContrato__gte=today,
+            dtFimContrato__lte=today + timedelta(days=30),
+        )
+    elif filtro == "todos":
+        pass
+    else:  # ativos (vigentes hoje)
+        filtro = "ativos"
+        qs = qs.filter(dtInicioContrato__lte=today, dtFimContrato__gte=today)
+
+    qs = qs.order_by("dtFimContrato")
+
+    contratos = []
+    for contrato in qs:
+        dias = (contrato.dtFimContrato - today).days
+        if dias < 0:
+            situacao, badge = "Vencido", "danger"
+        elif dias <= 7:
+            situacao, badge = "Vence esta semana", "danger"
+        elif dias <= 30:
+            situacao, badge = "Vence em breve", "warning"
+        else:
+            situacao, badge = "Vigente", "success"
+        contratos.append(
+            {
+                "obj": contrato,
+                "dias_restantes": dias,
+                "situacao": situacao,
+                "badge": badge,
+            }
+        )
+
+    # Resumo dos contadores (independente do filtro de listagem)
+    base = models.Contrato.objects.all()
+    resumo = {
+        "ativos": base.filter(dtInicioContrato__lte=today, dtFimContrato__gte=today).count(),
+        "vencendo": base.filter(
+            dtFimContrato__gte=today, dtFimContrato__lte=today + timedelta(days=30)
+        ).count(),
+        "vencidos": base.filter(dtFimContrato__lt=today).count(),
+        "total": base.count(),
+    }
+
+    context = {
+        "contratos": contratos,
+        "resumo": resumo,
+        "query": query,
+        "filtro": filtro,
+        "today": today,
+        "breadcrumbs": [
+            ("Home", reverse("dashboard")),
+            ("Contratos", reverse("contratos_list")),
+            ("Gestao", "#"),
+        ],
+        "active_menu": "contratos",
+    }
+    return render(request, "contratos/gestao.html", context)
+
+
+@login_required
 def contrato_agenda(request, pk):
     contrato = get_object_or_404(models.Contrato, pk=pk)
     plano = contrato.cdPlano

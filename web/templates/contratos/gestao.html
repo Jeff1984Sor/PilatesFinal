@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Contratos</div>
+      <h2 class="mayris-title">Gestao de Contratos</h2>
+    </div>
+    <a class="btn btn-primary mayris-btn-primary" href="/contratos/criar/">Novo contrato</a>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <a href="?filtro=ativos" class="text-decoration-none">
+        <div class="mayris-card text-center py-3 {% if filtro == 'ativos' %}border border-success{% endif %}">
+          <div class="fs-3 fw-bold text-success">{{ resumo.ativos }}</div>
+          <div class="text-muted small">Vigentes hoje</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="?filtro=vencendo" class="text-decoration-none">
+        <div class="mayris-card text-center py-3 {% if filtro == 'vencendo' %}border border-warning{% endif %}">
+          <div class="fs-3 fw-bold text-warning">{{ resumo.vencendo }}</div>
+          <div class="text-muted small">Vencem em 30 dias</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="?filtro=vencidos" class="text-decoration-none">
+        <div class="mayris-card text-center py-3 {% if filtro == 'vencidos' %}border border-danger{% endif %}">
+          <div class="fs-3 fw-bold text-danger">{{ resumo.vencidos }}</div>
+          <div class="text-muted small">Vencidos</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="?filtro=todos" class="text-decoration-none">
+        <div class="mayris-card text-center py-3 {% if filtro == 'todos' %}border border-secondary{% endif %}">
+          <div class="fs-3 fw-bold">{{ resumo.total }}</div>
+          <div class="text-muted small">Total</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="mayris-card">
+    <form class="mayris-filter-bar" method="get">
+      <input type="hidden" name="filtro" value="{{ filtro }}" />
+      <div class="mayris-filter">
+        <label>Busca</label>
+        <input class="form-control" name="q" value="{{ query }}" placeholder="Aluno, numero ou plano" />
+      </div>
+      <div class="mayris-filter mayris-filter--actions">
+        <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
+      </div>
+    </form>
+
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Aluno</th>
+            <th>Plano</th>
+            <th>Unidade</th>
+            <th>Inicio</th>
+            <th>Vencimento</th>
+            <th>Situacao</th>
+            <th>Valor total</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in contratos %}
+          <tr>
+            <td>{{ item.obj.cdContrato }}</td>
+            <td>{{ item.obj.cdAluno.dsNome }}</td>
+            <td>{{ item.obj.cdPlano.dsPlano }}</td>
+            <td>{{ item.obj.cdUnidade.dsUnidade }}</td>
+            <td>{{ item.obj.dtInicioContrato|date:"d/m/Y" }}</td>
+            <td>{{ item.obj.dtFimContrato|date:"d/m/Y" }}</td>
+            <td>
+              <span class="badge bg-{{ item.badge }}">{{ item.situacao }}</span>
+              {% if item.dias_restantes >= 0 %}
+                <div class="small text-muted">faltam {{ item.dias_restantes }} dia{{ item.dias_restantes|pluralize }}</div>
+              {% else %}
+                <div class="small text-muted">ha {{ item.dias_restantes|cut:"-" }} dia{{ item.dias_restantes|pluralize }}</div>
+              {% endif %}
+            </td>
+            <td>R$ {{ item.obj.valor_total }}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-secondary" href="/contratos/{{ item.obj.id }}/editar/">Editar</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">Nenhum contrato encontrado.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
