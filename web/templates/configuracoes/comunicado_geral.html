@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <h3 class="mb-1">Comunicado Geral</h3>
+        <p class="text-muted mb-0">Escreva uma mensagem e envie por WhatsApp para os alunos ativos ou inativos da unidade.</p>
+      </div>
+      <form method="get" class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0">Unidade</label>
+        <select class="form-select" name="unidade" onchange="this.form.submit()">
+          {% for u in unidades %}
+            <option value="{{ u.id }}" {% if u.id == unidade.id %}selected{% endif %}>{{ u.dsUnidade }}</option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="mb-3">Mensagem</h5>
+
+        <div class="mb-3">
+          <label class="form-label d-block">Enviar para</label>
+          <div class="btn-group" role="group">
+            <input type="radio" class="btn-check" name="statusFiltro" id="stAtivos" value="ATIVO" checked>
+            <label class="btn btn-outline-success" for="stAtivos">Alunos ativos</label>
+            <input type="radio" class="btn-check" name="statusFiltro" id="stInativos" value="INATIVO">
+            <label class="btn btn-outline-secondary" for="stInativos">Alunos inativos</label>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Texto da mensagem</label>
+          <textarea class="form-control" id="mensagem" rows="8" placeholder="Ola {aluno}, ..."></textarea>
+          <div class="form-text">Variaveis: {aluno}, {unidade}.</div>
+        </div>
+
+        <div class="alert alert-warning py-2 small mb-0">
+          O envio e um a um, com intervalo de 5 segundos entre cada aluno. Mantenha a sessao do WhatsApp conectada.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card shadow-sm h-100"
+         data-alunos-url="{% url 'comunicado_geral_alunos_api' %}"
+         data-enviar-url="{% url 'comunicado_geral_enviar_um_api' %}"
+         data-unidade="{{ unidade.id }}"
+         id="comunicadoLive">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+          <h5 class="mb-0">Destinatarios</h5>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm js-recarregar">Recarregar lista</button>
+            <button type="button" class="btn btn-primary btn-sm js-iniciar" disabled>Enviar agora</button>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="badge bg-secondary">Total: <span class="js-c-total">0</span></span>
+          <span class="badge bg-warning text-dark">Pendentes: <span class="js-c-pendente">0</span></span>
+          <span class="badge bg-success">Enviados: <span class="js-c-sent">0</span></span>
+          <span class="badge bg-danger">Falhas: <span class="js-c-failed">0</span></span>
+          <span class="badge bg-dark">Sem telefone: <span class="js-c-semtel">0</span></span>
+        </div>
+
+        <div class="js-live-msg small text-muted mb-2"></div>
+
+        <div class="table-responsive" style="max-height:460px; overflow:auto;">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th>#</th><th>Aluno</th><th>Telefone</th><th>Status</th></tr>
+            </thead>
+            <tbody class="js-live-rows">
+              <tr><td colspan="4" class="text-muted">Clique em “Recarregar lista”.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const root = document.getElementById("comunicadoLive");
+    if (!root) return;
+    const alunosUrl = root.dataset.alunosUrl;
+    const enviarUrl = root.dataset.enviarUrl;
+    const unidade = root.dataset.unidade;
+    const rowsEl = root.querySelector(".js-live-rows");
+    const btnReload = root.querySelector(".js-recarregar");
+    const btnStart = root.querySelector(".js-iniciar");
+    const msgEl = root.querySelector(".js-live-msg");
+    const mensagemEl = document.getElementById("mensagem");
+    const DELAY_MS = 5000; // intervalo entre envios (mesmo padrao do lote)
+
+    let items = [];
+
+    function statusFiltro() {
+      const el = document.querySelector('input[name="statusFiltro"]:checked');
+      return el ? el.value : "ATIVO";
+    }
+    function csrf() {
+      const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : "";
+    }
+    function badge(status) {
+      const map = {
+        pendente: '<span class="badge bg-warning text-dark">Pendente</span>',
+        enviando: '<span class="badge bg-primary">Enviando…</span>',
+        sent: '<span class="badge bg-success">Enviado ✓</span>',
+        failed: '<span class="badge bg-danger">Falhou ✗</span>',
+        sem_telefone: '<span class="badge bg-dark">Sem telefone</span>',
+        session_down: '<span class="badge bg-danger">Sessão off</span>',
+      };
+      return map[status] || status;
+    }
+    function counts() {
+      const c = { total: items.length, pendente: 0, sent: 0, failed: 0, semtel: 0 };
+      items.forEach((it) => {
+        if (it.status === "pendente" || it.status === "enviando") c.pendente++;
+        else if (it.status === "sent") c.sent++;
+        else if (it.status === "failed" || it.status === "session_down") c.failed++;
+        else if (it.status === "sem_telefone") c.semtel++;
+      });
+      root.querySelector(".js-c-total").textContent = c.total;
+      root.querySelector(".js-c-pendente").textContent = c.pendente;
+      root.querySelector(".js-c-sent").textContent = c.sent;
+      root.querySelector(".js-c-failed").textContent = c.failed;
+      root.querySelector(".js-c-semtel").textContent = c.semtel;
+      const temPendentes = items.some((it) => it.status === "pendente");
+      btnStart.disabled = !temPendentes || !mensagemEl.value.trim();
+    }
+    function render() {
+      if (!items.length) {
+        rowsEl.innerHTML = '<tr><td colspan="4" class="text-muted">Nenhum aluno nesta selecao.</td></tr>';
+        counts();
+        return;
+      }
+      rowsEl.innerHTML = items.map((it, i) =>
+        `<tr data-aluno="${it.aluno_id}"><td>${i + 1}</td><td>${it.nome}</td><td>${it.telefone}</td><td class="js-st">${badge(it.status)}</td></tr>`
+      ).join("");
+      counts();
+    }
+    function setStatus(idx, status) {
+      items[idx].status = status;
+      const tr = rowsEl.querySelector(`tr[data-aluno="${items[idx].aluno_id}"]`);
+      if (tr) tr.querySelector(".js-st").innerHTML = badge(status);
+      counts();
+    }
+
+    function loadLista() {
+      msgEl.textContent = "Carregando…";
+      btnReload.disabled = true;
+      fetch(`${alunosUrl}?unidade=${unidade}&status=${statusFiltro()}`)
+        .then((r) => r.json())
+        .then((data) => {
+          btnReload.disabled = false;
+          if (data.error) { msgEl.textContent = data.error; return; }
+          items = data.items || [];
+          const rotulo = data.status === "INATIVO" ? "inativo(s)" : "ativo(s)";
+          msgEl.textContent = `${items.length} aluno(s) ${rotulo} em ${data.unidade}.`;
+          render();
+        })
+        .catch(() => { btnReload.disabled = false; msgEl.textContent = "Erro ao carregar a lista."; });
+    }
+
+    function sleep(ms) { return new Promise((res) => setTimeout(res, ms)); }
+
+    async function start() {
+      const mensagem = mensagemEl.value.trim();
+      if (!mensagem) { msgEl.textContent = "Escreva a mensagem antes de enviar."; return; }
+      if (!confirm(`Enviar esta mensagem para ${items.filter(it => it.status === "pendente").length} aluno(s)?`)) return;
+      btnStart.disabled = true;
+      btnReload.disabled = true;
+      let parou = false;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].status !== "pendente") continue;
+        setStatus(i, "enviando");
+        let data = {};
+        try {
+          const resp = await fetch(enviarUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+            body: JSON.stringify({ aluno_id: items[i].aluno_id, unidade: unidade, mensagem: mensagem }),
+          });
+          data = await resp.json().catch(() => ({}));
+        } catch (e) {
+          data = { status: "failed", error: "Erro de conexão." };
+        }
+        setStatus(i, data.status || "failed");
+        if (data.status === "session_down") {
+          msgEl.textContent = "⚠️ Sessão do WhatsApp desconectada — envio interrompido. Reconecte no painel da WasenderAPI.";
+          parou = true;
+          break;
+        }
+        await sleep(DELAY_MS);
+      }
+      btnReload.disabled = false;
+      counts();
+      if (!parou) msgEl.textContent = "Envio concluído.";
+    }
+
+    btnReload.addEventListener("click", loadLista);
+    btnStart.addEventListener("click", start);
+    mensagemEl.addEventListener("input", counts);
+    document.querySelectorAll('input[name="statusFiltro"]').forEach((el) => el.addEventListener("change", loadLista));
+    loadLista();
+  })();
+</script>
+{% endblock %}

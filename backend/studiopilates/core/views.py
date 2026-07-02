@@ -6242,6 +6242,83 @@ def aviso_aluno_enviar_um_api(request):
     return JsonResponse({"status": "sent", "telefone": telefone})
 
 
+@login_required
+def comunicado_geral_view(request):
+    bloqueio = _professor_block(request)
+    if bloqueio:
+        return bloqueio
+    unidades, unidade = _whatsapp_unidade_selecionada(request)
+    if not unidade:
+        messages.warning(request, "Cadastre ao menos uma unidade antes de enviar comunicados.")
+        return redirect("dashboard")
+    return render(
+        request,
+        "configuracoes/comunicado_geral.html",
+        {
+            "unidades": unidades,
+            "unidade": unidade,
+            "title": "Comunicado Geral",
+            "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("Comunicado Geral", "#")],
+            "active_menu": "configuracoes",
+        },
+    )
+
+
+@login_required
+def comunicado_geral_alunos_api(request):
+    if _is_professor_user(request.user):
+        return JsonResponse({"error": "Sem permissao."}, status=403)
+    _unidades, unidade = _whatsapp_unidade_selecionada(request)
+    if not unidade:
+        return JsonResponse({"error": "Selecione uma unidade."}, status=400)
+    status_filtro = (request.GET.get("status") or "ATIVO").upper()
+    if status_filtro not in {"ATIVO", "INATIVO"}:
+        status_filtro = "ATIVO"
+    service = WhatsappService()
+    alunos = models.Aluno.objects.filter(cdUnidade=unidade, status=status_filtro).order_by("dsNome")
+    items = []
+    for aluno in alunos:
+        telefone = service.get_aluno_phone(aluno)
+        items.append(
+            {
+                "aluno_id": aluno.id,
+                "nome": aluno.dsNome,
+                "telefone": telefone or "-",
+                "status": "pendente" if telefone else "sem_telefone",
+            }
+        )
+    return JsonResponse({"unidade": unidade.dsUnidade, "status": status_filtro, "items": items})
+
+
+@login_required
+@require_POST
+def comunicado_geral_enviar_um_api(request):
+    if _is_professor_user(request.user):
+        return JsonResponse({"status": "failed", "error": "Sem permissao."}, status=403)
+    payload = _parse_json_body(request)
+    aluno_id = payload.get("aluno_id")
+    mensagem = (payload.get("mensagem") or "").strip()
+    unidade = models.Unidade.objects.filter(pk=payload.get("unidade")).first() or models.Unidade.objects.first()
+    if not mensagem:
+        return JsonResponse({"status": "failed", "error": "Mensagem vazia."}, status=400)
+    aluno = models.Aluno.objects.filter(pk=aluno_id).first()
+    if not aluno:
+        return JsonResponse({"status": "failed", "error": "Aluno nao encontrado."}, status=400)
+    service = WhatsappService()
+    telefone = service.get_aluno_phone(aluno)
+    if not telefone:
+        return JsonResponse({"status": "sem_telefone", "telefone": "-"})
+    texto = mensagem.replace("{aluno}", aluno.dsNome)
+    if unidade:
+        texto = texto.replace("{unidade}", unidade.dsUnidade)
+    resp = service.send(aluno, telefone, texto, WhatsappMessageType.MANUAL)
+    if _is_session_down(resp):
+        return JsonResponse({"status": "session_down", "telefone": telefone, "error": "Sessao do WhatsApp desconectada."})
+    if resp.get("error"):
+        return JsonResponse({"status": "failed", "telefone": telefone, "error": resp.get("error")})
+    return JsonResponse({"status": "sent", "telefone": telefone})
+
+
 def totalpass_config_view(request):
     unidades = models.Unidade.objects.order_by("cdUnidade").all()
     if not unidades:
