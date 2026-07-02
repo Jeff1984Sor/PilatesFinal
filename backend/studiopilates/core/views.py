@@ -6272,10 +6272,12 @@ def comunicado_geral_alunos_api(request):
     if not unidade:
         return JsonResponse({"error": "Selecione uma unidade."}, status=400)
     status_filtro = (request.GET.get("status") or "ATIVO").upper()
-    if status_filtro not in {"ATIVO", "INATIVO"}:
+    if status_filtro not in {"ATIVO", "INATIVO", "AMBOS"}:
         status_filtro = "ATIVO"
     service = WhatsappService()
-    alunos = models.Aluno.objects.filter(cdUnidade=unidade, status=status_filtro).order_by("dsNome")
+    alunos = models.Aluno.objects.filter(cdUnidade=unidade).order_by("dsNome")
+    if status_filtro != "AMBOS":
+        alunos = alunos.filter(status=status_filtro)
     items = []
     for aluno in alunos:
         telefone = service.get_aluno_phone(aluno)

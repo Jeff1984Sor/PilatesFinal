@@ -32,6 +32,8 @@
             <label class="btn btn-outline-success" for="stAtivos">Alunos ativos</label>
             <input type="radio" class="btn-check" name="statusFiltro" id="stInativos" value="INATIVO">
             <label class="btn btn-outline-secondary" for="stInativos">Alunos inativos</label>
+            <input type="radio" class="btn-check" name="statusFiltro" id="stAmbos" value="AMBOS">
+            <label class="btn btn-outline-primary" for="stAmbos">Ambos</label>
           </div>
         </div>
 
@@ -166,7 +168,7 @@
           btnReload.disabled = false;
           if (data.error) { msgEl.textContent = data.error; return; }
           items = data.items || [];
-          const rotulo = data.status === "INATIVO" ? "inativo(s)" : "ativo(s)";
+          const rotulo = data.status === "INATIVO" ? "inativo(s)" : (data.status === "AMBOS" ? "(ativos + inativos)" : "ativo(s)");
           msgEl.textContent = `${items.length} aluno(s) ${rotulo} em ${data.unidade}.`;
           render();
         })
