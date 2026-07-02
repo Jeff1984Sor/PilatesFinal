@@ -35,6 +35,7 @@ class AlunoOut(BaseModel):
     dsNome: str
     dsCPF: str
     dsRg: str | None = None
+    dsTelefone: str | None = None
 
     class Config:
         from_attributes = True

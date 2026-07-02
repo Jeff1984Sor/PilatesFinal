@@ -179,9 +179,30 @@ def _aluno_payload(aluno, telefone=None):
         "dsNome": aluno.dsNome,
         "dsCPF": aluno.dsCPF,
         "dsEmail": aluno.dsEmail,
-        "dsTelefone": telefone,
+        "dsTelefone": telefone if telefone is not None else aluno.dsTelefone,
         "status": aluno.status,
     }
+
+
+def _telefone_canon(raw):
+    """Reduz um telefone a (ddd, 8_digitos_finais), tolerando DDI 55 e o 9 do
+    celular. Ex.: '5515997762467', '(15) 99776-2467' e '(15) 9776-2467' viram
+    todos ('15', '97762467'). Retorna None se nao der pra normalizar."""
+    d = re.sub(r"\D", "", raw or "")
+    if not d:
+        return None
+    if d.startswith("55") and len(d) > 11:
+        d = d[2:]  # remove DDI
+    if len(d) < 10:
+        return None
+    ultimos8 = d[-8:]
+    resto = d[:-8]  # DDD (+ possivel 9 do celular)
+    if len(resto) >= 3 and resto[-1] == "9":
+        resto = resto[:-1]  # remove o 9 do celular
+    ddd = resto[-2:]
+    if len(ddd) != 2:
+        return None
+    return (ddd, ultimos8)
 
 
 @app.get("/integracao/alunos/por-telefone")
@@ -189,17 +210,21 @@ def integ_aluno_por_telefone(telefone: str = Query(...), _: str = Depends(requir
     digits = re.sub(r"\D", "", telefone or "")
     if not digits:
         raise HTTPException(status_code=400, detail="Telefone invalido")
-    variants = {digits}
-    if digits.startswith("55") and len(digits) > 2:
-        variants.add(digits[2:])
-    elif len(digits) in (10, 11):
-        variants.add(f"55{digits}")
+    alvo = _telefone_canon(telefone)
     nucleo = digits[-8:] if len(digits) >= 8 else digits
+
+    # 1) Procura na tabela TelefoneAluno (fonte principal), filtrando pelo nucleo
     candidatos = models.TelefoneAluno.objects.select_related("cdAluno").filter(dsTelefone__contains=nucleo)
     for t in candidatos:
-        td = re.sub(r"\D", "", t.dsTelefone or "")
-        if td in variants or (td and (td.endswith(digits) or digits.endswith(td))):
+        if alvo and _telefone_canon(t.dsTelefone) == alvo:
             return _aluno_payload(t.cdAluno, t.dsTelefone)
+
+    # 2) Fallback: campo celular no proprio Aluno, caso exista/venha a existir
+    if hasattr(models.Aluno, "celular") and alvo:
+        for aluno in models.Aluno.objects.filter(celular__contains=nucleo):
+            if _telefone_canon(aluno.celular) == alvo:
+                return _aluno_payload(aluno, aluno.celular)
+
     raise HTTPException(status_code=404, detail="Aluno nao encontrado")
 
 

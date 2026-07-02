@@ -111,6 +111,16 @@ class Aluno(models.Model):
     def __str__(self):
         return self.dsNome
 
+    @property
+    def dsTelefone(self):
+        """Melhor telefone do aluno: celular (se existir o campo) ou o primeiro
+        TelefoneAluno relacionado. Usado pela API de integracao."""
+        celular = (getattr(self, "celular", "") or "").strip()
+        if celular:
+            return celular
+        tel = self.telefones.first()
+        return tel.dsTelefone if tel else None
+
 
 class EnderecoAluno(models.Model):
     cdEndereco = models.IntegerField(unique=True, db_index=True)
