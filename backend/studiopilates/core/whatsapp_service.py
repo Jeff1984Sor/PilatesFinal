@@ -52,7 +52,16 @@ class EvolutionClient:
         token: str | None = None,
         base_url: str | None = None,
         instance: str | None = None,
+        provider: str | None = None,
     ):
+        # Modo Evolution explicito: ignora o endpoint do WasenderAPI e usa
+        # base_url + apikey + instancia.
+        if provider == "evolution":
+            self.endpoint_url = None
+            self.base_url = base_url or settings.EVOLUTION_BASE_URL
+            self.token = token or settings.EVOLUTION_TOKEN
+            self.instance = instance or settings.EVOLUTION_INSTANCE
+            return
         effective_endpoint = endpoint_url or settings.WASENDER_API_URL or None
         effective_token = token or settings.WASENDER_API_TOKEN or None
         self.endpoint_url = _normalize_endpoint(effective_endpoint) if effective_endpoint else None
@@ -77,7 +86,8 @@ class EvolutionClient:
                 return {"error": "WhatsApp configuration missing"}
             url = f"{self.base_url.rstrip('/')}/message/sendText/{self.instance}"
             headers = {"apikey": self.token}
-            payload = {"number": to, "textMessage": {"text": message}}
+            # Evolution API v2: payload plano {number, text}.
+            payload = {"number": to, "text": message}
             method = "post"
         try:
             resp = httpx.request(method, url, json=payload, headers=headers, timeout=15)
@@ -162,6 +172,13 @@ class WhatsappService:
     def _get_client_for_unidade(self, unidade: models.Unidade | None) -> EvolutionClient:
         config = self._get_config_for_unidade(unidade)
         if config:
+            if config.evolution_instance:
+                return EvolutionClient(
+                    provider="evolution",
+                    base_url=config.evolution_url or settings.EVOLUTION_BASE_URL,
+                    token=config.evolution_senha or settings.EVOLUTION_TOKEN,
+                    instance=config.evolution_instance,
+                )
             return EvolutionClient(
                 endpoint_url=config.evolution_url or settings.WASENDER_API_URL or None,
                 token=config.evolution_senha or settings.WASENDER_API_TOKEN or None,

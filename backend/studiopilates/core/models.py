@@ -686,6 +686,9 @@ class WhatsappConfiguracao(models.Model):
     evolution_url = models.URLField(blank=True)
     evolution_usuario = models.CharField(max_length=150, blank=True)
     evolution_senha = models.CharField(max_length=150, blank=True)
+    # Preenchido = usa Evolution API (header apikey + /message/sendText/{instancia}).
+    # Vazio = usa WasenderAPI (Authorization Bearer no endpoint unico).
+    evolution_instance = models.CharField(max_length=150, blank=True)
 
     # Acompanhamento: envia um resumo do disparo para o WhatsApp do gestor.
     acompanhar_envios = models.BooleanField(default=False)

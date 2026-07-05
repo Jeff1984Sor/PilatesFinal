@@ -515,16 +515,18 @@ class WhatsappConfiguracaoForm(BaseAutoCdForm):
         super().__init__(*args, **kwargs)
         url_field = self.fields.get("evolution_url")
         if url_field:
-            url_field.label = "URL da WasenderAPI"
-            url_field.widget.attrs["readonly"] = True
+            url_field.label = "URL da API"
             if not url_field.initial and self.instance and getattr(self.instance, "evolution_url", ""):
                 url_field.initial = self.instance.evolution_url
-            if not url_field.initial:
-                url_field.initial = "https://www.wasenderapi.com/api/send-message"
+            url_field.widget.attrs["placeholder"] = "https://ev.mayacorp.com.br (Evolution) ou URL da WasenderAPI"
         token_field = self.fields.get("evolution_senha")
         if token_field:
             token_field.label = "Token (API Key)"
-            token_field.widget.attrs["placeholder"] = "Cole aqui o token da WasenderAPI"
+            token_field.widget.attrs["placeholder"] = "Cole aqui o token/apikey da API"
+        instance_field = self.fields.get("evolution_instance")
+        if instance_field:
+            instance_field.label = "Instancia (Evolution)"
+            instance_field.widget.attrs["placeholder"] = "Nome da instancia no Evolution (deixe vazio p/ WasenderAPI)"
         usuario_field = self.fields.get("evolution_usuario")
         if usuario_field:
             usuario_field.label = "Usuario (nao usado)"
@@ -542,6 +544,7 @@ class WhatsappConfiguracaoForm(BaseAutoCdForm):
         fields = [
             "evolution_url",
             "evolution_senha",
+            "evolution_instance",
             "acompanhar_envios",
             "numero_acompanhamento",
             "avisar_aluno",

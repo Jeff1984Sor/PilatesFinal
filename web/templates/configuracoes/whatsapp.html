@@ -148,14 +148,23 @@
         <div class="col-md-6">
           <label class="form-label" for="{{ form.evolution_url.id_for_label }}">{{ form.evolution_url.label }}</label>
           {{ form.evolution_url }}
-          <small class="text-muted d-block mt-1">URL fixa do endpoint de envio da WasenderAPI.</small>
+          <small class="text-muted d-block mt-1">Evolution: URL base (ex.: https://ev.mayacorp.com.br). WasenderAPI: URL do endpoint de envio.</small>
           {% if form.evolution_url.errors %}<div class="invalid-feedback d-block">{{ form.evolution_url.errors|striptags }}</div>{% endif %}
         </div>
         <div class="col-md-6">
           <label class="form-label" for="{{ form.evolution_senha.id_for_label }}">{{ form.evolution_senha.label }}</label>
           {{ form.evolution_senha }}
-          <small class="text-muted d-block mt-1">Cole o token gerado no painel da WasenderAPI.</small>
+          <small class="text-muted d-block mt-1">Evolution: apikey. WasenderAPI: token do painel.</small>
           {% if form.evolution_senha.errors %}<div class="invalid-feedback d-block">{{ form.evolution_senha.errors|striptags }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.evolution_instance.id_for_label }}">{{ form.evolution_instance.label }}</label>
+          {{ form.evolution_instance }}
+          <small class="text-muted d-block mt-1">Preencha com o nome da instancia para usar a <strong>Evolution API</strong>. Deixe vazio para usar a WasenderAPI.</small>
+          {% if form.evolution_instance.errors %}<div class="invalid-feedback d-block">{{ form.evolution_instance.errors|striptags }}</div>{% endif %}
         </div>
       </div>
 
