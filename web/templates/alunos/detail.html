@@ -491,6 +491,9 @@
                 <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#novaAulaAvulsa">
                   + Aula Avulsa
                 </button>
+                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#novaAulaAvaliativa">
+                  + Aula Avaliativa
+                </button>
                 {% if reservas %}
                   <button
                     class="btn btn-sm btn-outline-danger"
@@ -534,6 +537,48 @@
               </div>
             {% else %}
               <div class="text-muted mb-3">Nenhuma aula avulsa cadastrada ainda.</div>
+            {% endif %}
+
+            {% if aulas_avaliativas %}
+              <div class="fw-semibold mb-2">Aulas avaliativas</div>
+              <div class="row g-3 mb-3">
+                {% for av in aulas_avaliativas %}
+                  <div class="col-md-6">
+                    <div class="border rounded-4 p-3 h-100">
+                      <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                          <div class="fw-semibold">Avaliativa — {{ av.data|date:"d/m/Y" }} {{ av.horaInicio|time:"H:i" }}</div>
+                          <div class="small text-muted">{{ av.tipoServico.dsTipoServico }} | {{ av.unidade.dsUnidade }} | {{ av.profissional.profissional }}</div>
+                        </div>
+                        {% if av.status == "CONVERTIDA" %}
+                          <span class="badge bg-success">{{ av.get_status_display }}</span>
+                        {% elif av.status == "CANCELADA" %}
+                          <span class="badge bg-danger">{{ av.get_status_display }}</span>
+                        {% elif av.status == "REALIZADA" %}
+                          <span class="badge bg-info text-dark">{{ av.get_status_display }}</span>
+                        {% else %}
+                          <span class="badge bg-primary">{{ av.get_status_display }}</span>
+                        {% endif %}
+                      </div>
+                      {% if av.queixa_principal or av.objetivos %}
+                        <div class="small text-muted mb-2">
+                          {% if av.queixa_principal %}<strong>Queixa:</strong> {{ av.queixa_principal|truncatechars:80 }}<br />{% endif %}
+                          {% if av.objetivos %}<strong>Objetivos:</strong> {{ av.objetivos|truncatechars:80 }}{% endif %}
+                        </div>
+                      {% endif %}
+                      <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#fichaAvaliativa{{ av.id }}">Ficha de avaliacao</button>
+                        {% if av.status != "CONVERTIDA" %}
+                          <form method="post" action="{% url 'alunos_aula_avaliativa_converter' aluno.id av.id %}" onsubmit="return confirm('Marcar como convertida e ir para Contratos?');">
+                            {% csrf_token %}
+                            <button class="btn btn-sm btn-outline-success" type="submit">Converter em contrato</button>
+                          </form>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
             {% endif %}
 
             {% if reservas %}
@@ -751,6 +796,117 @@
               </div>
             </div>
           </div>
+
+          <div class="modal fade" id="novaAulaAvaliativa" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <div>
+                    <h5 class="modal-title">Nova aula avaliativa</h5>
+                    <div class="small text-muted">Agenda uma aula de avaliacao (cortesia) na agenda do studio.</div>
+                  </div>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <form class="modal-form" method="post" action="{% url 'alunos_aula_avaliativa_create' aluno.id %}">
+                    {% csrf_token %}
+                    <div class="alert alert-info py-2 small">O horario final e calculado pela duracao da aula da unidade.</div>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Unidade</label>
+                        <select class="form-select" name="unidade" required>
+                          {% for unidade in unidades %}
+                            <option value="{{ unidade.id }}" {% if unidade.id == aluno.cdUnidade_id %}selected{% endif %}>{{ unidade.dsUnidade }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Profissional</label>
+                        <select class="form-select" name="profissional" required>
+                          <option value="">Selecione</option>
+                          {% for prof in profissionais %}
+                            <option value="{{ prof.id }}">{{ prof.profissional }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Tipo de servico</label>
+                        <select class="form-select" name="tipoServico" required>
+                          <option value="">Selecione</option>
+                          {% for ts in tipos_servico %}
+                            <option value="{{ ts.id }}">{{ ts.dsTipoServico }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Data</label>
+                        <input class="form-control" type="date" name="data" value="{{ today_date|date:'Y-m-d' }}" required />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Horario</label>
+                        <input class="form-control" type="time" name="horaInicio" required />
+                      </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-3">
+                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <button class="btn btn-primary" type="submit">Agendar avaliativa</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {% for av in aulas_avaliativas %}
+          <div class="modal fade" id="fichaAvaliativa{{ av.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <div>
+                    <h5 class="modal-title">Ficha de avaliacao</h5>
+                    <div class="small text-muted">{{ av.data|date:"d/m/Y" }} {{ av.horaInicio|time:"H:i" }} — {{ av.profissional.profissional }}</div>
+                  </div>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <form class="modal-form" method="post" action="{% url 'alunos_aula_avaliativa_ficha' aluno.id av.id %}">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Queixa principal</label>
+                        <textarea class="form-control" name="queixa_principal" rows="3">{{ av.queixa_principal }}</textarea>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Objetivos</label>
+                        <textarea class="form-control" name="objetivos" rows="3">{{ av.objetivos }}</textarea>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Historico de saude</label>
+                        <textarea class="form-control" name="historico_saude" rows="3">{{ av.historico_saude }}</textarea>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Observacoes</label>
+                        <textarea class="form-control" name="observacoes" rows="3">{{ av.observacoes }}</textarea>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                          {% for value, label in av.STATUS_CHOICES %}
+                            <option value="{{ value }}" {% if av.status == value %}selected{% endif %}>{{ label }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-3">
+                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <button class="btn btn-primary" type="submit">Salvar ficha</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
 
           {% if can_view_financeiro %}
           <div class="tab-pane fade" id="tab-financeiro" role="tabpanel">

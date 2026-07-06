@@ -401,6 +401,45 @@ class AulaAvulsa(models.Model):
         return f"Aula avulsa {self.cdAulaAvulsa}"
 
 
+class AulaAvaliativa(models.Model):
+    """Aula avaliativa (experimental) de Pilates: agendada na agenda, com ficha
+    de avaliacao da profissional e possibilidade de virar contrato."""
+
+    STATUS_CHOICES = [
+        ("AGENDADA", "Agendada"),
+        ("REALIZADA", "Realizada"),
+        ("CANCELADA", "Cancelada"),
+        ("CONVERTIDA", "Convertida em contrato"),
+    ]
+
+    cdAulaAvaliativa = models.IntegerField(unique=True, db_index=True)
+    aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name="aulas_avaliativas")
+    unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT)
+    profissional = models.ForeignKey(Profissional, on_delete=models.PROTECT)
+    tipoServico = models.ForeignKey(TipoServico, on_delete=models.PROTECT, null=True, blank=True)
+    data = models.DateField()
+    horaInicio = models.TimeField()
+    horaFim = models.TimeField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="AGENDADA")
+
+    # Ficha de avaliacao
+    queixa_principal = models.TextField(blank=True)
+    objetivos = models.TextField(blank=True)
+    historico_saude = models.TextField(blank=True)
+    observacoes = models.TextField(blank=True)
+
+    contrato = models.ForeignKey(
+        "Contrato", null=True, blank=True, on_delete=models.SET_NULL, related_name="aulas_avaliativas"
+    )
+    dtCadastro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-data", "-horaInicio"]
+
+    def __str__(self):
+        return f"Aula avaliativa {self.cdAulaAvaliativa}"
+
+
 class Fornecedor(models.Model):
     cdFornecedor = models.IntegerField(unique=True, db_index=True)
     dsFornecedor = models.CharField(max_length=120)
@@ -493,6 +532,7 @@ class Reserva(models.Model):
     aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT)
     aulaSessao = models.ForeignKey(AulaSessao, on_delete=models.PROTECT)
     pacote_avulso = models.ForeignKey("AulaAvulsa", null=True, blank=True, on_delete=models.SET_NULL, related_name="reservas")
+    aula_avaliativa = models.ForeignKey("AulaAvaliativa", null=True, blank=True, on_delete=models.SET_NULL, related_name="reservas")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="RESERVADA")
     confirmada_em = models.DateTimeField(null=True, blank=True)
     desmarcada_em = models.DateTimeField(null=True, blank=True)

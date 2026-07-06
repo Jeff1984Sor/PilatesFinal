@@ -645,6 +645,11 @@ def aluno_detail(request, pk):
         .select_related("plano", "unidade", "profissional")
         .order_by("-dtCadastro")
     )
+    aulas_avaliativas = (
+        models.AulaAvaliativa.objects.filter(aluno=aluno)
+        .select_related("unidade", "profissional", "tipoServico")
+        .order_by("-data", "-horaInicio")
+    )
     reservas = (
         models.Reserva.objects.filter(aluno=aluno)
         .select_related(
@@ -739,6 +744,8 @@ def aluno_detail(request, pk):
         "contrato_forms": contrato_forms,
         "aulas_avulsas": aulas_avulsas,
         "aula_avulsa_form": aula_avulsa_form,
+        "aulas_avaliativas": aulas_avaliativas,
+        "tipos_servico": models.TipoServico.objects.all(),
         "reservas": reservas,
         "reserva_forms": reserva_forms,
         "reserva_slots": reserva_slots,
@@ -1287,6 +1294,103 @@ def aluno_aula_avulsa_agenda(request, aluno_id, pk):
         "active_menu": "cadastros",
     }
     return render(request, "alunos/aula_avulsa_agenda.html", context)
+
+
+@login_required
+@require_POST
+def aluno_aula_avaliativa_create(request, aluno_id):
+    aluno = get_object_or_404(models.Aluno, pk=aluno_id)
+    redir = f"{reverse('alunos_detail', args=[aluno.pk])}?tab=agenda"
+
+    unidade = models.Unidade.objects.filter(pk=request.POST.get("unidade")).first()
+    profissional = models.Profissional.objects.filter(pk=request.POST.get("profissional")).first()
+    tipo = models.TipoServico.objects.filter(pk=request.POST.get("tipoServico")).first()
+    data_raw = request.POST.get("data") or ""
+    hora_raw = request.POST.get("horaInicio") or ""
+    if not (unidade and profissional and tipo and data_raw and hora_raw):
+        messages.error(request, "Preencha unidade, profissional, tipo de servico, data e horario.")
+        return redirect(redir)
+    try:
+        data_val = datetime.strptime(data_raw, "%Y-%m-%d").date()
+        hora_inicio = datetime.strptime(hora_raw, "%H:%M").time()
+    except ValueError:
+        messages.error(request, "Data ou horario invalido.")
+        return redirect(redir)
+
+    duracao = unidade.duracao_aula_minutos or 50
+    hora_fim = (datetime.combine(data_val, hora_inicio) + timedelta(minutes=duracao)).time()
+
+    ultimo = models.AulaAvaliativa.objects.order_by("-cdAulaAvaliativa").first()
+    cd = (ultimo.cdAulaAvaliativa if ultimo else 0) + 1
+    avaliativa = models.AulaAvaliativa.objects.create(
+        cdAulaAvaliativa=cd,
+        aluno=aluno,
+        unidade=unidade,
+        profissional=profissional,
+        tipoServico=tipo,
+        data=data_val,
+        horaInicio=hora_inicio,
+        horaFim=hora_fim,
+    )
+
+    # Agenda: cria/encontra a AulaSessao e reserva o aluno (aula gratuita, sem cobranca)
+    aula = models.AulaSessao.objects.filter(
+        unidade=unidade,
+        tipoServico=tipo,
+        profissional=profissional,
+        data=data_val,
+        horaInicio=hora_inicio,
+        horaFim=hora_fim,
+    ).first()
+    if not aula:
+        aula = models.AulaSessao.objects.create(
+            unidade=unidade,
+            tipoServico=tipo,
+            profissional=profissional,
+            data=data_val,
+            horaInicio=hora_inicio,
+            horaFim=hora_fim,
+        )
+    if models.Reserva.objects.filter(aluno=aluno, aulaSessao=aula).exists():
+        messages.success(request, "Aula avaliativa registrada (aluno ja tinha reserva nesse horario).")
+        return redirect(redir)
+    try:
+        reserva = services.create_reserva(aluno, aula, status="RESERVADA")
+        reserva.aula_avaliativa = avaliativa
+        reserva.save(update_fields=["aula_avaliativa"])
+        messages.success(request, "Aula avaliativa agendada com sucesso.")
+    except Exception:
+        messages.warning(request, "Aula avaliativa criada, mas o horario esta sem vaga na agenda.")
+    return redirect(redir)
+
+
+@login_required
+@require_POST
+def aluno_aula_avaliativa_ficha(request, aluno_id, pk):
+    avaliativa = get_object_or_404(models.AulaAvaliativa, pk=pk, aluno_id=aluno_id)
+    avaliativa.queixa_principal = request.POST.get("queixa_principal", "").strip()
+    avaliativa.objetivos = request.POST.get("objetivos", "").strip()
+    avaliativa.historico_saude = request.POST.get("historico_saude", "").strip()
+    avaliativa.observacoes = request.POST.get("observacoes", "").strip()
+    status = request.POST.get("status", "").strip()
+    if status in dict(models.AulaAvaliativa.STATUS_CHOICES):
+        avaliativa.status = status
+    avaliativa.save()
+    messages.success(request, "Ficha da aula avaliativa salva.")
+    return redirect(f"{reverse('alunos_detail', args=[aluno_id])}?tab=agenda")
+
+
+@login_required
+@require_POST
+def aluno_aula_avaliativa_converter(request, aluno_id, pk):
+    avaliativa = get_object_or_404(models.AulaAvaliativa, pk=pk, aluno_id=aluno_id)
+    avaliativa.status = "CONVERTIDA"
+    avaliativa.save(update_fields=["status"])
+    messages.success(
+        request,
+        "Aula avaliativa marcada como convertida. Crie o contrato do aluno na aba Contratos.",
+    )
+    return redirect(f"{reverse('alunos_detail', args=[aluno_id])}?tab=contratos")
 
 
 @login_required
