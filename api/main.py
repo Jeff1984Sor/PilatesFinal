@@ -20,7 +20,7 @@ from django.utils import timezone
 
 from studiopilates.core import models
 from studiopilates.core import services
-from shared.ai.gemini_client import extract_address_from_proof, extract_student_from_document
+from shared.ai.openai_client import extract_address_from_proof, extract_student_from_document
 from .schemas import (
     AlunoIn, AlunoOut, ContratoIn, AulaSessaoIn, ReservaIn, WhatsappMensagemIn,
     AlunoLoginSolicitar, AlunoLoginConfirmar,

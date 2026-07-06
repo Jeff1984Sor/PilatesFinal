@@ -27,7 +27,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from . import forms, models, services, totalpass_service
 from .signals import ensure_profissional_for_user
-from shared.ai.gemini_client import GeminiError, extract_address_from_proof, extract_student_from_document, improve_evolution_text
+from shared.ai.openai_client import GeminiError, extract_address_from_proof, extract_student_from_document, improve_evolution_text
 from .whatsapp_service import WhatsappService, WhatsappMessageType
 from .whatsapp_scheduler import (
     _send_class_reminders, _send_professor_schedule, _send_contract_renewals,
