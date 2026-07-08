@@ -2,7 +2,7 @@
 {% load core_extras %}
 {% now "Y-m-d" as today_str %}
 {% block content %}
-<div class="aulas-shell" data-operacao-root data-operacao-url="{% url 'aulas_operacao_api' %}" data-evolucao-url-template="{% url 'aulas_evolucao_api' 0 %}" data-evolucao-ai-url="{% url 'evolucao_enriquecer_api' %}" data-evolucao-ai-url-template="{% url 'aulas_evolucao_enriquecer_api' 0 %}" data-avaliacao-url-template="{% url 'aulas_avaliacoes_api' 0 %}" data-cobranca-url-template="{% url 'aulas_cobranca_api' 0 %}" data-historico-url-template="{% url 'aulas_historico_api' 0 %}" data-status-url-template="{% url 'aulas_status_api' 0 %}" data-remarcar-url-template="{% url 'aulas_remarcar_api' 0 %}" data-whatsapp-now-url-template="{% url 'aulas_whatsapp_now_api' 0 %}">
+<div class="aulas-shell" data-operacao-root data-operacao-url="{% url 'aulas_operacao_api' %}" data-evolucao-url-template="{% url 'aulas_evolucao_api' 0 %}" data-evolucao-ai-url="{% url 'evolucao_enriquecer_api' %}" data-evolucao-ai-url-template="{% url 'aulas_evolucao_enriquecer_api' 0 %}" data-avaliacao-url-template="{% url 'aulas_avaliacoes_api' 0 %}" data-cobranca-url-template="{% url 'aulas_cobranca_api' 0 %}" data-historico-url-template="{% url 'aulas_historico_api' 0 %}" data-status-url-template="{% url 'aulas_status_api' 0 %}" data-remarcar-url-template="{% url 'aulas_remarcar_api' 0 %}" data-excluir-url-template="{% url 'aulas_reserva_excluir' 0 %}" data-whatsapp-now-url-template="{% url 'aulas_whatsapp_now_api' 0 %}">
   <div class="aulas-header">
     <div>
       <div class="aulas-kicker">Voce esta em: Gestao das Aulas</div>
@@ -97,6 +97,7 @@
       {% if not is_professor %}
       <button class="btn btn-outline-secondary js-drawer-action" data-action="remarcar">Remarcar</button>
       <button class="btn btn-outline-danger js-drawer-action" data-action="desmarcar">Desmarcar (reposição)</button>
+      <button class="btn btn-danger js-drawer-action" data-action="excluir">Excluir</button>
       {% endif %}
     </div>
 

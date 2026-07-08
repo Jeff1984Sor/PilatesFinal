@@ -1212,6 +1212,7 @@ function initAulasOperacao() {
   const cobrancaList = root.querySelector(".js-cobranca-list");
   const historicoList = root.querySelector(".js-historico-list");
   const remarcarTemplate = root.dataset.remarcarUrlTemplate || "";
+  const excluirTemplate = root.dataset.excluirUrlTemplate || "";
   const remarcarModalEl = document.getElementById("remarcarModal");
   const remarcarDate = remarcarModalEl?.querySelector(".js-remarcar-date");
   const remarcarTime = remarcarModalEl?.querySelector(".js-remarcar-time");
@@ -1999,6 +2000,19 @@ function initAulasOperacao() {
       }
       if (btn.dataset.action === "desmarcar") {
         if (!confirm("Desmarcar esta aula? O aluno ganha uma reposição para reagendar em até 30 dias.")) return;
+      }
+      if (btn.dataset.action === "excluir") {
+        if (!confirm("Excluir esta aula do aluno? Esta ação não pode ser desfeita.")) return;
+        const csrf = getCookie("csrftoken");
+        const urlAction = excluirTemplate.replace("/0/", `/${selected.id}/`);
+        fetch(urlAction, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
+        }).then(() => {
+          closeDrawer();
+          loadData();
+        });
+        return;
       }
       updateStatus(selected, btn.dataset.action || "");
     });

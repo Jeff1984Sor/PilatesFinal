@@ -4526,6 +4526,21 @@ def aula_status_api(request, reserva_id):
 
 
 @login_required
+@require_POST
+def aula_reserva_excluir(request, reserva_id):
+    """Exclui a aula do aluno (a reserva) direto pela agenda. Se o horario
+    ficar sem nenhuma reserva, remove tambem a sessao."""
+    if _is_professor_user(request.user):
+        return JsonResponse({"error": "Sem permissao para excluir."}, status=403)
+    reserva = get_object_or_404(models.Reserva.objects.select_related("aulaSessao"), pk=reserva_id)
+    aula_id = reserva.aulaSessao_id
+    reserva.delete()
+    if aula_id and not models.Reserva.objects.filter(aulaSessao_id=aula_id).exists():
+        models.AulaSessao.objects.filter(pk=aula_id).delete()
+    return JsonResponse({"ok": True, "reserva_id": reserva_id})
+
+
+@login_required
 def aula_remarcar_api(request, reserva_id):
     if request.method != "POST":
         return JsonResponse({"error": "Metodo invalido."}, status=405)
