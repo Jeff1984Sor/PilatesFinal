@@ -1558,6 +1558,7 @@ function initAulasOperacao() {
         finalizar: "finalizada",
         faltou: "faltou",
         remarcar: "remarcada",
+        desmarcar: "remarcada",
       };
       if (actionMap[action]) {
         item.status_aula = actionMap[action];
@@ -1995,6 +1996,9 @@ function initAulasOperacao() {
       if (btn.dataset.action === "remarcar") {
         openRemarcarModal();
         return;
+      }
+      if (btn.dataset.action === "desmarcar") {
+        if (!confirm("Desmarcar esta aula? O aluno ganha uma reposição para reagendar em até 30 dias.")) return;
       }
       updateStatus(selected, btn.dataset.action || "");
     });

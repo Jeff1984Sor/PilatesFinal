@@ -4495,6 +4495,26 @@ def aula_status_api(request, reserva_id):
         "faltou": "FALTOU_SEM_AVISAR",
         "remarcar": "CANCELADA",
     }
+    # Desmarcar com reposicao: cancela a aula e libera uma reposicao (30 dias)
+    # para o aluno reagendar, mesma regra do app do aluno.
+    if acao == "desmarcar":
+        if _is_professor_user(request.user):
+            return JsonResponse({"error": "Sem permissao para desmarcar."}, status=403)
+        reserva = get_object_or_404(models.Reserva.objects.select_related("aulaSessao"), pk=reserva_id)
+        aula = reserva.aulaSessao
+        reposicao_ate = (aula.data + timedelta(days=30)) if aula else None
+        reserva.status = "CANCELADA"
+        reserva.confirmada_em = None
+        reserva.desmarcada_em = timezone.now()
+        reserva.reposicao_ate = reposicao_ate
+        reserva.save(update_fields=["status", "confirmada_em", "desmarcada_em", "reposicao_ate"])
+        return JsonResponse(
+            {
+                "reserva_id": reserva.id,
+                "status": reserva.status,
+                "reposicao_ate": reposicao_ate.isoformat() if reposicao_ate else None,
+            }
+        )
     if acao not in status_map:
         return JsonResponse({"error": "Acao invalida."}, status=400)
     if acao == "remarcar" and _is_professor_user(request.user):
