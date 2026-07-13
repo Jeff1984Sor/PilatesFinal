@@ -1,5 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 992px) { .dash-kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .dash-kpis { grid-template-columns: 1fr; } }
+  .dash-kpi {
+    position: relative; display: block; text-decoration: none; color: inherit;
+    background: #fff; border: 1px solid #ece7e8; border-radius: 18px; padding: 18px 20px;
+    box-shadow: 0 6px 20px rgba(60,20,25,.05); transition: transform .15s ease, box-shadow .15s ease;
+    overflow: hidden;
+  }
+  .dash-kpi:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(60,20,25,.12); }
+  .dash-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--acc, #7a2531); }
+  .dash-kpi__top { display: flex; align-items: center; justify-content: space-between; }
+  .dash-kpi__icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+    font-size: 20px; background: var(--acc-soft, #f6eaec); }
+  .dash-kpi__label { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: #9a8f91; font-weight: 600; }
+  .dash-kpi__value { font-size: 34px; font-weight: 800; line-height: 1.1; margin-top: 4px; color: #2b2426; }
+  .dash-kpi__foot { font-size: 12.5px; font-weight: 600; margin-top: 6px; color: var(--acc, #7a2531); }
+
+  .dash-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .dash-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 992px) { .dash-grid, .dash-grid-3 { grid-template-columns: 1fr; } }
+  .dash-card { background: #fff; border: 1px solid #ece7e8; border-radius: 18px; padding: 20px;
+    box-shadow: 0 6px 20px rgba(60,20,25,.05); }
+  .dash-card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .dash-card__title { font-weight: 700; font-size: 16px; color: #2b2426; }
+  .dash-card__meta { font-size: 12px; color: #9a8f91; }
+
+  /* Grafico de barras */
+  .dash-bars { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding-top: 10px; }
+  .dash-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
+  .dash-bar__val { font-size: 12px; font-weight: 700; color: #7a2531; }
+  .dash-bar__col { width: 100%; max-width: 46px; border-radius: 10px 10px 4px 4px;
+    background: linear-gradient(180deg, #9c3341, #6d1f2a); min-height: 4px; transition: height .4s ease; }
+  .dash-bar__lbl { font-size: 11px; color: #9a8f91; font-weight: 600; }
+
+  /* Ranking */
+  .dash-rank { display: flex; flex-direction: column; gap: 14px; }
+  .dash-rank__row { display: grid; grid-template-columns: 1fr auto; gap: 4px; }
+  .dash-rank__name { font-size: 14px; font-weight: 600; color: #2b2426; }
+  .dash-rank__val { font-size: 13px; font-weight: 700; color: #7a2531; }
+  .dash-rank__track { grid-column: 1 / -1; height: 8px; background: #f3edee; border-radius: 6px; overflow: hidden; }
+  .dash-rank__fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #9c3341, #6d1f2a); }
+
+  .dash-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .dash-list li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f4eff0; font-size: 14px; }
+  .dash-list li:last-child { border-bottom: 0; }
+  .dash-avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+    background: #f6eaec; color: #7a2531; font-weight: 700; font-size: 14px; flex: none; }
+  .dash-time { font-weight: 700; color: #7a2531; background: #f6eaec; border-radius: 8px; padding: 3px 8px; font-size: 12.5px; flex: none; }
+  .dash-empty { color: #b3a9ab; font-size: 14px; padding: 8px 0; }
+  .dash-alert { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  .dash-alert--danger { background: #fdecec; color: #b3261e; }
+  .dash-alert--warn { background: #fff5e6; color: #a15c00; }
+  .dash-alert--ok { background: #eafaf0; color: #1f7a45; }
+</style>
+
 <div class="mayris-page">
   <div class="mayris-page__header">
     <div>
@@ -7,103 +64,135 @@
       <h2 class="mayris-title">Visao geral do studio</h2>
     </div>
     <div class="mayris-page__actions">
-      <button class="btn btn-outline-secondary">Filtrar periodo</button>
       <button class="btn btn-primary mayris-btn-primary">Exportar</button>
     </div>
   </div>
 
-  <div class="mayris-kpi-grid">
-    <div class="mayris-card">
-      <div class="mayris-card__label">Alunos ativos</div>
-      <div class="mayris-card__value">{{ alunos }}</div>
-      <div class="mayris-card__trend is-up">+5% no mes</div>
-    </div>
-    <div class="mayris-card">
-      <div class="mayris-card__label">Contratos</div>
-      <div class="mayris-card__value">{{ contratos }}</div>
-      <div class="mayris-card__trend is-up">Estavel</div>
-    </div>
-    <div class="mayris-card">
-      <div class="mayris-card__label">Aulas hoje</div>
-      <div class="mayris-card__value">{{ reservas_hoje }}</div>
-      <div class="mayris-card__trend is-up">Agenda ativa</div>
-    </div>
-    <div class="mayris-card">
-      <div class="mayris-card__label">Receber em aberto</div>
-      <div class="mayris-card__value">{{ receber_aberto }}</div>
-      <div class="mayris-card__trend is-down">Atencao</div>
-    </div>
+  <div class="dash-kpis">
+    <a class="dash-kpi" href="/cadastros/alunos/" style="--acc:#2e7d5b; --acc-soft:#e7f4ee;">
+      <div class="dash-kpi__top">
+        <div class="dash-kpi__label">Alunos ativos</div>
+        <div class="dash-kpi__icon">🧑‍🤝‍🧑</div>
+      </div>
+      <div class="dash-kpi__value">{{ alunos }}</div>
+      <div class="dash-kpi__foot">Ver alunos →</div>
+    </a>
+    <a class="dash-kpi" href="/contratos/gestao/" style="--acc:#7a2531; --acc-soft:#f6eaec;">
+      <div class="dash-kpi__top">
+        <div class="dash-kpi__label">Contratos</div>
+        <div class="dash-kpi__icon">📄</div>
+      </div>
+      <div class="dash-kpi__value">{{ contratos }}</div>
+      <div class="dash-kpi__foot">Gestao de contratos →</div>
+    </a>
+    <a class="dash-kpi" href="/agenda/aulas/" style="--acc:#2f6fb0; --acc-soft:#e8f1fa;">
+      <div class="dash-kpi__top">
+        <div class="dash-kpi__label">Aulas hoje</div>
+        <div class="dash-kpi__icon">📅</div>
+      </div>
+      <div class="dash-kpi__value">{{ reservas_hoje }}</div>
+      <div class="dash-kpi__foot">Abrir agenda →</div>
+    </a>
+    <a class="dash-kpi" href="/financeiro/contas-receber/" style="--acc:#c25a00; --acc-soft:#fdefe1;">
+      <div class="dash-kpi__top">
+        <div class="dash-kpi__label">Receber em aberto</div>
+        <div class="dash-kpi__icon">💰</div>
+      </div>
+      <div class="dash-kpi__value">{{ receber_aberto }}</div>
+      <div class="dash-kpi__foot">{% if contas_atrasadas %}{{ contas_atrasadas }} em atraso →{% else %}Ver financeiro →{% endif %}</div>
+    </a>
   </div>
 
-  <div class="mayris-grid-2">
-    <div class="mayris-card mayris-card--chart">
-      <div class="mayris-card__header">
+  <div class="dash-grid">
+    <div class="dash-card">
+      <div class="dash-card__head">
         <div>
-          <div class="mayris-card__label">Aulas por mes</div>
-          <div class="mayris-card__meta">Ultimos 6 meses</div>
+          <div class="dash-card__title">Aulas por mes</div>
+          <div class="dash-card__meta">Ultimos 6 meses · {{ total_reservas_periodo }} aulas no total</div>
         </div>
-        <button class="btn btn-sm btn-outline-secondary">Periodo</button>
       </div>
-      <ul class="mayris-list">
+      <div class="dash-bars">
         {% for item in aulas_por_mes %}
-          <li>{{ item.label }}: {{ item.total }}</li>
+          <div class="dash-bar">
+            <div class="dash-bar__val">{{ item.total }}</div>
+            <div class="dash-bar__col" style="height: {{ item.pct }}%;"></div>
+            <div class="dash-bar__lbl">{{ item.label }}</div>
+          </div>
         {% empty %}
-          <li class="text-muted">Sem dados disponiveis.</li>
+          <div class="dash-empty">Sem dados disponiveis.</div>
         {% endfor %}
-      </ul>
+      </div>
     </div>
-    <div class="mayris-card mayris-card--chart">
-      <div class="mayris-card__header">
+
+    <div class="dash-card">
+      <div class="dash-card__head">
         <div>
-          <div class="mayris-card__label">Aulas por professor</div>
-          <div class="mayris-card__meta">Ranking</div>
+          <div class="dash-card__title">Aulas por professor</div>
+          <div class="dash-card__meta">Ranking do periodo</div>
         </div>
       </div>
-      <ul class="mayris-list">
+      <div class="dash-rank">
         {% for item in aulas_por_professor %}
-          <li>{{ item.aulaSessao__profissional__profissional }}: {{ item.total }}</li>
+          <div class="dash-rank__row">
+            <div class="dash-rank__name">{{ item.nome }}</div>
+            <div class="dash-rank__val">{{ item.total }}</div>
+            <div class="dash-rank__track"><div class="dash-rank__fill" style="width: {{ item.pct }}%;"></div></div>
+          </div>
         {% empty %}
-          <li class="text-muted">Sem dados disponiveis.</li>
+          <div class="dash-empty">Sem dados disponiveis.</div>
         {% endfor %}
-      </ul>
+      </div>
     </div>
   </div>
 
-  <div class="mayris-grid-3">
-    <div class="mayris-card">
-      <div class="mayris-card__label">Aniversariantes do mes</div>
-      <ul class="mayris-list">
+  <div class="dash-grid-3">
+    <div class="dash-card">
+      <div class="dash-card__title" style="margin-bottom:12px;">🎂 Aniversariantes do mes</div>
+      <ul class="dash-list">
         {% for aluno in aniversariantes_mes %}
-          <li>{{ aluno.dsNome }} - {{ aluno.dtNascimento|date:"d/m" }}</li>
-        {% empty %}
-          <li class="text-muted">Sem dados disponiveis.</li>
-        {% endfor %}
-      </ul>
-    </div>
-    <div class="mayris-card">
-      <div class="mayris-card__label">Proximas aulas</div>
-      <ul class="mayris-list">
-        {% for reserva in proximas_aulas %}
           <li>
-            {{ reserva.aulaSessao.data|date:"d/m" }}
-            {{ reserva.aulaSessao.horaInicio|time:"H:i" }} -
-            {{ reserva.aluno.dsNome }}
-            {% if reserva.aulaSessao.profissional %} ({{ reserva.aulaSessao.profissional.profissional }}){% endif %}
+            <span class="dash-avatar">{{ aluno.dsNome|slice:":1"|upper }}</span>
+            <span style="flex:1;">{{ aluno.dsNome }}</span>
+            <span class="dash-time">{{ aluno.dtNascimento|date:"d/m" }}</span>
           </li>
         {% empty %}
-          <li class="text-muted">Sem dados disponiveis.</li>
+          <li class="dash-empty">Sem aniversariantes este mes.</li>
         {% endfor %}
       </ul>
     </div>
-    <div class="mayris-card">
-      <div class="mayris-card__label">Alertas</div>
-      <ul class="mayris-list">
-        {% for alerta in alertas %}
-          <li>{{ alerta }}</li>
+
+    <div class="dash-card">
+      <div class="dash-card__title" style="margin-bottom:12px;">⏰ Proximas aulas</div>
+      <ul class="dash-list">
+        {% for reserva in proximas_aulas %}
+          <li>
+            <span class="dash-time">{{ reserva.aulaSessao.data|date:"d/m" }} {{ reserva.aulaSessao.horaInicio|time:"H:i" }}</span>
+            <span style="flex:1;">
+              {{ reserva.aluno.dsNome }}
+              {% if reserva.aulaSessao.profissional %}<div class="dash-card__meta">{{ reserva.aulaSessao.profissional.profissional }}</div>{% endif %}
+            </span>
+          </li>
         {% empty %}
-          <li class="text-muted">Sem dados disponiveis.</li>
+          <li class="dash-empty">Nenhuma aula agendada.</li>
         {% endfor %}
       </ul>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-card__title" style="margin-bottom:12px;">🔔 Alertas</div>
+      {% if contas_atrasadas %}
+        <a class="dash-alert dash-alert--danger" href="/financeiro/contas-receber/" style="text-decoration:none;">
+          ⚠️ {{ contas_atrasadas }} faturas em atraso
+        </a>
+      {% endif %}
+      {% if contratos_vencendo %}
+        <a class="dash-alert dash-alert--warn" href="/contratos/gestao/?filtro=vencendo" style="text-decoration:none;">
+          ⏳ {{ contratos_vencendo }} contratos vencendo em 7 dias
+        </a>
+      {% endif %}
+      {% if not contas_atrasadas and not contratos_vencendo %}
+        <div class="dash-alert dash-alert--ok">✅ Tudo em dia por aqui!</div>
+      {% endif %}
     </div>
   </div>
 </div>

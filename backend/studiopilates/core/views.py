@@ -599,12 +599,23 @@ def dashboard(request):
             }
         )
 
-    aulas_por_professor = (
+    # Percentual para as barras do grafico de aulas por mes
+    max_mes = max((item["total"] for item in aulas_por_mes), default=0) or 1
+    for item in aulas_por_mes:
+        item["pct"] = round(item["total"] / max_mes * 100)
+
+    aulas_por_professor = list(
         models.Reserva.objects.filter(aulaSessao__data__gte=start_month, aulaSessao__profissional__isnull=False)
         .values("aulaSessao__profissional__profissional")
         .annotate(total=Count("id"))
         .order_by("-total")[:6]
     )
+    max_prof = max((item["total"] for item in aulas_por_professor), default=0) or 1
+    for item in aulas_por_professor:
+        item["nome"] = item["aulaSessao__profissional__profissional"]
+        item["pct"] = round(item["total"] / max_prof * 100)
+
+    total_reservas_periodo = sum(item["total"] for item in aulas_por_mes)
     context = {
         "alunos": models.Aluno.objects.count(),
         "contratos": models.Contrato.objects.count(),
@@ -615,6 +626,9 @@ def dashboard(request):
         "alertas": alertas,
         "aulas_por_mes": aulas_por_mes,
         "aulas_por_professor": aulas_por_professor,
+        "total_reservas_periodo": total_reservas_periodo,
+        "contas_atrasadas": contas_atrasadas,
+        "contratos_vencendo": contratos_vencendo,
         "breadcrumbs": [("Home", "#")],
         "active_menu": "dashboard",
     }
