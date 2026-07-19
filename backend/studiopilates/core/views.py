@@ -1260,7 +1260,9 @@ def aluno_aula_avulsa_agenda(request, aluno_id, pk):
                     if models.Reserva.objects.filter(aluno=pacote.aluno, aulaSessao=aula).exists():
                         continue
                     reserva = services.create_reserva(pacote.aluno, aula, status="RESERVADA", pacote_avulso=pacote)
-                    if not models.ContasReceber.objects.filter(reserva=reserva).exists():
+                    # Aulas de cortesia/parceria (Total Pass, WellHub) tem valor 0:
+                    # nao gera conta a receber para nao poluir o financeiro.
+                    if (pacote.valor_aula or 0) > 0 and not models.ContasReceber.objects.filter(reserva=reserva).exists():
                         models.ContasReceber.objects.create(
                             contrato=None,
                             reserva=reserva,
