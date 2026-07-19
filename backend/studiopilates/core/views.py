@@ -647,6 +647,7 @@ def contrato_whatsapp(request, pk):
 
 
 def aluno_detail(request, pk):
+    services.concluir_aulas_passadas()
     is_professor = _is_professor_user(request.user)
     aluno = get_object_or_404(models.Aluno, pk=pk)
     endereco = aluno.cdEndereco
@@ -3583,6 +3584,7 @@ def _cor_status_reserva(r):
 
 @login_required
 def aulas_semana(request):
+    services.concluir_aulas_passadas()
     week_str = request.GET.get("week", "").strip()
     profissional_id = request.GET.get("profissional", "").strip()
     profissional_id = _aplica_filtro_professor(request, profissional_id)
@@ -3692,6 +3694,7 @@ def aulas_semana(request):
 
 
 def aulas_list(request):
+    services.concluir_aulas_passadas()
     qs = models.AulaSessao.objects.select_related("unidade", "tipoServico", "profissional")
     week_str = request.GET.get("week", "").strip()
     profissional_id = request.GET.get("profissional", "").strip()
@@ -3908,6 +3911,7 @@ def _horario_servicos_ids(unidade_id, data_value, hora_inicio, hora_fim, fallbac
 
 @login_required
 def aulas_operacao_api(request):
+    services.concluir_aulas_passadas()
     target = _parse_date(request.GET.get("data", "").strip())
     periodo = request.GET.get("periodo", "hoje").strip()
     start_date, end_date = _build_period_range(target, periodo)

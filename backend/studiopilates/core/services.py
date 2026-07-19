@@ -324,3 +324,22 @@ def enviar_contrato_para_assinatura(contrato, base_url):
     msg.attach_alternative(body_html, "text/html")
     msg.send(fail_silently=True)
     return True
+
+
+def concluir_aulas_passadas():
+    """Marca como CONCLUIDA (realizada) toda reserva sem tratativa cujo horario
+    da aula ja passou. Aulas canceladas, faltas e ja concluidas nao sao tocadas.
+    Retorna a quantidade de reservas atualizadas."""
+    from django.db.models import Q
+
+    agora = timezone.localtime()
+    hoje = agora.date()
+    hora_atual = agora.time()
+    return (
+        models.Reserva.objects.filter(status__in=["RESERVADA", "PENDENTE"])
+        .filter(
+            Q(aulaSessao__data__lt=hoje)
+            | Q(aulaSessao__data=hoje, aulaSessao__horaFim__lte=hora_atual)
+        )
+        .update(status="CONCLUIDA")
+    )
