@@ -2633,7 +2633,7 @@
 
           <div class="modal-body">
 
-            <form class="modal-form" method="post" action="{% url 'reservas_edit' r.id %}">
+            <form class="modal-form" method="post" action="{% url 'reservas_editar_aula' r.id %}">
 
               {% csrf_token %}
 
@@ -2682,6 +2682,21 @@
                     </select>
 
                     <div class="form-text text-muted js-reserva-empty d-none">Sem horarios disponiveis para esta data.</div>
+
+                  </div>
+
+                  <div class="col-md-6">
+
+                    <label>Professor</label>
+
+                    <select class="form-select" name="profissional">
+                      <option value="">Manter o atual</option>
+                      {% for prof in profissionais %}
+                        <option value="{{ prof.id }}" {% if r.aulaSessao.profissional_id == prof.id %}selected{% endif %}>{{ prof.profissional }}</option>
+                      {% endfor %}
+                    </select>
+
+                    <div class="form-text text-muted">Altera o professor desta aula (vale para todos os alunos do mesmo horario).</div>
 
                   </div>
 

@@ -1331,6 +1331,47 @@ def aluno_aula_avulsa_agenda(request, aluno_id, pk):
 
 @login_required
 @require_POST
+def aluno_reserva_editar(request, reserva_id):
+    """Edicao da aula do aluno pela ficha: data/horario (via aulaSessao) e
+    tambem o professor, que fica na sessao da aula."""
+    from django.core.exceptions import ValidationError
+
+    reserva = get_object_or_404(models.Reserva.objects.select_related("aulaSessao"), pk=reserva_id)
+    next_url = (request.POST.get("next") or "").strip()
+    if not next_url.startswith("/"):
+        next_url = f"{reverse('alunos_detail', args=[reserva.aluno_id])}?tab=agenda"
+
+    def _pk(valor):
+        try:
+            return int(valor)
+        except (TypeError, ValueError):
+            return None
+
+    nova_sessao = models.AulaSessao.objects.filter(pk=_pk(request.POST.get("aulaSessao"))).first()
+    if not nova_sessao:
+        messages.error(request, "Selecione um horario valido.")
+        return redirect(next_url)
+
+    profissional = models.Profissional.objects.filter(pk=_pk(request.POST.get("profissional"))).first()
+    if profissional and nova_sessao.profissional_id != profissional.id:
+        nova_sessao.profissional = profissional
+        nova_sessao.save(update_fields=["profissional"])
+
+    status = request.POST.get("status") or reserva.status
+    if status in dict(models.Reserva.STATUS_CHOICES):
+        reserva.status = status
+    reserva.aulaSessao = nova_sessao
+    try:
+        reserva.full_clean()
+        reserva.save()
+        messages.success(request, "Aula atualizada.")
+    except ValidationError as exc:
+        messages.error(request, "Nao foi possivel salvar: " + "; ".join(exc.messages))
+    return redirect(next_url)
+
+
+@login_required
+@require_POST
 def aluno_aula_avaliativa_create(request, aluno_id):
     aluno = get_object_or_404(models.Aluno, pk=aluno_id)
     redir = f"{reverse('alunos_detail', args=[aluno.pk])}?tab=agenda"

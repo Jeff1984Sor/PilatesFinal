@@ -198,6 +198,7 @@ urlpatterns = [
     path("contratos/<int:pk>/excluir/", lambda r, pk: views.delete_view(r, models.Contrato, "contratos_list", pk), name="contratos_delete"),
     path("contratos/<int:pk>/agenda/", views.contrato_agenda, name="contratos_agenda"),
     path("reservas/<int:pk>/editar/", lambda r, pk: views.edit_view(r, models.Reserva, forms.ReservaForm, "alunos_list", pk), name="reservas_edit"),
+    path("reservas/<int:reserva_id>/editar-aula/", views.aluno_reserva_editar, name="reservas_editar_aula"),
     path("reservas/<int:pk>/excluir/", lambda r, pk: views.delete_view(r, models.Reserva, "alunos_list", pk), name="reservas_delete"),
     path("cadastros/alunos/<int:aluno_id>/reservas/excluir/", views.aluno_reservas_delete_bulk, name="alunos_reservas_delete_bulk"),
     path("financeiro/contas-receber/<int:pk>/baixar/", views.baixar_conta_receber, name="contas_receber_baixar"),
