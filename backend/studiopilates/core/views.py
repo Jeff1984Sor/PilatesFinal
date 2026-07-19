@@ -665,17 +665,29 @@ def aluno_detail(request, pk):
         .select_related("unidade", "profissional", "tipoServico")
         .order_by("-data", "-horaInicio")
     )
-    reservas = (
-        models.Reserva.objects.filter(aluno=aluno)
-        .select_related(
-            "aulaSessao",
-            "aulaSessao__profissional",
-            "aulaSessao__unidade",
-            "aulaSessao__tipoServico",
-            "pacote_avulso",
-            "pacote_avulso__plano",
-        )
-        .order_by("aulaSessao__data", "aulaSessao__horaInicio")
+    reservas_base = models.Reserva.objects.filter(aluno=aluno).select_related(
+        "aulaSessao",
+        "aulaSessao__profissional",
+        "aulaSessao__unidade",
+        "aulaSessao__tipoServico",
+        "pacote_avulso",
+        "pacote_avulso__plano",
+    )
+    # Filtro por status das aulas (padrao: apenas Reservadas)
+    status_validos = {valor for valor, _ in models.Reserva.STATUS_CHOICES}
+    status_filtro = [s for s in request.GET.getlist("status") if s in status_validos]
+    if not status_filtro:
+        status_filtro = ["RESERVADA"]
+    contagem_status = {
+        row["status"]: row["total"]
+        for row in reservas_base.values("status").annotate(total=Count("id"))
+    }
+    # "Aulas que faltam": reservadas que ainda vao acontecer
+    aulas_restantes = reservas_base.filter(
+        status="RESERVADA", aulaSessao__data__gte=timezone.localdate()
+    ).count()
+    reservas = reservas_base.filter(status__in=status_filtro).order_by(
+        "aulaSessao__data", "aulaSessao__horaInicio"
     )
     reserva_forms = {reserva.id: forms.ReservaForm(instance=reserva) for reserva in reservas}
     reserva_slots = _build_reserva_slots(reservas)
@@ -764,6 +776,10 @@ def aluno_detail(request, pk):
         "reservas": reservas,
         "reserva_forms": reserva_forms,
         "reserva_slots": reserva_slots,
+        "status_choices": models.Reserva.STATUS_CHOICES,
+        "status_filtro": status_filtro,
+        "contagem_status": contagem_status,
+        "aulas_restantes": aulas_restantes,
         "evolucoes": evolucoes,
         "avaliacoes": avaliacoes,
         "contas_receber": contas_receber,

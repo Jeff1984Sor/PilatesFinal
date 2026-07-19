@@ -581,6 +581,26 @@
               </div>
             {% endif %}
 
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3 p-3 border rounded-4" style="background:#faf7f8;">
+              <div class="text-center px-2">
+                <div class="small text-muted text-uppercase" style="letter-spacing:.04em;">Aulas que faltam</div>
+                <div class="fw-bold" style="font-size:32px; line-height:1.1; color:#7a2531;">{{ aulas_restantes }}</div>
+              </div>
+              <form method="get" class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
+                <input type="hidden" name="tab" value="agenda" />
+                <span class="small text-muted">Status:</span>
+                {% for valor, rotulo in status_choices %}
+                  <div class="form-check form-check-inline m-0">
+                    <input class="form-check-input" type="checkbox" name="status" value="{{ valor }}" id="stFiltro{{ valor }}" {% if valor in status_filtro %}checked{% endif %} />
+                    <label class="form-check-label small" for="stFiltro{{ valor }}">
+                      {{ rotulo }} <span class="text-muted">({{ contagem_status|get_item:valor|default:0 }})</span>
+                    </label>
+                  </div>
+                {% endfor %}
+                <button class="btn btn-sm btn-outline-secondary" type="submit">Aplicar</button>
+              </form>
+            </div>
+
             {% if reservas %}
 
               <form
@@ -672,7 +692,7 @@
 
             {% else %}
 
-              <div class="text-muted">Sem aulas vinculadas.</div>
+              <div class="text-muted">Nenhuma aula com o status selecionado. Ajuste o filtro acima.</div>
 
             {% endif %}
 
