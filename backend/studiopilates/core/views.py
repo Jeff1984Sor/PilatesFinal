@@ -1353,10 +1353,15 @@ def aluno_aula_avaliativa_create(request, aluno_id):
     duracao = unidade.duracao_aula_minutos or 50
     hora_fim = (datetime.combine(data_val, hora_inicio) + timedelta(minutes=duracao)).time()
 
+    tipo = (request.POST.get("tipo") or "AVALIATIVA").upper()
+    if tipo not in dict(models.AulaAvaliativa.TIPO_CHOICES):
+        tipo = "AVALIATIVA"
+
     ultimo = models.AulaAvaliativa.objects.order_by("-cdAulaAvaliativa").first()
     cd = (ultimo.cdAulaAvaliativa if ultimo else 0) + 1
     avaliativa = models.AulaAvaliativa.objects.create(
         cdAulaAvaliativa=cd,
+        tipo=tipo,
         aluno=aluno,
         unidade=unidade,
         profissional=profissional,
@@ -1384,16 +1389,17 @@ def aluno_aula_avaliativa_create(request, aluno_id):
             horaInicio=hora_inicio,
             horaFim=hora_fim,
         )
+    rotulo = avaliativa.get_tipo_display()
     if models.Reserva.objects.filter(aluno=aluno, aulaSessao=aula).exists():
-        messages.success(request, "Aula avaliativa registrada (aluno ja tinha reserva nesse horario).")
+        messages.success(request, f"{rotulo} registrada (aluno ja tinha reserva nesse horario).")
         return redirect(redir)
     try:
         reserva = services.create_reserva(aluno, aula, status="RESERVADA")
         reserva.aula_avaliativa = avaliativa
         reserva.save(update_fields=["aula_avaliativa"])
-        messages.success(request, "Aula avaliativa agendada com sucesso.")
+        messages.success(request, f"{rotulo} agendada com sucesso.")
     except Exception:
-        messages.warning(request, "Aula avaliativa criada, mas o horario esta sem vaga na agenda.")
+        messages.warning(request, f"{rotulo} criada, mas o horario esta sem vaga na agenda.")
     return redirect(redir)
 
 

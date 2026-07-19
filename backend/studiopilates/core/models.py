@@ -411,8 +411,14 @@ class AulaAvaliativa(models.Model):
         ("CANCELADA", "Cancelada"),
         ("CONVERTIDA", "Convertida em contrato"),
     ]
+    TIPO_CHOICES = [
+        ("AVALIATIVA", "Aula Avaliativa"),
+        ("TOTALPASS", "Aula Avulsa Total Pass"),
+        ("WELLHUB", "Aula Avulsa WellHub"),
+    ]
 
     cdAulaAvaliativa = models.IntegerField(unique=True, db_index=True)
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default="AVALIATIVA")
     aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name="aulas_avaliativas")
     unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT)
     profissional = models.ForeignKey(Profissional, on_delete=models.PROTECT)

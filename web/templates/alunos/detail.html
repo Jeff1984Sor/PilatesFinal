@@ -494,6 +494,9 @@
                 <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#novaAulaAvaliativa">
                   + Aula Avaliativa
                 </button>
+                <button class="btn btn-sm btn-outline-success" type="button" data-bs-toggle="modal" data-bs-target="#novaAulaParceria">
+                  + Aula Total Pass / WellHub
+                </button>
                 {% if reservas %}
                   <button
                     class="btn btn-sm btn-outline-danger"
@@ -540,14 +543,14 @@
             {% endif %}
 
             {% if aulas_avaliativas %}
-              <div class="fw-semibold mb-2">Aulas avaliativas</div>
+              <div class="fw-semibold mb-2">Aulas avaliativas e de parceria</div>
               <div class="row g-3 mb-3">
                 {% for av in aulas_avaliativas %}
                   <div class="col-md-6">
                     <div class="border rounded-4 p-3 h-100">
                       <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                         <div>
-                          <div class="fw-semibold">Avaliativa — {{ av.data|date:"d/m/Y" }} {{ av.horaInicio|time:"H:i" }}</div>
+                          <div class="fw-semibold">{{ av.get_tipo_display }} — {{ av.data|date:"d/m/Y" }} {{ av.horaInicio|time:"H:i" }}</div>
                           <div class="small text-muted">{{ av.tipoServico.dsTipoServico }} | {{ av.unidade.dsUnidade }} | {{ av.profissional.profissional }}</div>
                         </div>
                         {% if av.status == "CONVERTIDA" %}
@@ -567,7 +570,9 @@
                         </div>
                       {% endif %}
                       <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#fichaAvaliativa{{ av.id }}">Ficha de avaliacao</button>
+                        {% if av.tipo == "AVALIATIVA" %}
+                          <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#fichaAvaliativa{{ av.id }}">Ficha de avaliacao</button>
+                        {% endif %}
                         {% if av.status != "CONVERTIDA" %}
                           <form method="post" action="{% url 'alunos_aula_avaliativa_converter' aluno.id av.id %}" onsubmit="return confirm('Marcar como convertida e ir para Contratos?');">
                             {% csrf_token %}
@@ -830,6 +835,7 @@
                 <div class="modal-body">
                   <form class="modal-form" method="post" action="{% url 'alunos_aula_avaliativa_create' aluno.id %}">
                     {% csrf_token %}
+                    <input type="hidden" name="tipo" value="AVALIATIVA" />
                     <div class="alert alert-info py-2 small">O horario final e calculado pela duracao da aula da unidade.</div>
                     <div class="row g-3">
                       <div class="col-md-6">
@@ -870,6 +876,72 @@
                     <div class="d-flex justify-content-end gap-2 pt-3">
                       <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
                       <button class="btn btn-primary" type="submit">Agendar avaliativa</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal fade" id="novaAulaParceria" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <div>
+                    <h5 class="modal-title">Nova aula Total Pass / WellHub</h5>
+                    <div class="small text-muted">Aula avulsa de parceria, sem valor e sem cobranca.</div>
+                  </div>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <form class="modal-form" method="post" action="{% url 'alunos_aula_avaliativa_create' aluno.id %}">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Parceria</label>
+                        <select class="form-select" name="tipo" required>
+                          <option value="TOTALPASS">Total Pass</option>
+                          <option value="WELLHUB">WellHub</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Unidade</label>
+                        <select class="form-select" name="unidade" required>
+                          {% for unidade in unidades %}
+                            <option value="{{ unidade.id }}" {% if unidade.id == aluno.cdUnidade_id %}selected{% endif %}>{{ unidade.dsUnidade }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Profissional</label>
+                        <select class="form-select" name="profissional" required>
+                          <option value="">Selecione</option>
+                          {% for prof in profissionais %}
+                            <option value="{{ prof.id }}">{{ prof.profissional }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Tipo de servico</label>
+                        <select class="form-select" name="tipoServico" required>
+                          <option value="">Selecione</option>
+                          {% for ts in tipos_servico %}
+                            <option value="{{ ts.id }}">{{ ts.dsTipoServico }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Data</label>
+                        <input class="form-control" type="date" name="data" value="{{ today_date|date:'Y-m-d' }}" required />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Horario</label>
+                        <input class="form-control" type="time" name="horaInicio" required />
+                      </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-3">
+                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <button class="btn btn-success" type="submit">Agendar aula</button>
                     </div>
                   </form>
                 </div>
