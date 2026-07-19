@@ -1344,10 +1344,10 @@ def aluno_aula_avaliativa_create(request, aluno_id):
 
     unidade = models.Unidade.objects.filter(pk=_pk(request.POST.get("unidade"))).first()
     profissional = models.Profissional.objects.filter(pk=_pk(request.POST.get("profissional"))).first()
-    tipo = models.TipoServico.objects.filter(pk=_pk(request.POST.get("tipoServico"))).first()
+    tipo_servico = models.TipoServico.objects.filter(pk=_pk(request.POST.get("tipoServico"))).first()
     data_raw = (request.POST.get("data") or "").strip()
     hora_raw = (request.POST.get("horaInicio") or "").strip()[:5]
-    if not (unidade and profissional and tipo and data_raw and hora_raw):
+    if not (unidade and profissional and tipo_servico and data_raw and hora_raw):
         messages.error(request, "Preencha unidade, profissional, tipo de servico, data e horario.")
         return redirect(redir)
     try:
@@ -1360,19 +1360,19 @@ def aluno_aula_avaliativa_create(request, aluno_id):
     duracao = unidade.duracao_aula_minutos or 50
     hora_fim = (datetime.combine(data_val, hora_inicio) + timedelta(minutes=duracao)).time()
 
-    tipo = (request.POST.get("tipo") or "AVALIATIVA").upper()
-    if tipo not in dict(models.AulaAvaliativa.TIPO_CHOICES):
-        tipo = "AVALIATIVA"
+    tipo_aula = (request.POST.get("tipo") or "AVALIATIVA").upper()
+    if tipo_aula not in dict(models.AulaAvaliativa.TIPO_CHOICES):
+        tipo_aula = "AVALIATIVA"
 
     ultimo = models.AulaAvaliativa.objects.order_by("-cdAulaAvaliativa").first()
     cd = (ultimo.cdAulaAvaliativa if ultimo else 0) + 1
     avaliativa = models.AulaAvaliativa.objects.create(
         cdAulaAvaliativa=cd,
-        tipo=tipo,
+        tipo=tipo_aula,
         aluno=aluno,
         unidade=unidade,
         profissional=profissional,
-        tipoServico=tipo,
+        tipoServico=tipo_servico,
         data=data_val,
         horaInicio=hora_inicio,
         horaFim=hora_fim,
@@ -1381,7 +1381,7 @@ def aluno_aula_avaliativa_create(request, aluno_id):
     # Agenda: cria/encontra a AulaSessao e reserva o aluno (aula gratuita, sem cobranca)
     aula = models.AulaSessao.objects.filter(
         unidade=unidade,
-        tipoServico=tipo,
+        tipoServico=tipo_servico,
         profissional=profissional,
         data=data_val,
         horaInicio=hora_inicio,
@@ -1390,7 +1390,7 @@ def aluno_aula_avaliativa_create(request, aluno_id):
     if not aula:
         aula = models.AulaSessao.objects.create(
             unidade=unidade,
-            tipoServico=tipo,
+            tipoServico=tipo_servico,
             profissional=profissional,
             data=data_val,
             horaInicio=hora_inicio,
