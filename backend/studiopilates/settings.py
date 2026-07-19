@@ -118,3 +118,25 @@ except ValueError:
 TOTALPASS_WEBHOOK_TOKEN = os.getenv("TOTALPASS_WEBHOOK_TOKEN", "")
 TOTALPASS_UNIDADE_ID = os.getenv("TOTALPASS_UNIDADE_ID", "")
 TOTALPASS_BOOKING_BASE_URL = os.getenv("TOTALPASS_BOOKING_BASE_URL", "https://booking-api.totalpass.com")
+
+
+# Em producao (DEBUG=False) o Django nao imprime tracebacks no console por
+# padrao, o que deixa o journalctl mudo em erros 500. Esta config envia os
+# erros de request para o stderr, onde o systemd/journalctl captura.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {"format": "[{asctime}] {levelname} {name}: {message}", "style": "{"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+        "studiopilates": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}

@@ -1335,11 +1335,18 @@ def aluno_aula_avaliativa_create(request, aluno_id):
     aluno = get_object_or_404(models.Aluno, pk=aluno_id)
     redir = f"{reverse('alunos_detail', args=[aluno.pk])}?tab=agenda"
 
-    unidade = models.Unidade.objects.filter(pk=request.POST.get("unidade")).first()
-    profissional = models.Profissional.objects.filter(pk=request.POST.get("profissional")).first()
-    tipo = models.TipoServico.objects.filter(pk=request.POST.get("tipoServico")).first()
-    data_raw = request.POST.get("data") or ""
-    hora_raw = request.POST.get("horaInicio") or ""
+    def _pk(valor):
+        """Converte para int com seguranca: filter(pk='') estoura ValueError."""
+        try:
+            return int(valor)
+        except (TypeError, ValueError):
+            return None
+
+    unidade = models.Unidade.objects.filter(pk=_pk(request.POST.get("unidade"))).first()
+    profissional = models.Profissional.objects.filter(pk=_pk(request.POST.get("profissional"))).first()
+    tipo = models.TipoServico.objects.filter(pk=_pk(request.POST.get("tipoServico"))).first()
+    data_raw = (request.POST.get("data") or "").strip()
+    hora_raw = (request.POST.get("horaInicio") or "").strip()[:5]
     if not (unidade and profissional and tipo and data_raw and hora_raw):
         messages.error(request, "Preencha unidade, profissional, tipo de servico, data e horario.")
         return redirect(redir)
