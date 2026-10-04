@@ -595,3 +595,61 @@ footer, .mayris-footer { color: var(--ink-soft); }
   white-space: pre-wrap;
   font-size: 14px;
 }
+
+/* =====================================================================
+   Agenda operacional: horário > profissional > alunos
+   ===================================================================== */
+.aulas-time-row { border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow-md); grid-template-columns: 96px minmax(0, 1fr); }
+.aulas-time-label {
+  background: linear-gradient(160deg, var(--m-950), var(--m-800));
+  border-radius: 16px;
+  align-self: stretch;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 14px 8px;
+}
+.aulas-time-label__time { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1; }
+
+.aulas-prof-groups { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.aulas-prof-group {
+  --pc: var(--m-700);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pc) 6%, #ffffff), #ffffff 140px);
+  border: 1px solid color-mix(in srgb, var(--pc) 22%, #ffffff);
+  border-left: 6px solid var(--pc);
+  border-radius: 18px;
+  padding: 12px 14px 14px;
+}
+
+.aulas-prof-group__head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.aulas-prof-group__avatar {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--pc);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 14px -6px var(--pc);
+}
+.aulas-prof-group__name { font-family: var(--font-display); font-size: 21px; font-weight: 600; color: var(--m-900); line-height: 1; }
+.aulas-prof-group__count {
+  margin-left: auto;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pc) 12%, #ffffff);
+  color: var(--pc);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* cartões de aluno em colunas de largura igual */
+.aulas-prof-group .aulas-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; }
+.aulas-prof-group .aulas-card { flex: none; }
+
+@media (max-width: 768px) {
+  .aulas-time-row { grid-template-columns: 1fr; }
+  .aulas-time-label { flex-direction: row; justify-content: space-between; }
+  .aulas-prof-group .aulas-cards { grid-template-columns: 1fr; }
+}

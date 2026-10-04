@@ -1337,6 +1337,15 @@ function initAulasOperacao() {
     evolucaoText.focus();
   }
 
+  function esc(valor) {
+    return String(valor == null ? "" : valor)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function render() {
     if (!content) return;
     content.innerHTML = "";
@@ -1362,9 +1371,36 @@ function initAulasOperacao() {
           ${dateLabel ? `<div class="aulas-time-label__date">${dateLabel}</div>` : ""}
           <div class="aulas-time-label__count">${grouped[time].length} aluno(s)</div>
         `;
+        // Dentro do horario, um bloco por profissional (nome, contagem e cor propria)
+        const groupsWrap = document.createElement("div");
+        groupsWrap.className = "aulas-prof-groups";
+        const byProf = {};
+        grouped[time].forEach((item) => {
+          const nomeProf = (item.profissional && item.profissional.nome) || "Sem profissional";
+          if (!byProf[nomeProf]) byProf[nomeProf] = [];
+          byProf[nomeProf].push(item);
+        });
+        const profColors = ["#7b2c2f", "#a8742f", "#3f6f6a", "#6b4a8a", "#b4533f", "#4d6a3a"];
+        Object.keys(byProf).sort((a, b) => a.localeCompare(b, "pt-BR")).forEach((nomeProf, profIdx) => {
+        const group = document.createElement("section");
+        group.className = "aulas-prof-group";
+        group.style.setProperty("--pc", profColors[profIdx % profColors.length]);
+        const iniciais = nomeProf.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+        const groupHead = document.createElement("header");
+        groupHead.className = "aulas-prof-group__head";
+        [
+          ["aulas-prof-group__avatar", iniciais || "?"],
+          ["aulas-prof-group__name", nomeProf],
+          ["aulas-prof-group__count", `${byProf[nomeProf].length} aluno(s)`],
+        ].forEach(([classe, texto]) => {
+          const span = document.createElement("span");
+          span.className = classe;
+          span.textContent = texto;
+          groupHead.appendChild(span);
+        });
         const cards = document.createElement("div");
         cards.className = "aulas-cards";
-        grouped[time].forEach((item) => {
+        byProf[nomeProf].forEach((item) => {
           const card = document.createElement("div");
           card.className = `aulas-card ${statusThemeClass(item.status_aula)}`;
           const indicators = [];
@@ -1376,17 +1412,16 @@ function initAulasOperacao() {
             <div class="aulas-card__header">
               <div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                <div class="aulas-card__meta">${formatTime(item.dt_inicio)}  ${item.unidade || "Unidade"}</div>
+                <div class="aulas-card__meta">${formatTime(item.dt_inicio)}  ${esc(item.unidade || "Unidade")}</div>
                   <a class="btn btn-sm btn-outline-primary" href="${fichaUrl}" onclick="event.stopPropagation();">+ Aula Avulsa</a>
                 </div>
-                <div class="aulas-card__title">${item.aluno.nome}</div>
-                <div class="aulas-card__meta">${item.plano.descricao || "Plano nao informado"}</div>
-                <div class="aulas-card__meta">${item.servicos_resumo ? `Servicos: ${item.servicos_resumo}` : `Servico: ${item.servico || "Nao informado"}`}</div>
+                <div class="aulas-card__title">${esc(item.aluno.nome)}</div>
+                <div class="aulas-card__meta">${esc(item.plano.descricao || "Plano nao informado")}</div>
+                <div class="aulas-card__meta">${item.servicos_resumo ? `Servicos: ${esc(item.servicos_resumo)}` : `Servico: ${esc(item.servico || "Nao informado")}`}</div>
               </div>
               <span class="${statusBadgeClass(item.status_aula)}">${item.status_aula.replace("_", " ")}</span>
             </div>
-            <div class="aulas-card__meta">Sala: ${item.sala || "Sala principal"}</div>
-            <div class="aulas-card__meta">Profissional: ${item.profissional.nome || "-"}</div>
+            <div class="aulas-card__meta">Sala: ${esc(item.sala || "Sala principal")}</div>
             <div class="aulas-indicators">
               ${indicators.map((label) => `<span class="aulas-indicator">${label}</span>`).join("")}
             </div>
@@ -1449,8 +1484,12 @@ function initAulasOperacao() {
           });
           cards.appendChild(card);
         });
+        group.appendChild(groupHead);
+        group.appendChild(cards);
+        groupsWrap.appendChild(group);
+        });
         row.appendChild(label);
-        row.appendChild(cards);
+        row.appendChild(groupsWrap);
         content.appendChild(row);
       });
     };
