@@ -16,6 +16,16 @@
     </div>
   </div>
 
+  <div class="m-quick mb-3" aria-label="Atalhos da ficha">
+    <button type="button" class="btn btn-outline-secondary js-aba-atalho" data-m-aba="agenda">&#128197; Aulas</button>
+    <button type="button" class="btn btn-outline-secondary js-aba-atalho" data-m-aba="contratos">&#128221; Contratos</button>
+    <button type="button" class="btn btn-outline-secondary js-aba-atalho" data-m-aba="financeiro">&#128176; Financeiro</button>
+    {% if whatsapp_number %}
+      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#whatsappQuickModal">&#128172; WhatsApp</button>
+    {% endif %}
+    <button type="button" class="btn btn-outline-secondary js-aba-atalho" data-m-aba="evolucao">&#127807; Evolucao</button>
+  </div>
+
   <div class="row g-3">
 
   <div class="col-lg-3">

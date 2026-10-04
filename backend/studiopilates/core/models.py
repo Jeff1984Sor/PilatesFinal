@@ -551,8 +551,13 @@ class Reserva(models.Model):
     def clean(self):
         if self.status == "RESERVADA":
             total = Reserva.objects.filter(aulaSessao=self.aulaSessao, status="RESERVADA").exclude(pk=self.pk).count()
-            if total >= self.aulaSessao.capacidade_efetiva():
-                raise ValidationError("Capacidade excedida")
+            capacidade = self.aulaSessao.capacidade_efetiva()
+            if total >= capacidade:
+                aula = self.aulaSessao
+                raise ValidationError(
+                    f"Capacidade excedida: a aula de {aula.data:%d/%m} as {aula.horaInicio:%H:%M} "
+                    f"ja tem {total} de {capacidade} vagas ocupadas. Escolha outro horario."
+                )
 
     def __str__(self):
         return f"Reserva {self.aluno}"

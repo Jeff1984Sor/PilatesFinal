@@ -14,8 +14,22 @@
     {% endif %}
   </div>
 
+  {% if status_chips %}
+    <div class="m-chips" role="tablist" aria-label="Filtrar por situação">
+      {% for chip in status_chips %}
+        <a class="m-chip {% if chip.value == status_atual %}is-active{% endif %}"
+           href="?status={{ chip.value }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.order %}&order={{ request.GET.order|urlencode }}{% endif %}">
+          <span class="m-chip__label">{{ chip.label }}</span>
+          <span class="m-chip__n">{{ chip.n }}</span>
+          {% if chip.soma %}<span class="m-chip__sum">R$ {{ chip.soma|floatformat:2 }}</span>{% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   <div class="mayris-card">
     <form class="mayris-filter-bar" method="get">
+      {% if status_chips %}<input type="hidden" name="status" value="{{ status_atual }}" />{% endif %}
       <div class="mayris-filter">
         <label>Busca</label>
         <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Buscar" />
@@ -40,14 +54,6 @@
           <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
         </select>
       </div>
-      {% if model_name == 'aluno' %}
-        <div class="mayris-filter d-flex align-items-end">
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="show-inativos" name="inativos" value="1" {% if show_inativos %}checked{% endif %} />
-            <label class="form-check-label" for="show-inativos">Mostrar inativos</label>
-          </div>
-        </div>
-      {% endif %}
       <div class="mayris-filter mayris-filter--actions">
         <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
       </div>
@@ -229,6 +235,12 @@
                   <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal-{{ obj.id }}">Editar</button>
                 {% else %}
                   <a class="btn btn-sm btn-outline-primary" href="{{ request.path }}{{ obj.id }}/editar/">Editar</a>
+                {% endif %}
+                {% if model_name == 'plano' or model_name == 'modelocontrato' %}
+                  <form method="post" action="{{ request.path }}{{ obj.id }}/duplicar/" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-secondary" type="submit" title="Criar uma copia para ajustar">Duplicar</button>
+                  </form>
                 {% endif %}
                 <a class="btn btn-sm btn-outline-danger" href="{{ request.path }}{{ obj.id }}/excluir/">Excluir</a>
               </td>

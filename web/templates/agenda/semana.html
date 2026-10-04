@@ -64,9 +64,9 @@
       {% for h in hours %}<div class="line" style="top:{{ h.top }}px"></div>{% endfor %}
       {% for b in d.blocks %}
         <div class="agw-block"
-             style="top:{{ b.top }}px; height:{{ b.height }}px; left:{{ b.leftpct }}%; width:{{ b.widthpct }}%; background:{{ b.cor }}"
+             style="top:{{ b.top }}px; height:{{ b.height }}px; left:{{ b.leftpct }}%; width:{{ b.widthpct }}%; --c:{{ b.cor }}"
              title="{{ b.hora }} · {{ b.tipo }} · {{ b.aluno }} · {{ b.label }}{% if b.prof %} · {{ b.prof }}{% endif %}">
-          <div class="h">{{ b.hora }}</div>
+          <div class="h">{% if b.ocup %}<span class="o">{{ b.ocup }}</span>{% endif %}{{ b.hora }}</div>
           {% if b.aluno %}<div class="n">{{ b.aluno }}</div>{% endif %}
           <div class="t">{{ b.tipo }}</div>
         </div>

@@ -14,6 +14,7 @@ from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db import IntegrityError, transaction
 from django.db.models import Q, Sum, Count, OuterRef, Subquery, Exists
 from django.db.models.functions import TruncMonth
 from django.shortcuts import get_object_or_404, redirect, render
@@ -2107,6 +2108,9 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
     query = request.GET.get("q", "").strip()
     order = request.GET.get("order", "id")
     show_inativos = request.GET.get("inativos") in {"1", "true", "on", "sim"}
+    status_filter = (request.GET.get("status") or "").strip().upper()
+    if model is models.Aluno and status_filter in {"INATIVO", "TODOS"}:
+        show_inativos = True
     page_size_key = f"list_page_size_{model._meta.model_name}"
     page_size_raw = request.GET.get("page_size")
     if page_size_raw is None:
@@ -2151,6 +2155,12 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         )
         if not show_inativos:
             qs = qs.filter(status="ATIVO")
+        elif status_filter == "INATIVO":
+            qs = qs.filter(status="INATIVO")
+    if model in (models.ContasReceber, models.Contrato):
+        codigos_validos = {c for c, _ in model.STATUS_CHOICES}
+        if status_filter in codigos_validos:
+            qs = qs.filter(status=status_filter)
     if query:
         if model is models.Aluno:
             qs = qs.filter(
@@ -2166,6 +2176,30 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
             qs = qs.filter(Q(**{f"{field_name}__icontains": query}) | Q(id__icontains=query))
     if order:
         qs = qs.order_by(order)
+    status_chips = []
+    status_atual = ""
+    if model in (models.Aluno, models.ContasReceber, models.Contrato):
+        contagem = {row["status"]: row["n"] for row in model.objects.values("status").annotate(n=Count("id"))}
+        if model is models.Aluno:
+            status_atual = status_filter if status_filter in {"INATIVO", "TODOS"} else ("TODOS" if show_inativos else "")
+            status_chips = [
+                {"value": "", "label": "Ativos", "n": contagem.get("ATIVO", 0)},
+                {"value": "INATIVO", "label": "Inativos", "n": contagem.get("INATIVO", 0)},
+                {"value": "TODOS", "label": "Todos", "n": sum(contagem.values())},
+            ]
+        else:
+            somas = {}
+            if model is models.ContasReceber:
+                somas = {
+                    row["status"]: row["total"]
+                    for row in model.objects.values("status").annotate(total=Sum("valor"))
+                }
+            status_atual = status_filter if status_filter in {c for c, _ in model.STATUS_CHOICES} else ""
+            status_chips = [{"value": "", "label": "Todos", "n": sum(contagem.values())}]
+            for codigo, rotulo in model.STATUS_CHOICES:
+                status_chips.append(
+                    {"value": codigo, "label": rotulo, "n": contagem.get(codigo, 0), "soma": somas.get(codigo)}
+                )
     paginator = Paginator(qs, page_size)
     page = paginator.get_page(request.GET.get("page"))
     page_range = list(paginator.get_elided_page_range(page.number, on_each_side=1, on_ends=1))
@@ -2244,6 +2278,8 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         "page_size": page_size,
         "page_range": page_range,
         "pagination_query": pagination_query,
+        "status_chips": status_chips,
+        "status_atual": status_atual,
     }
     if model is models.Aluno:
         address_map = {}
@@ -3639,7 +3675,6 @@ def exportar_contas_pagar_pdf(request):
     return response
 
 
-@login_required
 def _cor_status_reserva(r):
     if r.status == "RESERVADA" and r.confirmada_em:
         return ("#3b9ad9", "Confirmada")
@@ -3698,13 +3733,16 @@ def aulas_semana(request):
             prof = aula.profissional.profissional if aula.profissional_id else ""
             hora = aula.horaInicio.strftime("%H:%M")
             alunos = res_by_aula.get(aula.id, [])
+            cap = aula.capacidade_efetiva()
+            ativos = sum(1 for r in alunos if r.status != "CANCELADA")
+            ocup = f"{ativos}/{cap}" if cap else ""
             if alunos:
                 for r in alunos:
                     cor, label = _cor_status_reserva(r)
-                    raw.append({"ini": ini, "fim": fim, "cor": cor, "label": label,
+                    raw.append({"ini": ini, "fim": fim, "cor": cor, "label": label, "ocup": ocup,
                                 "aluno": r.aluno.dsNome, "tipo": tipo, "hora": hora, "prof": prof})
             else:
-                raw.append({"ini": ini, "fim": fim, "cor": "#cbd5e1", "label": "Sem alunos",
+                raw.append({"ini": ini, "fim": fim, "cor": "#cbd5e1", "label": "Sem alunos", "ocup": ocup,
                             "aluno": "", "tipo": tipo, "hora": hora, "prof": prof})
         raw.sort(key=lambda b: (b["ini"], b["fim"]))
         # clusters de blocos que se sobrepoem -> colunas lado a lado
@@ -4321,7 +4359,10 @@ def _process_totalpass_payload(payload, cfg, event_obj=None):
     capacidade = aula.capacidade_efetiva()
     total = models.Reserva.objects.filter(aulaSessao=aula, status="RESERVADA").count()
     if capacidade and total >= capacidade:
-        event_obj.error = "Capacidade excedida."
+        event_obj.error = (
+            f"Capacidade excedida: a aula de {aula.data:%d/%m} as {aula.horaInicio:%H:%M} "
+            f"ja tem {total} de {capacidade} vagas ocupadas."
+        )
         event_obj.save(update_fields=["error"])
         return None, event_obj.error
 
@@ -4684,7 +4725,15 @@ def aula_remarcar_api(request, reserva_id):
         .count()
     )
     if capacidade and total >= capacidade:
-        return JsonResponse({"error": "Sem capacidade para este horario."}, status=400)
+        return JsonResponse(
+            {
+                "error": (
+                    f"Sem vaga neste horario: a aula de {nova_sessao.data:%d/%m} as {nova_sessao.horaInicio:%H:%M} "
+                    f"ja tem {total} de {capacidade} vagas ocupadas. Escolha outro horario."
+                )
+            },
+            status=400,
+        )
 
     antiga_sessao = reserva.aulaSessao
     reserva.aulaSessao = nova_sessao
@@ -4972,6 +5021,41 @@ def edit_view(request, model, form_class, redirect_name, pk):
             "next_url": request.GET.get("next", ""),
         },
     )
+
+
+@login_required
+def duplicar_view(request, model, redirect_name, pk):
+    """Cria uma copia do registro (Plano, Modelo de Contrato) com o nome terminando em '(copia)'."""
+    if request.method != "POST":
+        return redirect(redirect_name)
+    if model in _admin_only_models() and _is_professor_user(request.user):
+        messages.error(request, "Sem permissao para acessar esta area.")
+        return redirect("dashboard")
+    original = get_object_or_404(model, pk=pk)
+    cd_field = next(
+        (f.name for f in model._meta.fields if f.name.startswith("cd") and f.unique and f.get_internal_type() == "IntegerField"),
+        None,
+    )
+    nome_field = next((n for n in ("dsPlano", "dsNome") if hasattr(original, n)), None)
+    if not cd_field or not nome_field:
+        messages.error(request, "Este cadastro nao pode ser duplicado.")
+        return redirect(redirect_name)
+    nome_original = getattr(original, nome_field)
+    limite = model._meta.get_field(nome_field).max_length or 120
+    try:
+        with transaction.atomic():
+            proximo = (model.objects.order_by(f"-{cd_field}").values_list(cd_field, flat=True).first() or 0) + 1
+            original.pk = None
+            original.id = None
+            original._state.adding = True
+            setattr(original, cd_field, proximo)
+            setattr(original, nome_field, f"{nome_original} (copia)"[:limite])
+            original.save()
+    except IntegrityError:
+        messages.error(request, "Nao foi possivel duplicar: o codigo gerado ja existe. Tente novamente.")
+        return redirect(redirect_name)
+    messages.success(request, f"Copia criada: {getattr(original, nome_field)}. Ajuste o que for preciso.")
+    return redirect(redirect_name)
 
 
 def delete_view(request, model, redirect_name, pk):
