@@ -600,15 +600,19 @@ footer, .mayris-footer { color: var(--ink-soft); }
    Agenda operacional: horário > profissional > alunos
    ===================================================================== */
 .aulas-time-row { border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow-md); grid-template-columns: 96px minmax(0, 1fr); }
-.aulas-time-label {
-  background: linear-gradient(160deg, var(--m-950), var(--m-800));
+.aulas-time-row .aulas-time-label {
+  background: linear-gradient(170deg, var(--m-100), var(--m-200));
+  border: 1px solid var(--m-200);
   border-radius: 16px;
   align-self: stretch;
   align-items: center;
   justify-content: flex-start;
   padding: 14px 8px;
+  color: var(--m-800);
 }
-.aulas-time-label__time { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1; }
+.aulas-time-row .aulas-time-label__time { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; color: var(--m-800); }
+.aulas-time-row .aulas-time-label__count { color: var(--m-600); font-size: 11.5px; font-weight: 700; }
+.aulas-time-label__date { display: none; }
 
 .aulas-prof-groups { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 

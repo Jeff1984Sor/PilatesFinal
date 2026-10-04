@@ -1368,7 +1368,6 @@ function initAulasOperacao() {
         label.className = "aulas-time-label";
         label.innerHTML = `
           <div class="aulas-time-label__time">${time}</div>
-          ${dateLabel ? `<div class="aulas-time-label__date">${dateLabel}</div>` : ""}
           <div class="aulas-time-label__count">${grouped[time].length} aluno(s)</div>
         `;
         // Dentro do horario, um bloco por profissional (nome, contagem e cor propria)
