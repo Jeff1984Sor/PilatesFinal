@@ -657,3 +657,9 @@ footer, .mayris-footer { color: var(--ink-soft); }
   .aulas-time-label { flex-direction: row; justify-content: space-between; }
   .aulas-prof-group .aulas-cards { grid-template-columns: 1fr; }
 }
+
+/* Títulos dentro de faixas escuras ficam brancos (a regra global de h1-h3 é vinho escuro) */
+.aulas-header :is(h1, h2, h3, h4),
+.agenda-hero :is(h1, h2, h3, h4),
+.mayris-login__left :is(h1, h2, h3, h4) { color: #ffffff; }
+.aulas-header h2 { font-size: 40px; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.25); }
