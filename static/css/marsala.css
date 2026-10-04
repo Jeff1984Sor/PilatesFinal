@@ -158,7 +158,7 @@ a { text-decoration-color: rgba(123, 44, 47, 0.35); }
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: var(--shadow-lg);
-  animation: m-pop 0.16s ease both;
+  animation: m-pop 0.16s ease backwards;
 }
 
 .mayris-topmenu__panel a {
@@ -200,7 +200,9 @@ a { text-decoration-color: rgba(123, 44, 47, 0.35); }
 .mayris-icon-btn:hover { background: var(--m-100); border-color: var(--m-300); }
 
 /* ---------- conteúdo ---------- */
-.mayris-content { padding: 28px 32px 56px; animation: m-rise 0.4s ease both; }
+/* "backwards" (e nao "both"): apos a entrada a animacao solta o elemento. Com "both" o conteudo
+   ficava numa camada propria e os modais do Bootstrap ficavam ATRAS do fundo escuro. */
+.mayris-content { padding: 28px 32px 56px; animation: m-rise 0.4s ease backwards; }
 
 .mayris-breadcrumb .breadcrumb { --bs-breadcrumb-divider: "›"; font-size: 13px; }
 .mayris-breadcrumb a { color: var(--m-500); text-decoration: none; font-weight: 600; }
