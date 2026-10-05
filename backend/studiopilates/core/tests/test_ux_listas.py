@@ -121,3 +121,19 @@ def test_ficha_do_aluno_renderiza_atalhos_e_tema(client, base):
     assert resp.status_code == 200
     assert "js-aba-atalho" in html
     assert "/static/css/marsala.css" in html and "/static/js/ux.js" in html
+
+
+def test_lista_de_profissionais_mostra_login_e_perfil(client, base):
+    perfil = models.PerfilAcesso.objects.create(cdPerfilAcesso=70, dsPerfilAcesso="Professor")
+    prof = models.Profissional.objects.create(
+        cdProfissional=70, profissional="Natalia", email="natalia@x.com", celular="159", cdPerfilAcesso=perfil
+    )
+    prof.refresh_from_db()
+    client.login(username="user", password="pass")
+
+    resp = client.get(reverse("profissionais_list"))
+    html = resp.content.decode()
+    assert resp.status_code == 200
+    assert "<th>Login</th>" in html and "<th>Perfil</th>" in html
+    assert prof.user.username in html and "Professor" in html
+    assert prof.login == prof.user.username and prof.perfil_acesso_nome == "Professor"

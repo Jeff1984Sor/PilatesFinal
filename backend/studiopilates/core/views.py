@@ -2143,6 +2143,8 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
         )
     if model is models.Contrato:
         qs = qs.select_related("cdAluno", "cdPlano", "cdUnidade")
+    if model is models.Profissional:
+        qs = qs.select_related("user", "cdPerfilAcesso")
     if model is models.HorarioFuncionamento:
         qs = qs.select_related("unidade", "tipoServico").prefetch_related("tipos_servico")
     if model is models.Aluno:
@@ -2233,6 +2235,13 @@ def list_view(request, model, form_class, title, allow_modal=True, extra_context
             {"name": "aulas_por_semana", "label": "Aulas por semana"},
             {"name": "duracao_meses", "label": "Duracao (meses)"},
             {"name": "recorrencia", "label": "Recorrencia"},
+        ]
+    if model is models.Profissional:
+        display_fields = [
+            {"name": "profissional", "label": "Profissional"},
+            {"name": "login", "label": "Login"},
+            {"name": "perfil_acesso_nome", "label": "Perfil"},
+            {"name": "celular", "label": "Celular"},
         ]
     if model is models.ModeloContrato:
         display_fields = [

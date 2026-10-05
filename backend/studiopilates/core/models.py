@@ -39,6 +39,15 @@ class Profissional(models.Model):
     def __str__(self):
         return self.profissional
 
+    @property
+    def login(self):
+        """Usuario com que o profissional entra no sistema (vazio se nao tiver acesso)."""
+        return self.user.username if self.user_id else ""
+
+    @property
+    def perfil_acesso_nome(self):
+        return self.cdPerfilAcesso.dsPerfilAcesso if self.cdPerfilAcesso_id else ""
+
 
 class Unidade(models.Model):
     cdUnidade = models.IntegerField(unique=True, db_index=True)
