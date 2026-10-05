@@ -663,3 +663,17 @@ footer, .mayris-footer { color: var(--ink-soft); }
 .agenda-hero :is(h1, h2, h3, h4),
 .mayris-login__left :is(h1, h2, h3, h4) { color: #ffffff; }
 .aulas-header h2 { font-size: 40px; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.25); }
+
+/* Gaveta de evolução: em telas baixas o conteúdo passava do tamanho e os botões Salvar
+   ficavam fora da tela. Agora a gaveta rola por dentro. */
+.aulas-drawer {
+  top: 96px;
+  height: calc(100vh - 112px);
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+}
+.aulas-drawer > * { flex-shrink: 0; }
