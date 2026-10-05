@@ -4033,6 +4033,7 @@ def aulas_operacao_api(request):
         profissional_id = str(prof.id) if prof else "0"
     status_filter = request.GET.get("status_aula") or None
     query = (request.GET.get("q") or "").strip()
+    eh_professor = _is_professor_user(request.user)
 
     contrato_qs = (
         models.Contrato.objects.filter(
@@ -4125,7 +4126,7 @@ def aulas_operacao_api(request):
                 "confirmacao": reserva.status != "PENDENTE",
                 "flags": {
                     "tem_preliminares": bool(reserva.aluno.termo_aceite_em),
-                    "cobranca_pendente": bool(reserva.cobranca_pendente),
+                    "cobranca_pendente": bool(reserva.cobranca_pendente) and not eh_professor,
                     "observacao_importante": False,
                 },
                 "ultima_evolucao": {

@@ -1181,6 +1181,7 @@ function initAulasOperacao() {
   const cobrancaTemplate = root.dataset.cobrancaUrlTemplate || "";
   const historicoTemplate = root.dataset.historicoUrlTemplate || "";
   const statusTemplate = root.dataset.statusUrlTemplate || "";
+  const isProfessor = root.dataset.professor === "1";
 
   const searchInput = root.querySelector(".js-operacao-search");
   const dateInput = root.querySelector(".js-operacao-date");
@@ -1412,7 +1413,7 @@ function initAulasOperacao() {
               <div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                 <div class="aulas-card__meta">${formatTime(item.dt_inicio)}  ${esc(item.unidade || "Unidade")}</div>
-                  <a class="btn btn-sm btn-outline-primary" href="${fichaUrl}" onclick="event.stopPropagation();">+ Aula Avulsa</a>
+                  ${isProfessor ? "" : `<a class="btn btn-sm btn-outline-primary" href="${fichaUrl}" onclick="event.stopPropagation();">+ Aula Avulsa</a>`}
                 </div>
                 <div class="aulas-card__title">${esc(item.aluno.nome)}</div>
                 <div class="aulas-card__meta">${esc(item.plano.descricao || "Plano nao informado")}</div>
@@ -1557,7 +1558,7 @@ function initAulasOperacao() {
       drawerPreliminaresCta.classList.toggle("d-none", item.flags.tem_preliminares);
     }
     if (drawerCobranca) {
-      drawerCobranca.textContent = item.flags.cobranca_pendente ? "Ha cobrancas pendentes." : "Sem cobrancas pendentes.";
+      if (drawerCobranca) drawerCobranca.textContent = item.flags.cobranca_pendente ? "Ha cobrancas pendentes." : "Sem cobrancas pendentes.";
     }
     if (evolucaoText) evolucaoText.value = item.ultima_evolucao?.texto || "";
     setEvolucaoHelper("");
@@ -1907,7 +1908,7 @@ function initAulasOperacao() {
   }
 
   function loadCobranca() {
-    if (!selected || !cobrancaTemplate) return;
+    if (isProfessor || !selected || !cobrancaTemplate) return;
     const urlAction = cobrancaTemplate.replace("/0/", `/${selected.id}/`);
     fetch(urlAction)
       .then((resp) => resp.json())

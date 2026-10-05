@@ -11,8 +11,12 @@
       <h2 class="mayris-title">{{ aluno.dsNome }}</h2>
     </div>
     <div class="d-flex gap-2">
-      <a class="btn btn-outline-secondary" href="/cadastros/alunos/">Voltar</a>
-      <button class="btn btn-primary mayris-btn-primary" data-bs-toggle="modal" data-bs-target="#editAluno">Editar</button>
+      {% if is_professor %}
+        <a class="btn btn-outline-secondary" href="/agenda/aulas/">Voltar para a agenda</a>
+      {% else %}
+        <a class="btn btn-outline-secondary" href="/cadastros/alunos/">Voltar</a>
+        <button class="btn btn-primary mayris-btn-primary" data-bs-toggle="modal" data-bs-target="#editAluno">Editar</button>
+      {% endif %}
     </div>
   </div>
 
@@ -20,7 +24,7 @@
     <button type="button" class="btn btn-outline-secondary js-aba-atalho" data-m-aba="agenda">&#128197; Aulas</button>
     <button type="button" class="btn btn-outline-secondary js-aba-atalho" data-m-aba="contratos">&#128221; Contratos</button>
     <button type="button" class="btn btn-outline-secondary js-aba-atalho" data-m-aba="financeiro">&#128176; Financeiro</button>
-    {% if whatsapp_number %}
+    {% if whatsapp_number and not is_professor %}
       <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#whatsappQuickModal">&#128172; WhatsApp</button>
     {% endif %}
     <button type="button" class="btn btn-outline-secondary js-aba-atalho" data-m-aba="evolucao">&#127807; Evolucao</button>
@@ -89,7 +93,7 @@
                 {% if aluno.autoriza_imagem %}Sim{% else %}Nao{% endif %}
               </div>
             </div>
-            <form method="post" action="{% url 'aluno_autoriza_imagem_toggle' aluno.id %}" class="m-0">
+            {% if not is_professor %}<form method="post" action="{% url 'aluno_autoriza_imagem_toggle' aluno.id %}" class="m-0">
               {% csrf_token %}
               <input type="hidden" name="next" value="{{ request.path }}" />
               <input type="hidden" name="autoriza_imagem" value="{% if aluno.autoriza_imagem %}0{% else %}1{% endif %}" />
@@ -99,7 +103,7 @@
               >
                 {% if aluno.autoriza_imagem %}Desligar{% else %}Ligar{% endif %}
               </button>
-            </form>
+            </form>{% endif %}
           </div>
         </div>
 
@@ -127,7 +131,7 @@
 
             {% endif %}
 
-            {% if whatsapp_number %}
+            {% if whatsapp_number and not is_professor %}
 
               <div class="d-grid gap-2 mt-3">
 
@@ -234,9 +238,11 @@
           </li>
           {% endif %}
 
+          {% if not is_professor %}
           <li class="nav-item" role="presentation">
             <button class="nav-link {% if not can_view_contratos %}active{% endif %}" data-bs-toggle="pill" data-bs-target="#tab-agenda" type="button" role="tab">Aulas</button>
           </li>
+          {% endif %}
 
           {% if can_view_financeiro %}
           <li class="nav-item" role="presentation">
@@ -244,6 +250,7 @@
           </li>
           {% endif %}
 
+          {% if not is_professor %}
           <li class="nav-item" role="presentation">
 
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-whatsapp" type="button" role="tab">WhatsApp</button>
@@ -255,10 +262,11 @@
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-documentos" type="button" role="tab">Documentos</button>
 
           </li>
+          {% endif %}
 
           <li class="nav-item" role="presentation">
 
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-evolucao" type="button" role="tab">Evolucao</button>
+            <button class="nav-link {% if is_professor %}active{% endif %}" data-bs-toggle="pill" data-bs-target="#tab-evolucao" type="button" role="tab">Evolucao</button>
 
           </li>
 
@@ -268,16 +276,19 @@
 
           </li>
 
+          {% if not is_professor %}
           <li class="nav-item" role="presentation">
 
             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-imagem" type="button" role="tab">Uso da imagem</button>
 
           </li>
+          {% endif %}
 
         </ul>
 
         <div class="tab-content">
 
+          {% if not is_professor %}
           <div class="tab-pane fade" id="tab-imagem" role="tabpanel">
             <div class="fw-semibold mb-3">Uso da imagem</div>
 
@@ -349,6 +360,7 @@
               <p class="text-muted small mt-3">Nenhum termo cadastrado. Cadastre em <a href="/cadastros/termos/">Cadastros &gt; Modelos de Termo de Uso</a>.</p>
             {% endif %}
           </div>
+          {% endif %}
 
           {% if can_view_contratos %}
           <div class="tab-pane fade show active" id="tab-contratos" role="tabpanel">
@@ -491,6 +503,7 @@
           </div>
           {% endif %}
 
+          {% if not is_professor %}
           <div class="tab-pane fade {% if not can_view_contratos %}show active{% endif %}" id="tab-agenda" role="tabpanel">
 
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -1009,6 +1022,7 @@
             </div>
           </div>
           {% endfor %}
+          {% endif %}
 
           {% if can_view_financeiro %}
           <div class="tab-pane fade" id="tab-financeiro" role="tabpanel">
@@ -1221,6 +1235,7 @@
           </div>
           {% endif %}
 
+          {% if not is_professor %}
           <div class="tab-pane fade" id="tab-whatsapp" role="tabpanel">
 
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -1404,8 +1419,9 @@
             </div>
 
           </div>
+          {% endif %}
 
-          <div class="tab-pane fade" id="tab-evolucao" role="tabpanel">
+          <div class="tab-pane fade {% if is_professor %}show active{% endif %}" id="tab-evolucao" role="tabpanel">
 
             <div class="d-flex justify-content-between align-items-center mb-2">
 
