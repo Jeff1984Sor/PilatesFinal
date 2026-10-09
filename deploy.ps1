@@ -19,4 +19,5 @@ if ($local -ne $remoto) {
 
 Write-Host "Subindo $(git rev-parse --short HEAD) para o servidor..." -ForegroundColor Cyan
 # 'flicsales' e o apelido da VPS em ~/.ssh/config (usuario deploy)
-ssh flicsales "bash ~/pilates/deploy/deploy.sh"
+# primeiro atualiza o codigo (inclusive o proprio deploy.sh), depois roda a versao nova dele
+ssh flicsales "git -C ~/pilates pull --ff-only --quiet && bash ~/pilates/deploy/deploy.sh"

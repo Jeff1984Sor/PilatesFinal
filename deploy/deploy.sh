@@ -11,8 +11,8 @@ PY="$RAIZ/.venv/bin/python"
 ANTES="$(git rev-parse --short HEAD)"
 echo "==> Versao atual no servidor: $ANTES"
 
-# nunca sobrescreve alteracao feita direto no servidor
-if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+# nunca sobrescreve alteracao feita direto no servidor (o .env de producao e diferente de proposito)
+if [ -n "$(git status --porcelain --untracked-files=no -- . ':!.env')" ]; then
   echo "ERRO: ha alteracoes locais no servidor (veja abaixo). Nada foi feito."
   git status --short
   exit 1
