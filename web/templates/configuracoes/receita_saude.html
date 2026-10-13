@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mayris-page">
+  <div class="mayris-page__header">
+    <div>
+      <div class="mayris-kicker">Configuracoes</div>
+      <h2 class="mayris-title">Receita Saude</h2>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="mayris-card">
+        <p class="text-muted">
+          Dados de quem emite os recibos (pessoa fisica). Eles vao em todas as linhas do arquivo que o sistema gera
+          na aba <strong>Financeiro</strong> da ficha do aluno.
+        </p>
+        <form method="post">
+          {% csrf_token %}
+          {% for campo in form %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+              {{ campo }}
+              {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
+              {% if campo.errors %}<div class="invalid-feedback d-block">{{ campo.errors|striptags }}</div>{% endif %}
+            </div>
+          {% endfor %}
+          <button class="btn btn-primary mayris-btn-primary" type="submit">Salvar</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="mayris-card">
+        <div class="fw-semibold mb-2">Como o recibo e emitido</div>
+        <p class="text-muted small mb-2">
+          A Receita Federal nao tem API para sistemas emitirem o recibo direto. O sistema gera o arquivo no formato
+          oficial (manual do Receita Saude, v2.1) e a emissao acontece quando voce importa esse arquivo:
+        </p>
+        <ol class="small mb-2">
+          <li>Na ficha do aluno, aba <strong>Financeiro</strong>, marque os pagamentos e clique em <strong>Gerar arquivo</strong>.</li>
+          <li>Entre no <strong>e-CAC</strong> (gov.br) e abra o <strong>Carne-Leao</strong> do profissional.</li>
+          <li>Menu <strong>Escrituracao</strong> &gt; <strong>Importar Escrituracao</strong>, escolha o arquivo e clique em <strong>Analisar Arquivo</strong>.</li>
+          <li>Se nao houver erros, clique em <strong>Importar</strong>. Os recibos sao emitidos e a relacao com a numeracao e baixada.</li>
+        </ol>
+        <div class="small text-muted">
+          O recibo deve ser emitido na data do pagamento, um por pagamento. Em caso de erro, o cancelamento
+          e feito no proprio Carne-Leao (Historico da Escrituracao &gt; Desfazer escrituracao).
+          Duvidas com a Receita: receitasaude.cofis@rfb.gov.br
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django import forms
-from . import models
+from . import models, receita_saude
 
 
 class BaseAutoCdForm(forms.ModelForm):
@@ -508,6 +508,39 @@ class EmailConfiguracaoForm(BaseAutoCdForm):
     class Meta:
         model = models.EmailConfiguracao
         fields = ["cdEmail", "host", "porta", "usuario", "senha", "use_tls", "remetente", "ativo"]
+
+
+class ReceitaSaudeConfigForm(forms.ModelForm):
+    codigo_ocupacao = forms.ChoiceField(
+        label="Ocupacao no Carne-Leao",
+        choices=[(codigo, f"{codigo} - {nome}") for codigo, nome in receita_saude.OCUPACOES.items()],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    class Meta:
+        model = models.ReceitaSaudeConfig
+        fields = ["cpf_profissional", "registro_profissional", "codigo_ocupacao", "descricao_padrao"]
+        labels = {
+            "cpf_profissional": "CPF do profissional",
+            "registro_profissional": "Registro profissional (CREFITO)",
+            "descricao_padrao": "Descricao padrao do servico",
+        }
+        help_texts = {
+            "cpf_profissional": "O mesmo CPF usado para entrar no Carne-Leao.",
+            "registro_profissional": "Opcional se so houver um registro ativo. Ex.: 79013-F",
+            "descricao_padrao": "Aparece no recibo quando a cobranca nao tem descricao propria.",
+        }
+        widgets = {
+            "cpf_profissional": forms.TextInput(attrs={"class": "form-control", "placeholder": "000.000.000-00"}),
+            "registro_profissional": forms.TextInput(attrs={"class": "form-control"}),
+            "descricao_padrao": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+    def clean_cpf_profissional(self):
+        cpf = receita_saude.so_digitos(self.cleaned_data["cpf_profissional"])
+        if not receita_saude.cpf_valido(cpf):
+            raise forms.ValidationError("CPF invalido.")
+        return cpf
 
 
 class WhatsappConfiguracaoForm(BaseAutoCdForm):

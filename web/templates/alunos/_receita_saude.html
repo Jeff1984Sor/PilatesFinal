@@ -1,0 +1,75 @@
+<div class="mayris-card mt-4" id="receita-saude">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+    <div>
+      <div class="fw-semibold">Recibos do Receita Saude</div>
+      <div class="text-muted small">Gere o arquivo dos pagamentos e importe no Carne-Leao (e-CAC). A emissao acontece na importacao.</div>
+    </div>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'receita_saude_config' %}">Dados do profissional</a>
+  </div>
+
+  {% for aviso in receita_saude_avisos %}
+    <div class="alert alert-warning py-2 small mb-2">{{ aviso }}</div>
+  {% endfor %}
+
+  <form method="post" action="{% url 'aluno_receita_saude_pagador' aluno.id %}" class="row g-2 align-items-end mb-3">
+    {% csrf_token %}
+    <div class="col-md-5">
+      <label class="form-label small mb-1" for="cpf_pagador">CPF de quem paga (se nao for o proprio aluno)</label>
+      <input class="form-control form-control-sm" id="cpf_pagador" name="cpf_pagador" value="{{ aluno.cpf_pagador_recibo }}" placeholder="Deixe vazio se o aluno paga" />
+    </div>
+    <div class="col-auto"><button class="btn btn-sm btn-outline-secondary" type="submit">Salvar pagador</button></div>
+  </form>
+
+  {% if recibos_saude %}
+    <form method="post" action="{% url 'aluno_receita_saude_arquivo' aluno.id %}">
+      {% csrf_token %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mayris-table">
+          <thead>
+            <tr>
+              <th style="width:36px"><input class="form-check-input js-rs-todos" type="checkbox" title="Marcar todos os prontos" /></th>
+              <th>Pago em</th>
+              <th>Valor</th>
+              <th>Descricao</th>
+              <th>Situacao</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in recibos_saude %}
+              <tr>
+                <td><input class="form-check-input js-rs-linha" type="checkbox" name="contas" value="{{ item.conta.id }}" {% if item.pronto %}data-pronto="1"{% endif %} {% if item.problemas %}disabled{% endif %} /></td>
+                <td>{{ item.conta.dtPagamento|date:"d/m/Y" }}</td>
+                <td>R$ {{ item.conta.valor|floatformat:2 }}</td>
+                <td>{{ item.conta.descricao|default:item.conta.competencia|default:"-" }}</td>
+                <td>
+                  {% if item.problemas %}
+                    <span class="badge text-bg-danger">{{ item.problemas|join:" " }}</span>
+                  {% elif item.conta.recibo_saude_gerado_em %}
+                    <span class="badge text-bg-secondary">Arquivo gerado em {{ item.conta.recibo_saude_gerado_em|date:"d/m/Y" }}</span>
+                  {% else %}
+                    <span class="badge text-bg-success">Pronto</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        <button class="btn btn-sm btn-primary" type="submit" name="acao" value="gerar">Gerar arquivo para o Receita Saude</button>
+        <button class="btn btn-sm btn-outline-secondary" type="submit" name="acao" value="liberar" title="Para refazer um arquivo ja gerado (cancele antes os recibos no Carne-Leao, se ja importou)">Liberar para gerar de novo</button>
+      </div>
+    </form>
+    <script>
+      (function () {
+        var todos = document.querySelector("#receita-saude .js-rs-todos");
+        if (!todos) return;
+        todos.addEventListener("change", function () {
+          document.querySelectorAll("#receita-saude .js-rs-linha[data-pronto]").forEach(function (c) { c.checked = todos.checked; });
+        });
+      })();
+    </script>
+  {% else %}
+    <div class="text-muted">Nenhum pagamento recebido deste aluno ainda.</div>
+  {% endif %}
+</div>

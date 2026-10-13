@@ -26,7 +26,7 @@ from django.core.files.base import ContentFile
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
-from . import forms, models, services, totalpass_service
+from . import forms, models, receita_saude, services, totalpass_service
 from .signals import ensure_profissional_for_user
 from shared.ai.openai_client import GeminiError, extract_address_from_proof, extract_student_from_document, improve_evolution_text
 from .whatsapp_service import WhatsappService, WhatsappMessageType
@@ -720,6 +720,9 @@ def aluno_detail(request, pk):
     unidades = models.Unidade.objects.all()
     profissionais = models.Profissional.objects.all()
     whatsapp_messages = aluno.whatsapp_messages.select_related("contrato").all()
+    recibos_saude, receita_saude_config, receita_saude_avisos = (
+        ([], None, []) if is_professor else _recibos_saude_do_aluno(aluno)
+    )
     whatsapp_form = forms.WhatsappMessageForm()
     wpp_config = models.WhatsappConfiguracao.objects.filter(unidade=aluno.cdUnidade_id).first() or models.WhatsappConfiguracao()
     _wpp_all = {
@@ -805,8 +808,35 @@ def aluno_detail(request, pk):
         "can_view_contratos": not is_professor,
         "can_view_financeiro": not is_professor,
         "is_professor": is_professor,
+        "recibos_saude": recibos_saude,
+        "receita_saude_config": receita_saude_config,
+        "receita_saude_avisos": receita_saude_avisos,
     }
     return render(request, "alunos/detail.html", context)
+
+
+def _recibos_saude_do_aluno(aluno):
+    """Pagamentos do aluno, ja marcados com o que impede de entrar no arquivo do Receita Saude."""
+    config = models.ReceitaSaudeConfig.objects.order_by("-id").first()
+    contas = (
+        models.ContasReceber.objects.filter(
+            Q(contrato__cdAluno=aluno) | Q(reserva__aluno=aluno) | Q(aluno=aluno), status="PAGO"
+        )
+        .select_related("contrato", "reserva")
+        .distinct()
+        .order_by("-dtPagamento", "-id")
+    )
+    itens = []
+    for conta in contas:
+        problemas = receita_saude.problemas_da_conta(conta, aluno)
+        itens.append(
+            {
+                "conta": conta,
+                "problemas": problemas,
+                "pronto": not problemas and not conta.recibo_saude_gerado_em,
+            }
+        )
+    return itens, config, receita_saude.problemas_da_configuracao(config)
 
 
 @login_required
@@ -6130,6 +6160,103 @@ def email_config_view(request):
             "active_menu": "configuracoes",
         },
     )
+
+
+@login_required
+def receita_saude_config_view(request):
+    bloqueio = _professor_block(request)
+    if bloqueio:
+        return bloqueio
+    cfg = models.ReceitaSaudeConfig.objects.order_by("-id").first()
+    if request.method == "POST":
+        form = forms.ReceitaSaudeConfigForm(request.POST, instance=cfg)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Dados do Receita Saude salvos.")
+            return redirect("receita_saude_config")
+        messages.error(request, "Verifique os erros do formulario.")
+    else:
+        form = forms.ReceitaSaudeConfigForm(instance=cfg)
+    return render(
+        request,
+        "configuracoes/receita_saude.html",
+        {
+            "form": form,
+            "title": "Receita Saude",
+            "breadcrumbs": [("Home", reverse("dashboard")), ("Configuracoes", "#"), ("Receita Saude", "#")],
+            "active_menu": "configuracoes",
+        },
+    )
+
+
+@login_required
+@require_POST
+def aluno_receita_saude_arquivo(request, pk):
+    """Gera o CSV do Receita Saude com os pagamentos marcados (ou libera para gerar de novo)."""
+    bloqueio = _professor_block(request)
+    if bloqueio:
+        return bloqueio
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    voltar = reverse("alunos_detail", args=[aluno.pk]) + "?aba=financeiro"
+    ids = [int(i) for i in request.POST.getlist("contas") if i.isdigit()]
+    contas = [
+        c
+        for c in models.ContasReceber.objects.filter(pk__in=ids).select_related("contrato", "reserva", "aluno")
+        if getattr(_conta_receber_aluno(c), "pk", None) == aluno.pk
+    ]
+    if not contas:
+        messages.error(request, "Marque ao menos um pagamento.")
+        return redirect(voltar)
+
+    if request.POST.get("acao") == "liberar":
+        for conta in contas:
+            conta.recibo_saude_gerado_em = None
+            conta.save(update_fields=["recibo_saude_gerado_em"])
+        messages.success(request, f"{len(contas)} pagamento(s) liberado(s) para gerar o arquivo de novo.")
+        return redirect(voltar)
+
+    ja_gerados = [c for c in contas if c.recibo_saude_gerado_em]
+    if ja_gerados:
+        messages.error(
+            request,
+            f"{len(ja_gerados)} pagamento(s) marcado(s) ja tiveram o arquivo gerado. "
+            "Importar de novo emite o recibo em duplicidade; use 'Liberar' se for refazer.",
+        )
+        return redirect(voltar)
+
+    config = models.ReceitaSaudeConfig.objects.order_by("-id").first()
+    contas.sort(key=lambda c: (c.dtPagamento or date.min, c.id))
+    conteudo, erros = receita_saude.gerar_arquivo([(c, aluno) for c in contas], config)
+    if erros:
+        for erro in erros:
+            messages.error(request, erro)
+        return redirect(voltar)
+
+    agora = timezone.now()
+    for conta in contas:
+        conta.recibo_saude_gerado_em = agora
+        conta.save(update_fields=["recibo_saude_gerado_em"])
+    nome = f"receita-saude-{slugify(aluno.dsNome) or aluno.pk}-{agora:%Y%m%d}.csv"
+    resposta = HttpResponse(conteudo, content_type="text/csv; charset=utf-8")
+    resposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+    return resposta
+
+
+@login_required
+@require_POST
+def aluno_receita_saude_pagador(request, pk):
+    bloqueio = _professor_block(request)
+    if bloqueio:
+        return bloqueio
+    aluno = get_object_or_404(models.Aluno, pk=pk)
+    cpf = receita_saude.so_digitos(request.POST.get("cpf_pagador"))
+    if cpf and not receita_saude.cpf_valido(cpf):
+        messages.error(request, "CPF do pagador invalido.")
+    else:
+        aluno.cpf_pagador_recibo = cpf
+        aluno.save(update_fields=["cpf_pagador_recibo"])
+        messages.success(request, "CPF do pagador salvo." if cpf else "Pagador voltou a ser o proprio aluno.")
+    return redirect(reverse("alunos_detail", args=[aluno.pk]) + "?aba=financeiro")
 
 
 def aluno_app_view(request):

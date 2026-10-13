@@ -105,6 +105,8 @@ class Aluno(models.Model):
     termo_assinatura_ip = models.GenericIPAddressField(null=True, blank=True)
     termo_assinatura_imagem = models.ImageField(upload_to="assinaturas_termo", null=True, blank=True)
     termo_assinado_em = models.DateTimeField(null=True, blank=True)
+    # CPF de quem paga, quando nao e o proprio aluno (ex.: pais de menor). Usado no recibo do Receita Saude.
+    cpf_pagador_recibo = models.CharField(max_length=14, blank=True)
 
     def clean(self):
         if self.sem_cpf:
@@ -618,6 +620,18 @@ class AvaliacaoAluno(models.Model):
         return f"Avaliacao {self.reserva_id}"
 
 
+class ReceitaSaudeConfig(models.Model):
+    """Dados do profissional que emite os recibos no Receita Saude (um registro so)."""
+    cpf_profissional = models.CharField(max_length=14)
+    registro_profissional = models.CharField(max_length=15, blank=True)
+    codigo_ocupacao = models.CharField(max_length=3, default="231")
+    descricao_padrao = models.CharField(max_length=200, default="Aulas de Pilates")
+    dtAtualizacao = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Receita Saude ({self.cpf_profissional})"
+
+
 class TotalpassWebhookEvent(models.Model):
     event_id = models.CharField(max_length=100, blank=True)
     slot_id = models.CharField(max_length=100, blank=True)
@@ -673,6 +687,8 @@ class ContasReceber(models.Model):
     competencia = models.CharField(max_length=7, blank=True)
     dtPagamento = models.DateField(null=True, blank=True)
     dtCadastro = models.DateTimeField(auto_now_add=True)
+    # Quando o arquivo do Receita Saude com este pagamento foi gerado (evita emitir o recibo duas vezes).
+    recibo_saude_gerado_em = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         if self.contrato_id:
